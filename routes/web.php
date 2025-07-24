@@ -6,6 +6,7 @@ use App\Livewire\Lieux\LieuxIndex;
 use App\Livewire\Voyage\VoyageShow;
 use App\Livewire\Voyage\VoyageIndex;
 use Illuminate\Support\Facades\Route;
+use App\Livewire\Finance\FinanceIndex;
 use App\Livewire\Products\ProductIndex;
 use App\Livewire\Vehicules\VehiculeIndex;
 use App\Http\Controllers\ProfileController;
@@ -25,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Routes voyages
     Route::get('/voyages', VoyageIndex::class)->name('voyages.index');
     Route::get('/voyages/{voyage}', VoyageShow::class)->name('voyages.show');
+
+    // Finances
+    Route::get('/finance', FinanceIndex::class)->name('finance.index');
 });
 
 Route::middleware('auth')->group(function () {

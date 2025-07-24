@@ -36,7 +36,7 @@ class Compte extends Model
         return $this->belongsTo(Transaction::class, 'derniere_transaction_id');
     }
 
-    // Accesseur intelligent pour le nom du propriétaire
+    // Accesseurs
     public function getProprietaireDisplayAttribute()
     {
         return $this->nom_proprietaire ?: ($this->user ? $this->user->name : 'Inconnu');
@@ -47,10 +47,25 @@ class Compte extends Model
         return number_format($this->solde_actuel_mga, 0, ',', ' ') . ' MGA';
     }
 
-    // Scopes
-    public function scopeParType($query, $type)
+    // ✅ SCOPES SELON VOS VRAIS TYPES DE COMPTES
+    public function scopePrincipal($query)
     {
-        return $query->where('type_compte', $type);
+        return $query->where('type_compte', 'principal');
+    }
+
+    public function scopeMobileMoney($query)
+    {
+        return $query->where('type_compte', 'mobile_money');
+    }
+
+    public function scopeBanque($query)
+    {
+        return $query->where('type_compte', 'banque');
+    }
+
+    public function scopeCredit($query)
+    {
+        return $query->where('type_compte', 'credit');
     }
 
     public function scopeActif($query)
@@ -58,13 +73,13 @@ class Compte extends Model
         return $query->where('actif', true);
     }
 
+    public function scopeParType($query, $type)
+    {
+        return $query->where('type_compte', $type);
+    }
+
     public function scopeParProprietaire($query, $nom)
     {
-        return $query->where(function ($q) use ($nom) {
-            $q->where('nom_proprietaire', 'like', '%' . $nom . '%')
-              ->orWhereHas('user', function ($subQ) use ($nom) {
-                  $subQ->where('name', 'like', '%' . $nom . '%');
-              });
-        });
+        return $query->where('nom_proprietaire', 'like', '%' . $nom . '%');
     }
 }

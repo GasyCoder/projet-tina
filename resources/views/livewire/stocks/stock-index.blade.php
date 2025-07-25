@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">📦 Gestion de Stock</h1>
+                <h1 class="text-2xl font-bold text-gray-900">Gestion de Stock</h1>
                 <p class="text-sm text-gray-500">Gérez vos ventes, retours, dépôts et transferts</p>
             </div>
             <div class="flex flex-wrap gap-2">

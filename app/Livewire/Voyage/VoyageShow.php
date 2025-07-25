@@ -21,8 +21,8 @@ class VoyageShow extends Component
     public $chargement_reference = '';
     public $chargeur_nom = '';
     public $chargeur_contact = '';
-    public $proprietaire_nom = '';
-    public $proprietaire_contact = '';
+    public $proprietaire_nom = 'Mme TINAH';
+    public $proprietaire_contact = '0349045769';
     public $produit_id = '';
     public $sacs_pleins_depart = '';
     public $sacs_demi_depart = 0;
@@ -33,7 +33,7 @@ class VoyageShow extends Component
     public $showDechargementModal = false;
     public $editingDechargement = null;
     public $dechargement_reference = '';
-    public $chargement_id = ''; // NOUVEAU : Relation vers chargement
+    public $chargement_id = ''; 
     public $type_dechargement = 'vente';
     public $interlocuteur_nom = '';
     public $interlocuteur_contact = '';
@@ -419,7 +419,6 @@ class VoyageShow extends Component
         $voyage = $this->voyage->load([
             'origine', 
             'vehicule', 
-            // 'chauffeur', // ❌ SUPPRIMER cette ligne - pas de relation chauffeur sur Voyage
             'chargements.produit',
             'dechargements.chargement.produit',
             'dechargements.lieuLivraison'

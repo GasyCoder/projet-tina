@@ -74,29 +74,7 @@
                                 </div>
                             @endif
 
-                            <!-- Client et Pointeur -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Nom du client</label>
-                                <input 
-                                    wire:model="interlocuteur_nom"
-                                    type="text"
-                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Ex: Rasoa, Magasin Kanto..."
-                                >
-                                @error('interlocuteur_nom') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Contact client</label>
-                                <input 
-                                    wire:model="interlocuteur_contact"
-                                    type="text"
-                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Téléphone, email..."
-                                >
-                                @error('interlocuteur_contact') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                            </div>
-
+                            <!-- Pointeur et dépot-->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Nom du pointeur</label>
                                 <input 
@@ -109,7 +87,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Lieu de livraison</label>
+                                <label class="block text-sm font-medium text-gray-700">Lieu de livraison (Dépot)</label>
                                 <select wire:model="lieu_livraison_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Sélectionner un lieu</option>
                                     @foreach($destinations as $destination)
@@ -167,36 +145,133 @@
                                 </div>
                             @endif
 
-                            <!-- Informations financières -->
+                            {{-- Section Informations financières avec calculs automatiques --}}
                             @if($type_dechargement === 'vente')
                                 <div class="col-span-2">
-                                    <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">Informations financières</h4>
+                                    <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">💰 Informations financières</h4>
                                 </div>
 
+                                {{-- Prix unitaire (saisie manuelle) --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Prix unitaire (MGA/kg)</label>
-                                    <input wire:model="prix_unitaire_mga" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <label class="block text-sm font-medium text-gray-700">Prix unitaire (MGA/kg) *</label>
+                                    <input 
+                                        wire:model.live="prix_unitaire_mga" 
+                                        type="number" 
+                                        step="0.01" 
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Ex: 2500"
+                                    >
                                     @error('prix_unitaire_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
 
+                                {{-- Montant total (calculé automatiquement) --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Montant total (MGA)</label>
-                                    <input wire:model="montant_total_mga" type="number" step="0.01" readonly class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100 cursor-not-allowed">
-                                    @error('montant_total_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    <label class="block text-sm font-medium text-gray-700">
+                                        Montant total (MGA) 
+                                        <span class="text-xs text-blue-600">✨ Calculé automatiquement</span>
+                                    </label>
+                                    <input 
+                                        wire:model="montant_total_mga" 
+                                        type="text" 
+                                        readonly 
+                                        class="mt-1 block w-full border border-gray-200 rounded-md shadow-sm py-2 px-3 bg-blue-50 text-blue-900 font-medium cursor-not-allowed"
+                                        placeholder="Sera calculé automatiquement"
+                                    >
+                                    <p class="mt-1 text-xs text-blue-600">
+                                        @if($prix_unitaire_mga && $poids_arrivee_kg)
+                                            {{ number_format($prix_unitaire_mga, 0) }} MGA/kg × {{ number_format($poids_arrivee_kg, 1) }} kg = {{ number_format($montant_total_mga, 0) }} MGA
+                                        @else
+                                            Remplissez le prix unitaire et le poids reçu
+                                        @endif
+                                    </p>
                                 </div>
 
+                                {{-- Paiement reçu (saisie manuelle ou auto) --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Paiement reçu (MGA)</label>
-                                    <input wire:model="paiement_mga" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <label class="block text-sm font-medium text-gray-700">
+                                        Paiement reçu (MGA)
+                                        <button 
+                                            type="button" 
+                                            wire:click="setFullPayment" 
+                                            class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
+                                            @if(!$montant_total_mga) disabled @endif
+                                        >
+                                            💰 Paiement complet
+                                        </button>
+                                    </label>
+                                    <input 
+                                        wire:model.live="paiement_mga" 
+                                        type="number" 
+                                        step="0.01" 
+                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Montant payé par le client"
+                                    >
                                     @error('paiement_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                 </div>
 
-                                @if($reste_mga)
-                                    <div>
-                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                            <p class="text-sm text-yellow-800">
-                                                <strong>Reste à encaisser :</strong> {{ number_format($reste_mga, 0) }} MGA
-                                            </p>
+                                {{-- Reste à encaisser (calculé automatiquement) --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">
+                                        Reste à encaisser (MGA)
+                                        <span class="text-xs text-blue-600">✨ Calculé automatiquement</span>
+                                    </label>
+                                    
+                                    @php
+                                        // ✅ Conversion sécurisée des valeurs
+                                        $reste_numerique = is_numeric($reste_mga) ? (float)$reste_mga : 0;
+                                        $montant_total_numerique = is_numeric($montant_total_mga) ? (float)$montant_total_mga : 0;
+                                        $paiement_numerique = is_numeric($paiement_mga) ? (float)$paiement_mga : 0;
+                                    @endphp
+                                    
+                                    <div class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 font-medium
+                                        @if($reste_numerique > 0) bg-yellow-50 border-yellow-300 text-yellow-800
+                                        @elseif($reste_numerique < 0) bg-red-50 border-red-300 text-red-800  
+                                        @else bg-green-50 border-green-300 text-green-800 @endif">
+                                        
+                                        @if($reste_numerique > 0)
+                                            <span class="flex items-center">
+                                                ⚠️ {{ number_format($reste_numerique, 0) }} MGA 
+                                                <span class="ml-2 text-xs">(Paiement partiel)</span>
+                                            </span>
+                                        @elseif($reste_numerique < 0)
+                                            <span class="flex items-center">
+                                                ❌ {{ number_format(abs($reste_numerique), 0) }} MGA 
+                                                <span class="ml-2 text-xs">(Trop-perçu - Vérifiez les montants)</span>
+                                            </span>
+                                        @else
+                                            <span class="flex items-center">
+                                                ✅ 0 MGA 
+                                                <span class="ml-2 text-xs">(Paiement complet)</span>
+                                            </span>
+                                        @endif
+                                    </div>
+                                    
+                                    {{-- Aide contextuelle --}}
+                                    @if($montant_total_numerique > 0 || $paiement_numerique > 0)
+                                        <p class="mt-1 text-xs text-gray-600">
+                                            {{ number_format($montant_total_numerique, 0) }} - {{ number_format($paiement_numerique, 0) }} = {{ number_format($reste_numerique, 0) }} MGA
+                                        </p>
+                                    @endif
+                                </div>
+
+                                {{-- Résumé visuel rapide --}}
+                                @if($montant_total_mga)
+                                    <div class="col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                        <div class="grid grid-cols-3 gap-4 text-sm text-center">
+                                            <div>
+                                                <div class="text-gray-600">Montant dû</div>
+                                                <div class="font-bold text-lg text-blue-600">{{ number_format($montant_total_mga, 0) }} MGA</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-gray-600">Payé</div>
+                                                <div class="font-bold text-lg text-green-600">{{ number_format($paiement_mga ?: 0, 0) }} MGA</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-gray-600">Reste</div>
+                                                <div class="font-bold text-lg {{ $reste_mga > 0 ? 'text-yellow-600' : ($reste_mga < 0 ? 'text-red-600' : 'text-green-600') }}">
+                                                    {{ number_format($reste_mga ?: 0, 0) }} MGA
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 @endif
@@ -211,8 +286,9 @@
                     </div>
 
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">
-                            {{ $editingDechargement ? 'Modifier' : 'Ajouter' }}
+                        <!-- ✅ NOUVEAU : Bouton Aperçu au lieu de Ajouter directement -->
+                        <button type="button" wire:click="showPreview" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
+                            🔍 Aperçu avant {{ $editingDechargement ? 'modification' : 'ajout' }}
                         </button>
                         <button type="button" wire:click="closeDechargementModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
                             Annuler

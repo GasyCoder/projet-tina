@@ -41,5 +41,6 @@
             'produits' => $produits,
             'destinations' => $destinations
         ])
+        @include('livewire.voyage.modals.preview-modal') 
     </div>
 </div>

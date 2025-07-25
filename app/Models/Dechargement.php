@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Dechargement extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'voyage_id',
-        'chargement_id', // ← NOUVELLE RELATION
+        'chargement_id',
         'reference',
         'type',
         'interlocuteur_nom',
@@ -26,6 +28,14 @@ class Dechargement extends Model
         'reste_mga',
         'statut_commercial',
         'observation'
+    ];
+
+    protected $casts = [
+        'poids_arrivee_kg' => 'decimal:2',
+        'prix_unitaire_mga' => 'decimal:2',
+        'montant_total_mga' => 'decimal:2',
+        'paiement_mga' => 'decimal:2',
+        'reste_mga' => 'decimal:2'
     ];
 
     // Relations
@@ -55,20 +65,37 @@ class Dechargement extends Model
         return $this->chargement->produit ?? null;
     }
 
-    public function getPoidsDepertKgAttribute()
+    // ✅ CORRECTION : Typo dans le nom de la méthode
+    public function getPoidsDepartKgAttribute()
     {
         return $this->chargement->poids_depart_kg ?? 0;
     }
 
     public function getEcartPoidsAttribute()
     {
-        return $this->getPoidsDepertKgAttribute() - ($this->poids_arrivee_kg ?? 0);
+        return $this->getPoidsDepartKgAttribute() - ($this->poids_arrivee_kg ?? 0);
     }
 
     public function getPourcentagePerteAttribute()
     {
-        $poidsDepart = $this->getPoidsDepertKgAttribute();
+        $poidsDepart = $this->getPoidsDepartKgAttribute();
         if ($poidsDepart == 0) return 0;
         return ($this->getEcartPoidsAttribute() / $poidsDepart) * 100;
+    }
+
+    // Scopes
+    public function scopeParType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    public function scopeVentes($query)
+    {
+        return $query->where('type', 'vente');
+    }
+
+    public function scopeAvecReste($query)
+    {
+        return $query->where('reste_mga', '>', 0);
     }
 }

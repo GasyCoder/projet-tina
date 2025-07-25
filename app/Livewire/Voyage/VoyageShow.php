@@ -18,23 +18,28 @@ class VoyageShow extends Component
     // Chargement form
     public $showChargementModal = false;
     public $editingChargement = null;
+    
+    // Déchargement form
+    public $showDechargementModal = false;
+    public $editingDechargement = null;
+    
+    // ✅ NOUVEAUX : Aperçu avant sauvegarde
+    public $showPreviewModal = false;
+    public $previewData = [];
+    
+    // Form fields pour chargement
     public $chargement_reference = '';
     public $chargeur_nom = '';
     public $chargeur_contact = '';
-    
-    // VALEURS PAR DÉFAUT CONSTANTES POUR LE PROPRIÉTAIRE
     public $proprietaire_nom = 'Mme TINAH';
     public $proprietaire_contact = '0349045769';
-    
     public $produit_id = '';
     public $sacs_pleins_depart = '';
     public $sacs_demi_depart = 0;
     public $poids_depart_kg = '';
     public $chargement_observation = '';
 
-    // Déchargement form - LOGIQUE CORRIGÉE
-    public $showDechargementModal = false;
-    public $editingDechargement = null;
+    // Form fields pour déchargement
     public $dechargement_reference = '';
     public $chargement_id = ''; 
     public $type_dechargement = 'vente';
@@ -43,7 +48,6 @@ class VoyageShow extends Component
     public $pointeur_nom = '';
     public $pointeur_contact = '';
     public $lieu_livraison_id = '';
-    // SEULEMENT quantités arrivée (pas de redondance)
     public $sacs_pleins_arrivee = '';
     public $sacs_demi_arrivee = 0;
     public $poids_arrivee_kg = '';
@@ -55,34 +59,18 @@ class VoyageShow extends Component
     public $dechargement_observation = '';
 
     protected $rules = [
-        // Chargement rules
-        'chargement_reference' => 'required|string|max:255',
-        'chargeur_nom' => 'required|string|max:255',
-        'chargeur_contact' => 'nullable|string|max:255',
-        'proprietaire_nom' => 'required|string|max:255',
-        'proprietaire_contact' => 'nullable|string|max:255',
-        'produit_id' => 'required|exists:produits,id',
-        'sacs_pleins_depart' => 'required|integer|min:0',
-        'sacs_demi_depart' => 'integer|min:0',
-        'poids_depart_kg' => 'required|numeric|min:0',
-        'chargement_observation' => 'nullable|string',
-
-        // Déchargement rules - LOGIQUE CORRIGÉE
+        // Déchargement rules
         'dechargement_reference' => 'required|string|max:255',
         'chargement_id' => 'required|exists:chargements,id',
         'type_dechargement' => 'required|in:vente,retour,depot,transfert',
-        'interlocuteur_nom' => 'nullable|string|max:255',
-        'interlocuteur_contact' => 'nullable|string|max:255',
         'pointeur_nom' => 'nullable|string|max:255',
-        'pointeur_contact' => 'nullable|string|max:255',
         'lieu_livraison_id' => 'nullable|exists:lieux,id',
         'sacs_pleins_arrivee' => 'nullable|integer|min:0',
-        'sacs_demi_arrivee' => 'integer|min:0',
+        'sacs_demi_arrivee' => 'nullable|integer|min:0',
         'poids_arrivee_kg' => 'nullable|numeric|min:0',
         'prix_unitaire_mga' => 'nullable|numeric|min:0',
         'montant_total_mga' => 'nullable|numeric|min:0',
         'paiement_mga' => 'nullable|numeric|min:0',
-        'reste_mga' => 'nullable|numeric',
         'statut_commercial' => 'required|in:en_attente,vendu,retourne,transfere',
         'dechargement_observation' => 'nullable|string',
     ];
@@ -97,7 +85,135 @@ class VoyageShow extends Component
         $this->activeTab = $tab;
     }
 
-    // CHARGEMENTS
+    // ✅ NOUVELLE MÉTHODE : Aperçu avant sauvegarde
+    public function showPreview()
+    {
+        // Validation des champs obligatoires avant aperçu
+        $this->validate([
+            'dechargement_reference' => 'required|string|max:255',
+            'chargement_id' => 'required|exists:chargements,id',
+            'type_dechargement' => 'required',
+        ]);
+
+        // Calculs automatiques
+        $this->calculateFinancials();
+
+        // Récupérer le chargement sélectionné
+        $chargement = $this->voyage->chargements->find($this->chargement_id);
+        
+        if (!$chargement) {
+            session()->flash('error', 'Chargement introuvable');
+            return;
+        }
+
+        // Préparer les données pour l'aperçu
+        $this->previewData = [
+            'chargement' => [
+                'reference' => $chargement->reference,
+                'proprietaire_nom' => $chargement->proprietaire_nom,
+                'produit' => $chargement->produit->nom ?? 'N/A',
+                'sacs_pleins_depart' => $chargement->sacs_pleins_depart,
+                'sacs_demi_depart' => $chargement->sacs_demi_depart,
+                'poids_depart_kg' => $chargement->poids_depart_kg,
+            ],
+            'dechargement' => [
+                'reference' => $this->dechargement_reference,
+                'type' => $this->type_dechargement,
+                'pointeur_nom' => $this->pointeur_nom ?: 'Non renseigné',
+                'lieu_livraison' => $this->lieu_livraison_id ? 
+                    Lieu::find($this->lieu_livraison_id)->nom : 'Non renseigné',
+                'sacs_pleins_arrivee' => $this->sacs_pleins_arrivee ?: 0,
+                'sacs_demi_arrivee' => $this->sacs_demi_arrivee ?: 0,
+                'poids_arrivee_kg' => $this->poids_arrivee_kg ?: 0,
+                'prix_unitaire_mga' => $this->prix_unitaire_mga ?: 0,
+                'montant_total_mga' => $this->montant_total_mga ?: 0,
+                'paiement_mga' => $this->paiement_mga ?: 0,
+                'reste_mga' => $this->reste_mga ?: 0,
+                'statut_commercial' => $this->statut_commercial,
+            ],
+            'calculs' => [
+                'ecart_sacs_pleins' => $chargement->sacs_pleins_depart - ($this->sacs_pleins_arrivee ?: 0),
+                'ecart_sacs_demi' => $chargement->sacs_demi_depart - ($this->sacs_demi_arrivee ?: 0),
+                'ecart_poids_kg' => $chargement->poids_depart_kg - ($this->poids_arrivee_kg ?: 0),
+                'pourcentage_perte' => $chargement->poids_depart_kg > 0 ? 
+                    (($chargement->poids_depart_kg - ($this->poids_arrivee_kg ?: 0)) / $chargement->poids_depart_kg) * 100 : 0,
+            ]
+        ];
+
+        $this->showPreviewModal = true;
+    }
+
+    // ✅ CONFIRMER ET SAUVEGARDER après aperçu
+    public function confirmSaveDechargement()
+    {
+        $this->showPreviewModal = false;
+        $this->proceedWithSave();
+    }
+
+    // ✅ MÉTHODE DE SAUVEGARDE PRINCIPALE
+    public function saveDechargement()
+    {
+        // Validation complète
+        $this->validate();
+
+        // Vérifier si un déchargement existe déjà pour ce chargement_id
+        if (!$this->editingDechargement) {
+            $existingDechargement = Dechargement::where('chargement_id', $this->chargement_id)->first();
+            if ($existingDechargement) {
+                session()->flash('error', 'Un déchargement existe déjà pour ce chargement.');
+                return;
+            }
+        }
+
+        // Afficher l'aperçu d'abord
+        $this->showPreview();
+    }
+
+    // ✅ SAUVEGARDE EFFECTIVE (après confirmation)
+    private function proceedWithSave()
+    {
+        try {
+            // Calculs automatiques
+            $this->calculateFinancials();
+
+            $data = [
+                'voyage_id' => $this->voyage->id,
+                'reference' => $this->dechargement_reference,
+                'chargement_id' => $this->chargement_id,
+                'type' => $this->type_dechargement,
+                'interlocuteur_nom' => $this->interlocuteur_nom,
+                'interlocuteur_contact' => $this->interlocuteur_contact,
+                'pointeur_nom' => $this->pointeur_nom,
+                'pointeur_contact' => $this->pointeur_contact,
+                'lieu_livraison_id' => $this->lieu_livraison_id ?: null,
+                'sacs_pleins_arrivee' => $this->sacs_pleins_arrivee ?: null,
+                'sacs_demi_arrivee' => $this->sacs_demi_arrivee ?: 0,
+                'poids_arrivee_kg' => $this->poids_arrivee_kg ?: null,
+                'prix_unitaire_mga' => $this->prix_unitaire_mga ?: null,
+                'montant_total_mga' => $this->montant_total_mga ?: null,
+                'paiement_mga' => $this->paiement_mga ?: null,
+                'reste_mga' => $this->reste_mga ?: null,
+                'statut_commercial' => $this->statut_commercial,
+                'observation' => $this->dechargement_observation,
+            ];
+
+            if ($this->editingDechargement) {
+                $this->editingDechargement->update($data);
+                session()->flash('success', 'Déchargement modifié avec succès');
+            } else {
+                Dechargement::create($data);
+                session()->flash('success', 'Déchargement ajouté avec succès');
+            }
+
+            $this->closeDechargementModal();
+            $this->voyage->refresh();
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Erreur lors de la sauvegarde: ' . $e->getMessage());
+        }
+    }
+
+    // CHARGEMENTS (méthodes existantes)
     public function createChargement()
     {
         $this->resetChargementForm();
@@ -106,65 +222,36 @@ class VoyageShow extends Component
         $this->showChargementModal = true;
     }
 
-    public function editChargement(Chargement $chargement)
-    {
-        $this->editingChargement = $chargement;
-        $this->chargement_reference = $chargement->reference;
-        $this->chargeur_nom = $chargement->chargeur_nom;
-        $this->chargeur_contact = $chargement->chargeur_contact;
-        $this->proprietaire_nom = $chargement->proprietaire_nom;
-        $this->proprietaire_contact = $chargement->proprietaire_contact;
-        $this->produit_id = $chargement->produit_id;
-        $this->sacs_pleins_depart = $chargement->sacs_pleins_depart;
-        $this->sacs_demi_depart = $chargement->sacs_demi_depart;
-        $this->poids_depart_kg = $chargement->poids_depart_kg;
-        $this->chargement_observation = $chargement->observation;
-        $this->showChargementModal = true;
-    }
-
     public function saveChargement()
     {
         $this->validate([
             'chargement_reference' => 'required|string|max:255',
             'chargeur_nom' => 'required|string|max:255',
-            'chargeur_contact' => 'nullable|string|max:255',
             'proprietaire_nom' => 'required|string|max:255',
-            'proprietaire_contact' => 'nullable|string|max:255',
             'produit_id' => 'required|exists:produits,id',
             'sacs_pleins_depart' => 'required|integer|min:0',
-            'sacs_demi_depart' => 'integer|min:0',
             'poids_depart_kg' => 'required|numeric|min:0',
-            'chargement_observation' => 'nullable|string',
         ]);
 
+        $data = [
+            'voyage_id' => $this->voyage->id,
+            'reference' => $this->chargement_reference,
+            'chargeur_nom' => $this->chargeur_nom,
+            'chargeur_contact' => $this->chargeur_contact,
+            'proprietaire_nom' => $this->proprietaire_nom,
+            'proprietaire_contact' => $this->proprietaire_contact,
+            'produit_id' => $this->produit_id,
+            'sacs_pleins_depart' => $this->sacs_pleins_depart,
+            'sacs_demi_depart' => $this->sacs_demi_depart ?: 0,
+            'poids_depart_kg' => $this->poids_depart_kg,
+            'observation' => $this->chargement_observation,
+        ];
+
         if ($this->editingChargement) {
-            $this->editingChargement->update([
-                'reference' => $this->chargement_reference,
-                'chargeur_nom' => $this->chargeur_nom,
-                'chargeur_contact' => $this->chargeur_contact,
-                'proprietaire_nom' => $this->proprietaire_nom,
-                'proprietaire_contact' => $this->proprietaire_contact,
-                'produit_id' => $this->produit_id,
-                'sacs_pleins_depart' => $this->sacs_pleins_depart,
-                'sacs_demi_depart' => $this->sacs_demi_depart,
-                'poids_depart_kg' => $this->poids_depart_kg,
-                'observation' => $this->chargement_observation,
-            ]);
+            $this->editingChargement->update($data);
             session()->flash('success', 'Chargement modifié avec succès');
         } else {
-            Chargement::create([
-                'voyage_id' => $this->voyage->id,
-                'reference' => $this->chargement_reference,
-                'chargeur_nom' => $this->chargeur_nom,
-                'chargeur_contact' => $this->chargeur_contact,
-                'proprietaire_nom' => $this->proprietaire_nom,
-                'proprietaire_contact' => $this->proprietaire_contact,
-                'produit_id' => $this->produit_id,
-                'sacs_pleins_depart' => $this->sacs_pleins_depart,
-                'sacs_demi_depart' => $this->sacs_demi_depart,
-                'poids_depart_kg' => $this->poids_depart_kg,
-                'observation' => $this->chargement_observation,
-            ]);
+            Chargement::create($data);
             session()->flash('success', 'Chargement ajouté avec succès');
         }
 
@@ -172,30 +259,13 @@ class VoyageShow extends Component
         $this->voyage->refresh();
     }
 
-    public function deleteChargement(Chargement $chargement)
-    {
-        $chargement->delete();
-        session()->flash('success', 'Chargement supprimé avec succès');
-        $this->voyage->refresh();
-    }
-
-    // DÉCHARGEMENTS - LOGIQUE CORRIGÉE
+    // DÉCHARGEMENTS
     public function createDechargement()
     {
         $this->resetDechargementForm();
         $this->editingDechargement = null;
         $this->dechargement_reference = $this->generateDechargementReference();
         $this->showDechargementModal = true;
-
-        // Si un chargement_id est déjà sélectionné, vérifier s'il a un déchargement
-        if ($this->chargement_id) {
-            $existingDechargement = Dechargement::where('chargement_id', $this->chargement_id)->first();
-            if ($existingDechargement) {
-                // Si un déchargement existe, passer en mode édition
-                $this->editDechargement($existingDechargement);
-                session()->flash('info', 'Un déchargement existe déjà pour ce chargement. Vous pouvez modifier les informations.');
-            }
-        }
     }
 
     public function editDechargement(Dechargement $dechargement)
@@ -221,103 +291,60 @@ class VoyageShow extends Component
         $this->showDechargementModal = true;
     }
 
-    public function calculateFinancials()
-    {
-        if ($this->prix_unitaire_mga && $this->poids_arrivee_kg) {
-            $this->montant_total_mga = $this->prix_unitaire_mga * $this->poids_arrivee_kg;
-        } else {
-            $this->montant_total_mga = null;
-        }
-
-        if ($this->montant_total_mga && $this->paiement_mga) {
-            $this->reste_mga = $this->montant_total_mga - $this->paiement_mga;
-        } else {
-            $this->reste_mga = null;
-        }
-    }
-
-    public function saveDechargement()
-    {
-        $this->validate();
-
-        // Vérifier si un déchargement existe déjà pour ce chargement_id (sauf en mode édition)
-        if (!$this->editingDechargement) {
-            $existingDechargement = Dechargement::where('chargement_id', $this->chargement_id)->first();
-            if ($existingDechargement) {
-                session()->flash('error', 'Un déchargement existe déjà pour ce chargement. Veuillez modifier le déchargement existant.');
-                $this->editDechargement($existingDechargement);
-                return;
-            }
-        }
-
-        // Calculs automatiques
-        $this->calculateFinancials();
-
-        if ($this->editingDechargement) {
-            $this->editingDechargement->update([
-                'reference' => $this->dechargement_reference,
-                'chargement_id' => $this->chargement_id,
-                'type' => $this->type_dechargement,
-                'interlocuteur_nom' => $this->interlocuteur_nom,
-                'interlocuteur_contact' => $this->interlocuteur_contact,
-                'pointeur_nom' => $this->pointeur_nom,
-                'pointeur_contact' => $this->pointeur_contact,
-                'lieu_livraison_id' => $this->lieu_livraison_id ?: null,
-                'sacs_pleins_arrivee' => $this->sacs_pleins_arrivee ?: null,
-                'sacs_demi_arrivee' => $this->sacs_demi_arrivee,
-                'poids_arrivee_kg' => $this->poids_arrivee_kg ?: null,
-                'prix_unitaire_mga' => $this->prix_unitaire_mga ?: null,
-                'montant_total_mga' => $this->montant_total_mga ?: null,
-                'paiement_mga' => $this->paiement_mga ?: null,
-                'reste_mga' => $this->reste_mga ?: null,
-                'statut_commercial' => $this->statut_commercial,
-                'observation' => $this->dechargement_observation,
-            ]);
-            session()->flash('success', 'Déchargement modifié avec succès');
-        } else {
-            Dechargement::create([
-                'voyage_id' => $this->voyage->id,
-                'reference' => $this->dechargement_reference,
-                'chargement_id' => $this->chargement_id,
-                'type' => $this->type_dechargement,
-                'interlocuteur_nom' => $this->interlocuteur_nom,
-                'interlocuteur_contact' => $this->interlocuteur_contact,
-                'pointeur_nom' => $this->pointeur_nom,
-                'pointeur_contact' => $this->pointeur_contact,
-                'lieu_livraison_id' => $this->lieu_livraison_id ?: null,
-                'sacs_pleins_arrivee' => $this->sacs_pleins_arrivee ?: null,
-                'sacs_demi_arrivee' => $this->sacs_demi_arrivee,
-                'poids_arrivee_kg' => $this->poids_arrivee_kg ?: null,
-                'prix_unitaire_mga' => $this->prix_unitaire_mga ?: null,
-                'montant_total_mga' => $this->montant_total_mga ?: null,
-                'paiement_mga' => $this->paiement_mga ?: null,
-                'reste_mga' => $this->reste_mga ?: null,
-                'statut_commercial' => $this->statut_commercial,
-                'observation' => $this->dechargement_observation,
-            ]);
-            session()->flash('success', 'Déchargement ajouté avec succès');
-        }
-
-        $this->closeDechargementModal();
-        $this->voyage->refresh();
-    }
-
-    public function updatedChargementId($value)
-    {
-        if ($value && !$this->editingDechargement) {
-            $existingDechargement = Dechargement::where('chargement_id', $value)->first();
-            if ($existingDechargement) {
-                $this->editDechargement($existingDechargement);
-                session()->flash('info', 'Un déchargement existe déjà pour ce chargement. Vous pouvez modifier les informations.');
-            }
-        }
-    }
-
     public function deleteDechargement(Dechargement $dechargement)
     {
         $dechargement->delete();
         session()->flash('success', 'Déchargement supprimé avec succès');
         $this->voyage->refresh();
+    }
+
+    // ✅ NOUVEAU : Remplir automatiquement le paiement complet
+    public function setFullPayment()
+    {
+        if ($this->montant_total_mga) {
+            $this->paiement_mga = $this->montant_total_mga;
+            $this->calculateFinancials();
+        }
+    }
+
+    // ✅ CALCULS AUTOMATIQUES AMÉLIORÉS
+    public function calculateFinancials()
+    {
+        // Conversion explicite en float
+        $this->montant_total_mga = (float)$this->prix_unitaire_mga * (float)$this->poids_arrivee_kg;
+        
+        // Utilisation de l'opérateur Elvis pour les calculs
+        $montant_total = is_numeric($this->montant_total_mga) ? (float)$this->montant_total_mga : 0;
+        $paiement = is_numeric($this->paiement_mga) ? (float)$this->paiement_mga : 0;
+        
+        $this->reste_mga = $montant_total - $paiement;
+    }
+
+    // ✅ LISTENERS AUTOMATIQUES pour tous les champs qui impactent les calculs
+    public function updatedPrixUnitaireMga() 
+    { 
+        $this->calculateFinancials(); 
+    }
+    
+    public function updatedPoidsArriveeKg() 
+    { 
+        $this->calculateFinancials(); 
+    }
+    
+    public function updatedPaiementMga() 
+    { 
+        $this->calculateFinancials(); 
+    }
+
+    // ✅ NOUVEAU : Calcul aussi quand on change les sacs (avec les bons noms de méthodes Livewire)
+    public function updatedSacsPleinsArrivee() 
+    { 
+        $this->calculateFinancials(); 
+    }
+    
+    public function updatedSacsDemiArrivee() 
+    { 
+        $this->calculateFinancials(); 
     }
 
     // MODAL MANAGEMENT
@@ -335,13 +362,17 @@ class VoyageShow extends Component
         $this->editingDechargement = null;
     }
 
-    // MÉTHODE CORRIGÉE : Garder les valeurs par défaut du propriétaire
+    public function closePreviewModal()
+    {
+        $this->showPreviewModal = false;
+    }
+
+    // FORM RESET
     private function resetChargementForm()
     {
         $this->chargement_reference = '';
         $this->chargeur_nom = '';
         $this->chargeur_contact = '';
-        // GARDER LES VALEURS PAR DÉFAUT DU PROPRIÉTAIRE
         $this->proprietaire_nom = 'Mme TINAH';
         $this->proprietaire_contact = '0349045769';
         $this->produit_id = '';
@@ -374,6 +405,7 @@ class VoyageShow extends Component
         $this->resetErrorBag();
     }
 
+    // GENERATORS
     private function generateChargementReference()
     {
         $count = $this->voyage->chargements()->count() + 1;
@@ -384,34 +416,6 @@ class VoyageShow extends Component
     {
         $count = $this->voyage->dechargements()->count() + 1;
         return 'OP' . str_pad($count, 3, '0', STR_PAD_LEFT);
-    }
-
-    // CALCULS AUTOMATIQUES
-    public function updatedPrixUnitaireMga()
-    {
-        $this->calculateFinancials();
-    }
-
-    public function updatedPoidsArriveeKg()
-    {
-        $this->calculateFinancials();
-    }
-
-    public function updatedMontantTotalMga()
-    {
-        $this->calculateReste();
-    }
-
-    public function updatedPaiementMga()
-    {
-        $this->calculateFinancials();
-    }
-
-    private function calculateReste()
-    {
-        if ($this->montant_total_mga && $this->paiement_mga) {
-            $this->reste_mga = $this->montant_total_mga - $this->paiement_mga;
-        }
     }
 
     public function render()
@@ -427,7 +431,6 @@ class VoyageShow extends Component
         $produits = Produit::where('actif', true)->get();
         $destinations = Lieu::whereIn('type', ['destination', 'depot'])->where('actif', true)->get();
 
-        // Calculs de synthèse corrigés
         $totalPoidsCharge = $voyage->chargements->sum('poids_depart_kg');
         $totalPoidsDecharge = $voyage->dechargements->sum('poids_arrivee_kg');
         $ecartPoids = $totalPoidsCharge - $totalPoidsDecharge;

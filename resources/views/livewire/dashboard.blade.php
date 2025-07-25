@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-gray-50 p-4 md:p-6">
+<div class="min-h-screen bg-gray-50 pt-20 pb-6 px-4 md:px-6">
     <div class="space-y-6 max-w-7xl mx-auto">
         <!-- En-tête avec filtres -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

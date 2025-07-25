@@ -3,19 +3,24 @@
 use App\Livewire\Dashboard;
 use App\Livewire\Users\UserIndex;
 use App\Livewire\Lieux\LieuxIndex;
+use App\Livewire\Stocks\StockIndex;
 use App\Livewire\Voyage\VoyageShow;
 use App\Livewire\Voyage\VoyageIndex;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Finance\FinanceIndex;
 use App\Livewire\Products\ProductIndex;
 use App\Livewire\Vehicules\VehiculeIndex;
 use App\Http\Controllers\ProfileController;
-use App\Livewire\Stocks\StockIndex;
+
+// Authentication routes
+require __DIR__.'/auth.php';
+Route::redirect('/', '/login');
+Route::redirect('/register', '/login');
 
 Route::get('/', function () {
-    return view('welcome');
+    return Auth::check() ? redirect('/dashboard') : redirect('/login');
 });
-
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
@@ -32,12 +37,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Finances
     Route::get('/finance', FinanceIndex::class)->name('finance.index');
-});
 
-Route::middleware('auth')->group(function () {
+
+    // Profile management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+

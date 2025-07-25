@@ -20,7 +20,9 @@
                     <x-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')">Véhicules</x-nav-link>
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">Utilisateurs</x-nav-link>
                     <x-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.*')">Finance</x-nav-link>
-                    <x-nav-link :href="route('stocks')" :active="request()->routeIs('stocks')">Stocks</x-nav-link>
+                    @if(Auth::user()->isAdmin())
+                    <x-nav-link :href="route('admin.stocks')" :active="request()->routeIs('admin.stocks')">Stocks</x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -72,7 +74,7 @@
             <x-responsive-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')">Véhicules</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">Utilisateurs</x-responsive-nav-link>
             <x-responsive-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.*')">Finance</x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('stocks')" :active="request()->routeIs('stocks')">Stocks</x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('admin.stocks')" :active="request()->routeIs('admin.stocks')">Stocks</x-responsive-nav-link>
         </div>
 
         <!-- Compte utilisateur (mobile) -->

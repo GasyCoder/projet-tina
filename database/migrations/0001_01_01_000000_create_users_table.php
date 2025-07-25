@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->enum('type', ['chargeur', 'chauffeur', 'pointeur', 'client', 'proprietaire', 'admin']);
+            $table->enum('type', ['user', 'admin'])->default('user');
             $table->string('contact')->nullable();
             $table->text('adresse')->nullable();
             $table->boolean('actif')->default(true);

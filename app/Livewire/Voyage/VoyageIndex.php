@@ -69,6 +69,7 @@ class VoyageIndex extends Component
         $this->editingVoyage = null;
         $this->reference = $this->generateReference();
         $this->showModal = true;
+        
     }
 
     public function edit(Voyage $voyage)

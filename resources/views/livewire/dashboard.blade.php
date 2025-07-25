@@ -230,19 +230,30 @@
             </div>
 
             <div class="bg-white rounded-lg shadow p-4 md:p-6">
-                <h4 class="text-sm font-medium text-gray-900 mb-4">Actions rapides</h4>
-                <div class="space-y-2">
-                    <button class="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded">
-                        + Nouveau voyage
-                    </button>
-                    <button class="w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded">
-                        + Transaction
-                    </button>
-                    <button class="w-full text-left px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded">
-                        📊 Rapports
-                    </button>
-                </div>
-            </div>
+    <h4 class="text-sm font-medium text-gray-900 mb-4">Actions rapides</h4>
+    <div class="space-y-2">
+        {{-- Lien vers la page Voyages --}}
+        <a 
+            href="{{ route('voyages.index') }}"
+            class="block w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors">
+            + Nouveau voyage
+        </a>
+        
+        {{-- Lien vers la page Finance --}}
+        <a 
+            href="{{ route('finance.index') }}"
+            class="block w-full text-left px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded transition-colors">
+            + Transaction
+        </a>
+        
+        {{-- Lien vers la page Stocks --}}
+        <a 
+            href="{{ route('stocks') }}"
+            class="block w-full text-left px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded transition-colors">
+            📊 Rapports
+        </a>
+    </div>
+</div>
         </div>
     </div>
 </div>

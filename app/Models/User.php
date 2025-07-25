@@ -98,6 +98,12 @@ class User extends Authenticatable
         return $this->type === 'admin';
     }
 
+    // Verifier Utilisateur
+    public function isUser()
+    {
+        return $this->type === 'user';
+    }
+
     public function isChauffeur()
     {
         return $this->type === 'chauffeur';

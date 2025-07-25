@@ -3,77 +3,55 @@
 namespace App\Livewire\Stocks;
 
 use Livewire\Component;
-use App\Models\Vente as VenteModel;
-use App\Models\Produit;
-use App\Models\Vehicule;
-use Carbon\Carbon;
 use Livewire\WithPagination;
 
 class Vente extends Component
 {
     use WithPagination;
 
-    // Propriétés pour les statistiques
-    public $ventesJour;
-    public $caJour;
-    public $ventesEnAttente;
-    public $caMensuel;
-
-    // Propriétés pour le filtrage
+    // Propriétés pour la recherche et les filtres
     public $search = '';
-    public $filterProduit = '';
-    public $filterStatut = '';
-    public $filterDate = '';
-
+    public $filterStatus = '';
+    
     // Propriétés pour le tri
     public $sortField = 'date';
     public $sortDirection = 'desc';
-
+    
     // Propriétés pour les modales
-    public $showCreateModal = false;
-    public $showEditModal = false;
-
+    public $showModal = false;
+    public $editingId = null;
+    
     // Propriétés pour le formulaire
     public $form = [
-        'produit_id' => '',
+        'produit' => '',
         'client' => '',
         'poids' => '',
         'prix_unitaire' => '',
-        'date_livraison' => '',
-        'vehicule_id' => '',
-        'observations' => '',
-        'statut' => 'attente'
+        'vehicule' => '',
     ];
+    
+    // Statistiques (données factices)
+    public $ventesJour = 12;
+    public $caJournalier = 45280;
+    public $commandesAttente = 3;
+    public $caMensuel = 1245680;
+    public $totalVentes = 25;
 
-    public $venteId;
+    // Listeners Livewire
+    protected $listeners = ['$refresh'];
 
-    // Initialisation
-    public function mount()
+    // Méthodes pour réinitialiser la pagination lors des recherches
+    public function updatingSearch()
     {
-        $this->calculerStatistiques();
+        $this->resetPage();
     }
 
-    // Calcul des statistiques
-    protected function calculerStatistiques()
+    public function updatingFilterStatus()
     {
-        $this->ventesJour = Vente::whereDate('date', Carbon::today())
-                               ->where('statut', 'valide')
-                               ->count();
-
-        $this->caJour = Vente::whereDate('date', Carbon::today())
-                           ->where('statut', 'valide')
-                           ->sum('prix');
-
-        $this->ventesEnAttente = Vente::where('statut', 'attente')
-                                    ->count();
-
-        $this->caMensuel = Vente::whereMonth('date', Carbon::now()->month)
-                               ->whereYear('date', Carbon::now()->year)
-                               ->where('statut', 'valide')
-                               ->sum('prix');
+        $this->resetPage();
     }
 
-    // Tri des colonnes
+    // Méthode pour le tri
     public function sortBy($field)
     {
         if ($this->sortField === $field) {
@@ -84,115 +62,88 @@ class Vente extends Component
         }
     }
 
-    // Réinitialiser le formulaire
+    // Méthodes pour les modales
+    public function openModal()
+    {
+        $this->showModal = true;
+        $this->resetForm();
+    }
+
+    public function closeModal()
+    {
+        $this->showModal = false;
+        $this->editingId = null;
+        $this->resetForm();
+    }
+
     public function resetForm()
     {
-        $this->reset('form', 'showCreateModal', 'showEditModal', 'venteId');
+        $this->form = [
+            'produit' => '',
+            'client' => '',
+            'poids' => '',
+            'prix_unitaire' => '',
+            'vehicule' => '',
+        ];
     }
 
-    // Créer une vente
-    public function createVente()
+    // Méthode pour sauvegarder
+    public function save()
     {
-        $validated = $this->validate([
-            'form.produit_id' => 'required',
+        $this->validate([
+            'form.produit' => 'required',
             'form.client' => 'required',
-            'form.poids' => 'required|numeric',
-            'form.prix_unitaire' => 'required|numeric',
-            'form.date_livraison' => 'required|date',
+            'form.poids' => 'required|numeric|min:0',
+            'form.prix_unitaire' => 'required|numeric|min:0',
+            'form.vehicule' => 'required',
+        ], [
+            'form.produit.required' => 'Le produit est obligatoire.',
+            'form.client.required' => 'Le client est obligatoire.',
+            'form.poids.required' => 'Le poids est obligatoire.',
+            'form.poids.numeric' => 'Le poids doit être un nombre.',
+            'form.prix_unitaire.required' => 'Le prix unitaire est obligatoire.',
+            'form.prix_unitaire.numeric' => 'Le prix unitaire doit être un nombre.',
+            'form.vehicule.required' => 'Le véhicule est obligatoire.',
         ]);
 
-        $vente = Vente::create([
-            'produit_id' => $this->form['produit_id'],
-            'client' => $this->form['client'],
-            'poids' => $this->form['poids'],
-            'prix_unitaire' => $this->form['prix_unitaire'],
-            'prix' => $this->form['poids'] * $this->form['prix_unitaire'],
-            'date' => now(),
-            'date_livraison' => $this->form['date_livraison'],
-            'vehicule_id' => $this->form['vehicule_id'],
-            'observations' => $this->form['observations'],
-            'statut' => $this->form['statut']
-        ]);
+        // Ici vous pourrez sauvegarder en base de données
+        // Vente::create($this->form);
 
-        $this->resetForm();
-        $this->calculerStatistiques();
+        session()->flash('message', 'Vente enregistrée avec succès !');
+        $this->closeModal();
+        $this->dispatch('$refresh');
     }
 
-    // Afficher le formulaire d'édition
-    public function editVente($id)
+    // Méthodes pour les actions sur les ventes
+    public function edit($id)
     {
-        $this->venteId = $id;
-        $vente = Vente::find($id);
-        $this->form = $vente->toArray();
-        $this->showEditModal = true;
+        $this->editingId = $id;
+        // Charger les données de la vente
+        // $vente = Vente::find($id);
+        // $this->form = $vente->toArray();
+        $this->showModal = true;
     }
 
-    // Mettre à jour une vente
-    public function updateVente()
+    public function delete($id)
     {
-        $validated = $this->validate([
-            'form.produit_id' => 'required',
-            'form.client' => 'required',
-            'form.poids' => 'required|numeric',
-            'form.prix_unitaire' => 'required|numeric',
-            'form.date_livraison' => 'required|date',
-        ]);
-
-        $vente = Vente::find($this->venteId);
-        $vente->update([
-            'produit_id' => $this->form['produit_id'],
-            'client' => $this->form['client'],
-            'poids' => $this->form['poids'],
-            'prix_unitaire' => $this->form['prix_unitaire'],
-            'prix' => $this->form['poids'] * $this->form['prix_unitaire'],
-            'date_livraison' => $this->form['date_livraison'],
-            'vehicule_id' => $this->form['vehicule_id'],
-            'observations' => $this->form['observations'],
-            'statut' => $this->form['statut']
-        ]);
-
-        $this->resetForm();
-        $this->calculerStatistiques();
+        // Supprimer la vente
+        // Vente::find($id)->delete();
+        session()->flash('message', 'Vente supprimée avec succès !');
+        $this->dispatch('$refresh');
     }
 
-    // Supprimer une vente
-    public function deleteVente($id)
-    {
-        Vente::find($id)->delete();
-        $this->calculerStatistiques();
-    }
-
-    // Exporter les ventes
-    public function exportVentes()
-    {
-        // Implémentez votre logique d'export ici
-    }
-
-    // Rendu de la vue
     public function render()
     {
-        $ventes = Vente::query()
-            ->when($this->search, function ($query) {
-                $query->where('client', 'like', '%'.$this->search.'%');
-            })
-            ->when($this->filterProduit, function ($query) {
-                $query->whereHas('produit', function ($q) {
-                    $q->where('nom', $this->filterProduit);
-                });
-            })
-            ->when($this->filterStatut, function ($query) {
-                $query->where('statut', $this->filterStatut);
-            })
-            ->when($this->filterDate, function ($query) {
-                $query->whereDate('date', $this->filterDate);
-            })
-            ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate(10);
+        // Pour l'instant on retourne des données factices
+        // Plus tard vous pourrez faire une vraie requête :
+        // $ventes = Vente::query()
+        //     ->when($this->search, fn($query) => $query->where('client', 'like', '%'.$this->search.'%'))
+        //     ->when($this->filterStatus, fn($query) => $query->where('statut', $this->filterStatus))
+        //     ->orderBy($this->sortField, $this->sortDirection)
+        //     ->paginate(10);
 
         return view('livewire.stocks.vente', [
-            'ventes' => $ventes,
-            'produits' => Produit::all(),
-            'vehicules' => Vehicule::all()
+            'ventes' => collect([]) // Collection vide pour l'instant
         ]);
     }
 }

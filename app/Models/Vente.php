@@ -6,28 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Vente extends Model
 {
-    protected $fillable = [
-        'produit_id', 
-        'client',
-        'poids',
-        'prix_unitaire',
-        'prix',
-        'date',
-        'date_livraison',
-        'vehicule_id',
-        'observations',
-        'statut'
-    ];
+    // Si ta table ne suit pas la convention "ventes" (pluriel),
+    // précise le nom avec cette propriété :
+    // protected $table = 'nom_de_ta_table';
 
-    protected $dates = ['date', 'date_livraison'];
+    // Si tu as des colonnes à protéger ou autoriser en mass assignment :
+    // protected $fillable = ['montant', 'statut', 'created_at', ...];
 
-    public function produit()
-    {
-        return $this->belongsTo(Produit::class);
-    }
-
-    public function vehicule()
-    {
-        return $this->belongsTo(Vehicule::class);
-    }
+    // Si tu utilises les timestamps Laravel (created_at, updated_at)
+    // tu peux les laisser comme ça (true par défaut)
+    // sinon mettre protected $timestamps = false;
 }

@@ -67,7 +67,7 @@
                                 </div>
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Variété</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th>
+                            {{-- <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unité</th> --}}
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Poids/sac</th>
                             <th wire:click="sortBy('prix_reference_mga')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden lg:table-cell">
                                 <div class="flex items-center gap-1">
@@ -103,13 +103,13 @@
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                                     {{ $produit->variete ?: '-' }}
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{-- <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                                         {{ $produit->unite }}
                                     </span>
-                                </td>
+                                </td> --}}
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                                    {{ number_format($produit->poids_moyen_sac_kg, 1) }} kg
+                                    {{ number_format($produit->poids_moyen_sac_kg, 1) }} {{ $produit->unite }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                                     @if($produit->prix_reference_mga)

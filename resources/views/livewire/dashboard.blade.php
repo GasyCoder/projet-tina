@@ -332,7 +332,7 @@
                         <div class="text-2xl mb-2">💰</div>
                         <p class="text-sm font-medium">Transaction</p>
                     </a>
-                    <a href="{{ route('stocks') }}" 
+                    <a href="{{ route('admin.stocks') }}" 
                        class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
                         <div class="text-2xl mb-2">📊</div>
                         <p class="text-sm font-medium">Rapports</p>

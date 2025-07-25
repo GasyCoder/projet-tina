@@ -160,6 +160,16 @@
                                     @endif
                                 </div>
                             </th>
+                            <th wire:click="sortBy('chauffeur')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                <div class="flex items-center gap-1">
+                                    <span>Chauffeur</span>
+                                    @if($sortField === 'chauffeur')
+                                        <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-0' : 'rotate-180' }}" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z"/>
+                                        </svg>
+                                    @endif
+                                </div>
+                            </th>   
                             <th wire:click="sortBy('type')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
                                 <div class="flex items-center gap-1">
                                     <span>Type</span>
@@ -222,6 +232,9 @@
                                             </div>
                                         </div>
                                     </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ $vehicule->chauffeur ?: '-' }}</div>
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
@@ -395,6 +408,18 @@
                                             >
                                             @error('modele') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                         </div>
+                                    </div>
+
+                                    <!-- Chauffeur -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Chauffeur</label>
+                                        <input 
+                                            wire:model="chauffeur"
+                                            type="text"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Nom du chauffeur"
+                                        >
+                                        @error('chauffeur') <p class="mt-1 text-sm text-red-600">{{ $message }}</p>     @enderror
                                     </div>
 
                                     <!-- Capacité -->

@@ -419,7 +419,7 @@ class VoyageShow extends Component
         $voyage = $this->voyage->load([
             'origine', 
             'vehicule', 
-            'chauffeur',
+            // 'chauffeur', // ❌ SUPPRIMER cette ligne - pas de relation chauffeur sur Voyage
             'chargements.produit',
             'dechargements.chargement.produit',
             'dechargements.lieuLivraison'
@@ -430,7 +430,7 @@ class VoyageShow extends Component
 
         // Calculs de synthèse corrigés
         $totalPoidsCharge = $voyage->chargements->sum('poids_depart_kg');
-        $totalPoidsDecharge = $voyage->dechargements->sum('poids_arrivee_kg'); // Changé
+        $totalPoidsDecharge = $voyage->dechargements->sum('poids_arrivee_kg');
         $ecartPoids = $totalPoidsCharge - $totalPoidsDecharge;
         $totalVentes = $voyage->dechargements->where('type', 'vente')->sum('montant_total_mga');
         $totalPaiements = $voyage->dechargements->where('type', 'vente')->sum('paiement_mga');

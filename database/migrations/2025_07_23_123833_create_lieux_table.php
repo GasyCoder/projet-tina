@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('nom'); // ANKIRIRIKA, VISHAL, etc.
             $table->enum('type', ['origine', 'destination', 'depot']);
             $table->string('region')->nullable();
+            $table->string('telephone')->nullable();
             $table->text('adresse')->nullable();
             $table->boolean('actif')->default(true);
             $table->timestamps();

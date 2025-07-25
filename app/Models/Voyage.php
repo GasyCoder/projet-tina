@@ -14,7 +14,6 @@ class Voyage extends Model
         'date',
         'origine_id',
         'vehicule_id',
-        'chauffeur_id',
         'statut',
         'ecart_sacs_pleins',
         'ecart_sacs_demi',
@@ -38,10 +37,6 @@ class Voyage extends Model
         return $this->belongsTo(Vehicule::class);
     }
 
-    public function chauffeur()
-    {
-        return $this->belongsTo(User::class, 'chauffeur_id');
-    }
 
     public function chargements()
     {

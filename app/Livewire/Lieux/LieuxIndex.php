@@ -21,12 +21,14 @@ class LieuxIndex extends Component
     public $nom = '';
     public $type = 'origine';
     public $region = '';
+    public $telephone = '';
     public $adresse = '';
     public $actif = true;
 
     protected $rules = [
         'nom' => 'required|string|max:255',
         'type' => 'required|in:origine,destination,depot',
+        'telephone' => 'nullable|string|max:20',
         'region' => 'nullable|string|max:255',
         'adresse' => 'nullable|string',
         'actif' => 'boolean'
@@ -65,6 +67,7 @@ class LieuxIndex extends Component
         $this->nom = $lieu->nom;
         $this->type = $lieu->type;
         $this->region = $lieu->region;
+        $this->telephone = $lieu->telephone;
         $this->adresse = $lieu->adresse;
         $this->actif = $lieu->actif;
         $this->showModal = true;
@@ -79,6 +82,7 @@ class LieuxIndex extends Component
                 'nom' => $this->nom,
                 'type' => $this->type,
                 'region' => $this->region,
+                'telephone' => $this->telephone,
                 'adresse' => $this->adresse,
                 'actif' => $this->actif,
             ]);
@@ -88,6 +92,7 @@ class LieuxIndex extends Component
                 'nom' => $this->nom,
                 'type' => $this->type,
                 'region' => $this->region,
+                'telephone' => $this->telephone,
                 'adresse' => $this->adresse,
                 'actif' => $this->actif,
             ]);
@@ -121,6 +126,7 @@ class LieuxIndex extends Component
         $this->nom = '';
         $this->type = 'origine';
         $this->region = '';
+        $this->telephone = '';
         $this->adresse = '';
         $this->actif = true;
         $this->resetErrorBag();

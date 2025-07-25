@@ -14,6 +14,7 @@ class Lieu extends Model
         'type',
         'region',
         'adresse',
+        'telephone',
         'actif'
     ];
 

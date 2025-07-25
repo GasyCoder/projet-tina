@@ -52,11 +52,8 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs sm:text-sm font-medium text-gray-600">Chauffeur</p>
-                    @if($voyage->chauffeur)
-                        <p class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ $voyage->chauffeur->name }}</p>
-                        @if($voyage->chauffeur->code)
-                            <p class="text-xs sm:text-sm text-gray-500">Code: {{ $voyage->chauffeur->code }}</p>
-                        @endif
+                    @if($voyage->vehicule && $voyage->vehicule->chauffeur)
+                        <p class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ $voyage->vehicule->chauffeur }}</p>
                     @else
                         <p class="text-base sm:text-lg font-bold text-red-500">Non renseigné</p>
                     @endif

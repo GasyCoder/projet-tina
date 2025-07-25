@@ -23,6 +23,7 @@ class VehiculeIndex extends Component
     public $type = 'camion';
     public $marque = '';
     public $modele = '';
+    public $chauffeur = '';
     public $capacite_max_kg = '';
     public $statut = 'actif';
 
@@ -31,6 +32,7 @@ class VehiculeIndex extends Component
         'type' => 'required|in:camion,semi-remorque,pick-up,tracteur,autre',
         'marque' => 'nullable|string|max:255',
         'modele' => 'nullable|string|max:255',
+        'chauffeur' => 'nullable|string|max:255',
         'capacite_max_kg' => 'nullable|integer|min:0',
         'statut' => 'required|in:actif,maintenance,inactif'
     ];
@@ -73,6 +75,7 @@ class VehiculeIndex extends Component
         $this->immatriculation = $vehicule->immatriculation;
         $this->type = $vehicule->type;
         $this->marque = $vehicule->marque;
+        $this->chauffeur = $vehicule->chauffeur;
         $this->modele = $vehicule->modele;
         $this->capacite_max_kg = $vehicule->capacite_max_kg;
         $this->statut = $vehicule->statut;
@@ -92,6 +95,7 @@ class VehiculeIndex extends Component
                 'immatriculation' => $this->immatriculation,
                 'type' => $this->type,
                 'marque' => $this->marque,
+                'chauffeur' => $this->chauffeur,
                 'modele' => $this->modele,
                 'capacite_max_kg' => $this->capacite_max_kg,
                 'statut' => $this->statut,
@@ -102,6 +106,7 @@ class VehiculeIndex extends Component
                 'immatriculation' => $this->immatriculation,
                 'type' => $this->type,
                 'marque' => $this->marque,
+                'chauffeur' => $this->chauffeur,
                 'modele' => $this->modele,
                 'capacite_max_kg' => $this->capacite_max_kg,
                 'statut' => $this->statut,
@@ -136,6 +141,7 @@ class VehiculeIndex extends Component
         $this->immatriculation = '';
         $this->type = 'camion';
         $this->marque = '';
+        $this->chauffeur = '';
         $this->modele = '';
         $this->capacite_max_kg = '';
         $this->statut = 'actif';
@@ -148,6 +154,7 @@ class VehiculeIndex extends Component
             ->when($this->search, function ($query) {
                 $query->where('immatriculation', 'like', '%' . $this->search . '%')
                       ->orWhere('marque', 'like', '%' . $this->search . '%')
+                      ->orWhere('chauffeur', 'like', '%' . $this->search . '%')
                       ->orWhere('modele', 'like', '%' . $this->search . '%');
             })
             ->when($this->filterType, function ($query) {

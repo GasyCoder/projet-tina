@@ -24,7 +24,6 @@ class VoyageIndex extends Component
     public $date = '';
     public $origine_id = '';
     public $vehicule_id = '';
-    public $chauffeur_id = '';
     public $statut = 'en_cours';
     public $observation = '';
 
@@ -33,7 +32,6 @@ class VoyageIndex extends Component
         'date' => 'required|date',
         'origine_id' => 'required|exists:lieux,id',
         'vehicule_id' => 'required|exists:vehicules,id',
-        'chauffeur_id' => 'nullable|exists:users,id',
         'statut' => 'required|in:en_cours,termine,annule',
         'observation' => 'nullable|string'
     ];
@@ -79,7 +77,6 @@ class VoyageIndex extends Component
         $this->date = $voyage->date->format('Y-m-d');
         $this->origine_id = $voyage->origine_id;
         $this->vehicule_id = $voyage->vehicule_id;
-        $this->chauffeur_id = $voyage->chauffeur_id;
         $this->statut = $voyage->statut;
         $this->observation = $voyage->observation;
         $this->showModal = true;
@@ -99,7 +96,6 @@ class VoyageIndex extends Component
                 'date' => $this->date,
                 'origine_id' => $this->origine_id,
                 'vehicule_id' => $this->vehicule_id,
-                'chauffeur_id' => $this->chauffeur_id ?: null,
                 'statut' => $this->statut,
                 'observation' => $this->observation,
             ]);
@@ -110,7 +106,6 @@ class VoyageIndex extends Component
                 'date' => $this->date,
                 'origine_id' => $this->origine_id,
                 'vehicule_id' => $this->vehicule_id,
-                'chauffeur_id' => $this->chauffeur_id ?: null,
                 'statut' => $this->statut,
                 'observation' => $this->observation,
             ]);
@@ -145,7 +140,6 @@ class VoyageIndex extends Component
         $this->date = now()->format('Y-m-d');
         $this->origine_id = '';
         $this->vehicule_id = '';
-        $this->chauffeur_id = '';
         $this->statut = 'en_cours';
         $this->observation = '';
         $this->resetErrorBag();
@@ -161,18 +155,16 @@ class VoyageIndex extends Component
     public function render()
     {
         $voyages = Voyage::query()
-            ->with(['origine', 'vehicule', 'chauffeur', 'chargements', 'dechargements'])
+            ->with(['origine', 'vehicule', 'chargements', 'dechargements']) // ✅ Pas de 'vehicule.chauffeur'
             ->when($this->search, function ($query) {
                 $query->where('reference', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('origine', function ($q) {
-                          $q->where('nom', 'like', '%' . $this->search . '%');
-                      })
-                      ->orWhereHas('vehicule', function ($q) {
-                          $q->where('immatriculation', 'like', '%' . $this->search . '%');
-                      })
-                      ->orWhereHas('chauffeur', function ($q) {
-                          $q->where('name', 'like', '%' . $this->search . '%');
-                      });
+                    ->orWhereHas('origine', function ($q) {
+                        $q->where('nom', 'like', '%' . $this->search . '%');
+                    })
+                    ->orWhereHas('vehicule', function ($q) {
+                        $q->where('immatriculation', 'like', '%' . $this->search . '%')
+                        ->orWhere('chauffeur', 'like', '%' . $this->search . '%'); // ✅ Recherche sur champ texte
+                    });
             })
             ->when($this->filterStatut, function ($query) {
                 $query->where('statut', $this->filterStatut);
@@ -189,13 +181,14 @@ class VoyageIndex extends Component
             'cette_semaine' => Voyage::whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()])->count(),
         ];
 
-        // ✅ OPTIMISÉ : Utilisation des scopes du modèle Lieu
-        $origines = Lieu::where('actif', true)->get();
+
+
+        $origines = Lieu::origines()->actif()->get();
         
         // ✅ OPTIMISÉ : Autres requêtes aussi
         $vehicules = Vehicule::where('statut', 'actif')->get();
-        $chauffeurs = User::where('type', 'chauffeur')->where('actif', true)->get();
 
-        return view('livewire.voyage.voyage-index', compact('voyages', 'stats', 'origines', 'vehicules', 'chauffeurs'));
+        return view('livewire.voyage.voyage-index', compact('voyages', 'stats', 'origines', 'vehicules'));
     }
+
 }

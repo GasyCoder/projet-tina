@@ -15,7 +15,8 @@ class Vehicule extends Model
         'marque',
         'modele',
         'capacite_max_kg',
-        'statut'
+        'statut',
+        'chauffeur',
     ];
 
     protected $casts = [

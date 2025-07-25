@@ -226,16 +226,15 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                                    @if($voyage->chauffeur)
+                                    @if($voyage->vehicule && $voyage->vehicule->chauffeur)
                                         <div class="flex items-center">
                                             <div class="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2">
-                                                <span class="text-xs font-medium text-green-600">{{ substr($voyage->chauffeur->name, 0, 1) }}</span>
+                                                <span class="text-xs font-medium text-green-600">
+                                                    {{ substr($voyage->vehicule->chauffeur, 0, 1) }}
+                                                </span>
                                             </div>
                                             <div class="truncate max-w-[120px]">
-                                                <div class="font-medium">{{ $voyage->chauffeur->name }}</div>
-                                                @if($voyage->chauffeur->code)
-                                                    <div class="text-gray-500 text-xs">Code: {{ $voyage->chauffeur->code }}</div>
-                                                @endif
+                                                <div class="font-medium">{{ $voyage->vehicule->chauffeur }}</div>
                                             </div>
                                         </div>
                                     @else
@@ -379,9 +378,9 @@
                                         </div>
                                     </div>
 
-                                    <!-- Origine -->
+                                    <!-- Départ -->
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Origine *</label>
+                                        <label class="block text-sm font-medium text-gray-700">Départ *</label>
                                         <select wire:model="origine_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
                                             <option value="">Sélectionner une origine</option>
                                             @foreach($origines as $origine)
@@ -409,26 +408,7 @@
                                         @error('vehicule_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <!-- Chauffeur -->
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">Chauffeur <span class="text-gray-400">(optionnel)</span></label>
-                                            <select wire:model="chauffeur_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                                <option value="">Sélectionner un chauffeur</option>
-                                                @foreach($chauffeurs as $chauffeur)
-                                                    <option value="{{ $chauffeur->id }}">
-                                                        {{ $chauffeur->name }}
-                                                        @if($chauffeur->code)
-                                                            ({{ $chauffeur->code }})
-                                                        @endif
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('chauffeur_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
-
-                                        <!-- Statut -->
-                                        <div>
+                                    <div>
                                             <label class="block text-sm font-medium text-gray-700">Statut *</label>
                                             <select wire:model="statut" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
                                                 <option value="en_cours">En cours</option>
@@ -436,7 +416,6 @@
                                                 <option value="annule">Annulé</option>
                                             </select>
                                             @error('statut') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
                                     </div>
 
                                     <!-- Observation -->

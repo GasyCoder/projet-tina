@@ -156,6 +156,16 @@
                                     @endif
                                 </div>
                             </th>
+                            <th wire:click="sortBy('telephone')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                <div class="flex items center gap-1">
+                                    <span>Téléphone</span>
+                                    @if($sortField === 'telephone')
+                                        <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-0' : 'rotate-180' }}" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z"/>
+                                        </svg>
+                                    @endif
+                                </div>
+                            </th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Adresse</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -204,6 +214,11 @@
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                                     {{ $lieu->region ?: '-' }}
                                 </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="max-w-xs truncate">
+                                        {{ $lieu->telephone ?: '-' }}
+                                    </div>
+                                </td>   
                                 <td class="px-4 py-4 text-sm text-gray-900 hidden lg:table-cell">
                                     <div class="max-w-xs truncate">
                                         {{ $lieu->adresse ?: '-' }}
@@ -311,7 +326,17 @@
                                             @error('region') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                         </div>
                                     </div>
-
+                                    <!-- Téléphone -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Téléphone</label>
+                                        <input 
+                                            wire:model="telephone"
+                                            type="text"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder ="Ex: 034 12 34 56"
+                                        >
+                                        @error('telephone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    </div>  
                                     <!-- Adresse -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Adresse</label>

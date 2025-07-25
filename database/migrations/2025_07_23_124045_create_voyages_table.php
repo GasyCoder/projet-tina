@@ -17,7 +17,6 @@ return new class extends Migration
             $table->date('date');
             $table->foreignId('origine_id')->constrained('lieux');
             $table->foreignId('vehicule_id')->constrained('vehicules');
-            $table->foreignId('chauffeur_id')->nullable()->constrained('users'); // Peut être oublié
             $table->enum('statut', ['en_cours', 'termine', 'annule'])->default('en_cours');
             $table->integer('ecart_sacs_pleins')->default(0);
             $table->integer('ecart_sacs_demi')->default(0);

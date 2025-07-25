@@ -311,34 +311,56 @@
                 </div>
             </div>
 
-            <!-- Actions rapides -->
-            <div class="lg:col-span-2 bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-2 bg-white/20 rounded-xl">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                    </div>
-                    <h4 class="text-lg font-semibold">⚡ Actions rapides</h4>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <a href="{{ route('voyages.index') }}" 
-                       class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
-                        <div class="text-2xl mb-2">🚛</div>
-                        <p class="text-sm font-medium">Nouveau voyage</p>
-                    </a>
-                    <a href="{{ route('finance.index') }}" 
-                       class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
-                        <div class="text-2xl mb-2">💰</div>
-                        <p class="text-sm font-medium">Transaction</p>
-                    </a>
-                    <a href="{{ route('stocks') }}" 
-                       class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
-                        <div class="text-2xl mb-2">📊</div>
-                        <p class="text-sm font-medium">Rapports</p>
-                    </a>
-                </div>
+           <!-- Actions rapides -->
+<div class="lg:col-span-2 bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl shadow-lg p-6 text-white">
+    <div class="flex items-center gap-3 mb-6">
+        <div class="p-2 bg-white/20 rounded-xl">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+        </div>
+        <h4 class="text-lg font-semibold">⚡ Actions rapides</h4>
+    </div>
+    
+    <!-- Version Desktop (toujours visible sauf sur mobile) -->
+    <div class="hidden sm:grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="{{ route('voyages.index') }}" 
+           class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
+            <div class="text-2xl mb-2">🚛</div>
+            <p class="text-sm font-medium">Nouveau voyage</p>
+        </a>
+        <a href="{{ route('finance.index') }}" 
+           class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
+            <div class="text-2xl mb-2">💰</div>
+            <p class="text-sm font-medium">Transaction</p>
+        </a>
+        <a href="{{ route('stocks') }}" 
+           class="group bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-200 hover:scale-105">
+            <div class="text-2xl mb-2">📊</div>
+            <p class="text-sm font-medium">Rapports</p>
+        </a>
+    </div>
+    
+    <!-- Version Mobile (uniquement visible sur mobile) - Style cohérent avec le reste -->
+    <div class="sm:hidden">
+        <div class="relative">
+            <select 
+                class="w-full appearance-none bg-white/20 border-0 rounded-xl p-4 pl-5 pr-10 text-white focus:ring-2 focus:ring-white focus:bg-white/30 backdrop-blur-sm"
+                onchange="if(this.value) window.location.href=this.value"
+            >
+                <option value="" selected disabled>Choisir une action rapide...</option>
+                <option value="{{ route('voyages.index') }}">🚛 Nouveau voyage</option>
+                <option value="{{ route('finance.index') }}">💰 Transaction</option>
+                <option value="{{ route('stocks') }}">📊 Rapports</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
             </div>
+        </div>
+    </div>
+</div>
         </div>
     </div>
 </div>

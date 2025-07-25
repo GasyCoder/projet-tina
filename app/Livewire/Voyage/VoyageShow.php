@@ -21,8 +21,11 @@ class VoyageShow extends Component
     public $chargement_reference = '';
     public $chargeur_nom = '';
     public $chargeur_contact = '';
-    public $proprietaire_nom = '';
-    public $proprietaire_contact = '';
+    
+    // VALEURS PAR DÉFAUT CONSTANTES POUR LE PROPRIÉTAIRE
+    public $proprietaire_nom = 'Mme TINAH';
+    public $proprietaire_contact = '0349045769';
+    
     public $produit_id = '';
     public $sacs_pleins_depart = '';
     public $sacs_demi_depart = 0;
@@ -33,7 +36,7 @@ class VoyageShow extends Component
     public $showDechargementModal = false;
     public $editingDechargement = null;
     public $dechargement_reference = '';
-    public $chargement_id = ''; // NOUVEAU : Relation vers chargement
+    public $chargement_id = ''; 
     public $type_dechargement = 'vente';
     public $interlocuteur_nom = '';
     public $interlocuteur_contact = '';
@@ -218,7 +221,6 @@ class VoyageShow extends Component
         $this->showDechargementModal = true;
     }
 
-
     public function calculateFinancials()
     {
         if ($this->prix_unitaire_mga && $this->poids_arrivee_kg) {
@@ -233,7 +235,6 @@ class VoyageShow extends Component
             $this->reste_mga = null;
         }
     }
-
 
     public function saveDechargement()
     {
@@ -301,7 +302,6 @@ class VoyageShow extends Component
         $this->voyage->refresh();
     }
 
-
     public function updatedChargementId($value)
     {
         if ($value && !$this->editingDechargement) {
@@ -335,13 +335,15 @@ class VoyageShow extends Component
         $this->editingDechargement = null;
     }
 
+    // MÉTHODE CORRIGÉE : Garder les valeurs par défaut du propriétaire
     private function resetChargementForm()
     {
         $this->chargement_reference = '';
         $this->chargeur_nom = '';
         $this->chargeur_contact = '';
-        $this->proprietaire_nom = '';
-        $this->proprietaire_contact = '';
+        // GARDER LES VALEURS PAR DÉFAUT DU PROPRIÉTAIRE
+        $this->proprietaire_nom = 'Mme TINAH';
+        $this->proprietaire_contact = '0349045769';
         $this->produit_id = '';
         $this->sacs_pleins_depart = '';
         $this->sacs_demi_depart = 0;
@@ -390,7 +392,6 @@ class VoyageShow extends Component
         $this->calculateFinancials();
     }
 
-
     public function updatedPoidsArriveeKg()
     {
         $this->calculateFinancials();
@@ -406,7 +407,6 @@ class VoyageShow extends Component
         $this->calculateFinancials();
     }
 
-
     private function calculateReste()
     {
         if ($this->montant_total_mga && $this->paiement_mga) {
@@ -419,7 +419,6 @@ class VoyageShow extends Component
         $voyage = $this->voyage->load([
             'origine', 
             'vehicule', 
-            // 'chauffeur', // ❌ SUPPRIMER cette ligne - pas de relation chauffeur sur Voyage
             'chargements.produit',
             'dechargements.chargement.produit',
             'dechargements.lieuLivraison'

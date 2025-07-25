@@ -40,7 +40,7 @@
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Contact chargeur</label>
+                                <label class="block text-sm font-medium text-gray-700">Contact chargeur (optionnel)</label>
                                 <input 
                                     wire:model="chargeur_contact"
                                     type="text"
@@ -53,7 +53,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Nom du propriétaire *</label>
                                 <input 
-                                    wire:model="proprietaire_nom"
+                                    wire:model.live="proprietaire_nom"
                                     type="text"
                                     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Ex: Rabe, Société Hery..."

@@ -29,10 +29,10 @@
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                         Utilisateurs
                     </x-nav-link>
-                    <x-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.*')" class="text-gray-400">
+                    <x-nav-link href="#" class="text-gray-400">
                         Finance
                     </x-nav-link>
-                    <x-nav-link href="#" class="text-gray-400">
+                    <x-nav-link :href="route('stocks')" :active="request()->routeIs('stocks')">
                         Stocks
                     </x-nav-link>
                 </div>

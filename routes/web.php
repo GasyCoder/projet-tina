@@ -10,6 +10,8 @@ use App\Livewire\Finance\FinanceIndex;
 use App\Livewire\Products\ProductIndex;
 use App\Livewire\Vehicules\VehiculeIndex;
 use App\Http\Controllers\ProfileController;
+use App\Livewire\Finance\FinanceIndex;
+use App\Livewire\Stocks\StockIndex;
 
 Route::get('/', function () {
     return view('welcome');
@@ -22,6 +24,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/lieux',    LieuxIndex::class)->name('lieux.index');
     Route::get('/vehicules', VehiculeIndex::class)->name('vehicules.index');
     Route::get('/users',    UserIndex::class)->name('users.index');
+    Route::get('/finance', FinanceIndex::class)->middleware(['auth'])->name('finance');
+    Route::get('/stocks', StockIndex::class)->name('stocks')->middleware('auth');
+
     
     // Routes voyages
     Route::get('/voyages', VoyageIndex::class)->name('voyages.index');

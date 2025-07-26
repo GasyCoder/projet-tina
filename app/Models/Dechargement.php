@@ -39,6 +39,7 @@ class Dechargement extends Model
     ];
 
     // Relations
+
     public function voyage()
     {
         return $this->belongsTo(Voyage::class);
@@ -49,9 +50,16 @@ class Dechargement extends Model
         return $this->belongsTo(Chargement::class);
     }
 
+    // Relation correcte en camelCase (convention Laravel)
     public function lieuLivraison()
     {
         return $this->belongsTo(Lieu::class, 'lieu_livraison_id');
+    }
+
+    // Alias en snake_case pour éviter l’erreur “Call to undefined relationship [lieu_livraison]”
+    public function lieu_livraison()
+    {
+        return $this->lieuLivraison();
     }
 
     // Accesseurs calculés depuis le chargement
@@ -65,7 +73,6 @@ class Dechargement extends Model
         return $this->chargement->produit ?? null;
     }
 
-    // ✅ CORRECTION : Typo dans le nom de la méthode
     public function getPoidsDepartKgAttribute()
     {
         return $this->chargement->poids_depart_kg ?? 0;

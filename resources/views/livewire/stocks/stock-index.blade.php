@@ -16,38 +16,37 @@
 
         <!-- Navigation par Onglets -->
         <div class="bg-white shadow rounded-lg" x-data="{ activeTab: 'ventes' }">
-           <div class="border-b border-gray-200">
-    <nav class="-mb-px flex overflow-x-auto">
-        <!-- Onglet Ventes -->
-        <button @click="activeTab = 'ventes'" 
-            :class="{ 'border-blue-500 text-blue-600': activeTab === 'ventes', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'ventes' }"
-            class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
-            🛒 <span class="truncate">Ventes</span>
-        </button>
-        
-        <!-- Onglet Retours -->
-        <button @click="activeTab = 'retours'" 
-            :class="{ 'border-blue-500 text-blue-600': activeTab === 'retours', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'retours' }"
-            class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
-            ↩️ <span class="truncate">Retours</span>
-        </button>
-        
-        <!-- Onglet Dépôt -->
-        <button @click="activeTab = 'depot'" 
-            :class="{ 'border-blue-500 text-blue-600': activeTab === 'depot', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'depot' }"
-            class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
-            🏬 <span class="truncate">Dépôt</span>
-        </button>
-        
-        <!-- Onglet Transferts -->
-        <button @click="activeTab = 'transferts'" 
-            :class="{ 'border-blue-500 text-blue-600': activeTab === 'transferts', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'transferts' }"
-            class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
-            🔁 <span class="truncate">Transferts</span>
-        </button>
-    </nav>
-</div>
-
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex overflow-x-auto">
+                    <!-- Onglet Ventes -->
+                    <button @click="activeTab = 'ventes'" 
+                        :class="{ 'border-blue-500 text-blue-600': activeTab === 'ventes', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'ventes' }"
+                        class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
+                        🛒 <span class="truncate">Ventes</span>
+                    </button>
+                    
+                    <!-- Onglet Retours -->
+                    <button @click="activeTab = 'retours'" 
+                        :class="{ 'border-blue-500 text-blue-600': activeTab === 'retours', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'retours' }"
+                        class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
+                        ↩️ <span class="truncate">Retours</span>
+                    </button>
+                    
+                    <!-- Onglet Dépôt -->
+                    <button @click="activeTab = 'depot'" 
+                        :class="{ 'border-blue-500 text-blue-600': activeTab === 'depot', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'depot' }"
+                        class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
+                        🏬 <span class="truncate">Dépôt</span>
+                    </button>
+                    
+                    <!-- Onglet Transferts -->
+                    <button @click="activeTab = 'transferts'" 
+                        :class="{ 'border-blue-500 text-blue-600': activeTab === 'transferts', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'transferts' }"
+                        class="whitespace-nowrap py-4 px-4 md:px-6 border-b-2 font-medium text-sm focus:outline-none transition-colors duration-200 flex items-center gap-2">
+                        🔁 <span class="truncate">Transferts</span>
+                    </button>
+                </nav>
+            </div>
 
             <!-- Contenu des Onglets -->
             <div class="p-4 md:p-6">

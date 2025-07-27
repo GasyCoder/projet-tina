@@ -176,7 +176,7 @@
                             </th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Origine</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Véhicule</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Chauffeur</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Numéro de chauffeur</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Chargements</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -225,22 +225,20 @@
                                         <span class="text-gray-400">N/A</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                                    @if($voyage->vehicule && $voyage->vehicule->chauffeur)
-                                        <div class="flex items-center">
-                                            <div class="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center mr-2">
-                                                <span class="text-xs font-medium text-green-600">
-                                                    {{ substr($voyage->vehicule->chauffeur, 0, 1) }}
-                                                </span>
-                                            </div>
-                                            <div class="truncate max-w-[120px]">
-                                                <div class="font-medium">{{ $voyage->vehicule->chauffeur }}</div>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-red-400 text-xs">❌ Non renseigné</span>
-                                    @endif
-                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+    @if($voyage->numero_chauffeur)
+        <div class="flex items-center">
+            <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                <span class="text-xs font-medium text-blue-600">
+                    {{ substr($voyage->numero_chauffeur, 0, 1) }}
+                </span>
+            </div>
+            <span>{{ $voyage->numero_chauffeur }}</span>
+        </div>
+    @else
+        <span class="text-red-400 text-xs">❌ Non renseigné</span>
+    @endif
+</td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                                     <div class="flex items-center gap-2">
                                         @if($voyage->chargements->count() > 0)
@@ -390,23 +388,37 @@
                                         @error('origine_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
-                                    <!-- Véhicule -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Véhicule *</label>
-                                        <select wire:model="vehicule_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                            <option value="">Sélectionner un véhicule</option>
-                                            @foreach($vehicules as $vehicule)
-                                                <option value="{{ $vehicule->id }}">
-                                                    {{ $vehicule->immatriculation }} 
-                                                    ({{ $vehicule->marque }} {{ $vehicule->modele }})
-                                                    @if($vehicule->capacite_max_kg)
-                                                        - {{ number_format($vehicule->capacite_max_kg/1000, 1) }}T
-                                                    @endif
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @error('vehicule_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                    </div>
+                                   <!-- Véhicule -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Véhicule *</label>
+        <select wire:model="vehicule_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <option value="">Sélectionner un véhicule</option>
+            @foreach($vehicules as $vehicule)
+                <option value="{{ $vehicule->id }}">
+                    {{ $vehicule->immatriculation }} 
+                    ({{ $vehicule->marque }} {{ $vehicule->modele }})
+                    @if($vehicule->capacite_max_kg)
+                        - {{ number_format($vehicule->capacite_max_kg/1000, 1) }}T
+                    @endif
+                </option>
+            @endforeach
+        </select>
+        @error('vehicule_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+    </div>
+
+    <!-- Numéro de chauffeur -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Numéro de chauffeur *</label>
+        <input 
+            wire:model="numero_chauffeur"
+            type="text"
+            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            placeholder="Entrez le numéro du chauffeur"
+        >
+        @error('numero_chauffeur') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+    </div>
+</div>
 
                                     <div>
                                             <label class="block text-sm font-medium text-gray-700">Statut *</label>

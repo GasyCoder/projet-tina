@@ -51,7 +51,7 @@
         @endif
 
         <!-- Stats principales améliorées -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {{-- <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Chiffre d'affaires -->
             <div class="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 hover:border-green-200">
                 <div class="flex items-center justify-between mb-4">
@@ -126,7 +126,7 @@
                     <p class="text-sm text-gray-500 font-medium">MGA</p>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <!-- Contenu principal amélioré -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

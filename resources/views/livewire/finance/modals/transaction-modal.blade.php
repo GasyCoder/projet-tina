@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/finance/modals/transaction-modal.blade.php - CORRIGÉ --}}
+{{-- resources/views/livewire/finance/modals/transaction-modal.blade.php - VERSION RÉORGANISÉE --}}
 @if($showTransactionModal)
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -11,7 +11,12 @@
                         </h3>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <!-- Référence et Date -->
+                            
+                            <!-- 1. INFORMATIONS DE BASE -->
+                            <div class="col-span-2">
+                                <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2">📋 Informations de base</h4>
+                            </div>
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Référence *</label>
                                 <input wire:model="reference" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
@@ -24,10 +29,9 @@
                                 @error('date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
-                            <!-- Type selon VOS vraies tables -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Type de transaction *</label>
-                                <select wire:model="type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <select wire:model.live="type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
                                     <option value="">Sélectionner</option>
                                     <option value="achat">🛒 Achat de produits</option>
                                     <option value="vente">💰 Vente de produits</option>
@@ -38,6 +42,7 @@
                                     <option value="avance">💸 Avance d'argent</option>
                                     <option value="depot">📥 Dépôt d'argent</option>
                                     <option value="retrait">📤 Retrait d'argent</option>
+                                    <option value="Autre">✨ Autre</option>
                                 </select>
                                 @error('type') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -48,59 +53,32 @@
                                 @error('montant_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
-                            <!-- QUI DONNE L'ARGENT - CHAMPS LIBRES -->
-                            <div class="col-span-2">
-                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">💸 Qui donne l'argent (CHAMPS LIBRES)</h4>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Nom (saisie libre)</label>
-                                <input wire:model="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC, Client externe..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500">💡 Nom libre - peut être quelqu'un d'externe au système</p>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Compte source</label>
-                                <input wire:model="from_compte" type="text" placeholder="Ex: especes, airtel_money, boa_207142800027..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500">💡 Nom libre du compte (espèces, mobile money, banque...)</p>
-                            </div>
-
-                            <!-- QUI REÇOIT L'ARGENT - CHAMPS LIBRES -->
-                            <div class="col-span-2">
-                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">💰 Qui reçoit l'argent (CHAMPS LIBRES)</h4>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Nom (saisie libre)</label>
-                                <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Fournisseur XYZ, Chauffeur..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500">💡 Nom libre - peut être quelqu'un d'externe au système</p>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Compte destination</label>
-                                <input wire:model="to_compte" type="text" placeholder="Ex: especes, airtel_money, boa_207142800027..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                <p class="mt-1 text-xs text-gray-500">💡 Nom libre du compte (espèces, mobile money, banque...)</p>
-                            </div>
-
-                            <!-- Détails -->
-                            <div class="col-span-2">
-                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">📋 Détails de la transaction</h4>
-                            </div>
-
                             <div class="col-span-2">
                                 <label class="block text-sm font-medium text-gray-700">Objet/Description *</label>
                                 <textarea wire:model="objet" rows="2" placeholder="Description détaillée de la transaction..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"></textarea>
                                 @error('objet') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
+                            <!-- 2. PARTICIPANTS -->
+                            <div class="col-span-2">
+                                <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2 mt-4">👥 Participants</h4>
+                            </div>
+
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Voyage lié</label>
-                                <select wire:model="voyage_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Aucun voyage</option>
-                                    @foreach($voyages as $voyage)
-                                        <option value="{{ $voyage->id }}">{{ $voyage->reference }}</option>
-                                    @endforeach
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700">💸 Qui donne l'argent</label>
+                                <input wire:model="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC, Client externe..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <p class="mt-1 text-xs text-gray-500">Saisie libre - peut être externe au système</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">💰 Qui reçoit l'argent</label>
+                                <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Fournisseur XYZ, Chauffeur..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <p class="mt-1 text-xs text-gray-500">Saisie libre - peut être externe au système</p>
+                            </div>
+
+                            <!-- 3. MODALITÉS DE PAIEMENT -->
+                            <div class="col-span-2">
+                                <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2 mt-4">💳 Modalités de paiement</h4>
                             </div>
 
                             <div>
@@ -116,13 +94,45 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Statut *</label>
-                                <select wire:model="statut" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <select wire:model.live="statut" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="payee">✅ Payée</option>
+                                    <option value="partiellement_payee">⚠️ Partiellement payée</option>
                                     <option value="attente">⏳ En attente</option>
-                                    <option value="confirme">✅ Confirmé</option>
                                     <option value="annule">❌ Annulé</option>
                                 </select>
                                 @error('statut') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
+
+                            <!-- Reste à payer - Conditionnel -->
+                            @if($statut === 'partiellement_payee')
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700">💰 Reste à payer (MGA) *</label>
+                                    <input wire:model="reste_a_payer" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    @error('reste_a_payer') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                    <p class="mt-1 text-xs text-gray-500">Ce champ apparaît car le statut est "Partiellement payée"</p>
+                                </div>
+                            @endif
+
+                            <!-- 4. INFORMATIONS COMPLÉMENTAIRES -->
+                            <div class="col-span-2">
+                                <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2 mt-4">📝 Informations complémentaires</h4>
+                            </div>
+
+                            <!-- Voyage lié - Conditionnel -->
+                            @if($type && $type !== 'Autre')
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">🚗 Voyage lié</label>
+                                    <select wire:model="voyage_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">Aucun voyage</option>
+                                        @foreach($voyages as $voyage)
+                                            <option value="{{ $voyage->id }}">{{ $voyage->reference }}</option>
+                                        @endforeach
+                                    </select>
+                                    <p class="mt-1 text-xs text-gray-500">Ce champ est masqué pour le type "Autre"</p>
+                                </div>
+                            @else
+                                <div></div>
+                            @endif
 
                             <div class="col-span-2">
                                 <label class="block text-sm font-medium text-gray-700">Observation</label>
@@ -145,7 +155,7 @@
     </div>
 @endif
 
-{{-- Modal compte corrigé aussi --}}
+{{-- Modal compte - inchangé --}}
 @if($showCompteModal)
     <div class="fixed inset-0 z-50 overflow-y-auto">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">

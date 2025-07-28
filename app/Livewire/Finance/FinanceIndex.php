@@ -56,7 +56,6 @@ class FinanceIndex extends Component
         // Transaction rules - ✅ SELON VOS VRAIES TABLES
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
-        'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait',
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'required|string',
         'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
@@ -66,10 +65,15 @@ class FinanceIndex extends Component
         'type_compte' => 'required|in:principal,mobile_money,banque,credit',
         'nom_compte' => 'required|string|max:255',
         'solde_actuel_mga' => 'required|numeric',
+
+        'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
+        'voyage_id' => 'nullable|exists:voyages,id',
+        'reste_a_payer' => 'required_if:statut,partiellement_payee|numeric|min:0',
     ];
 
     public function mount()
     {
+        
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
     }

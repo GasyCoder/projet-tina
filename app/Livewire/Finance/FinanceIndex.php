@@ -10,22 +10,37 @@ use App\Models\Voyage;
 use App\Models\User;
 use App\Models\Produit;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class FinanceIndex extends Component
 {
     use WithPagination;
 
-    public $activeTab = 'dashboard';
-    
-    // Filtres
+    public $activeTab = 'suivi';
+
+    // Filtres existants
     public $searchTerm = '';
     public $filterType = '';
     public $filterStatut = '';
     public $dateDebut = '';
     public $dateFin = '';
     public $filterPersonne = '';
+
+    // ✅ NOUVEAUX FILTRES POUR LES FONCTIONNALITÉS AJOUTÉES
+    public $typeSuivi = 'tous'; // tous, voyage, autre
     
-    // Transaction form
+    // Filtres revenus
+    public $periodeRevenus = 'mois';
+    public $dateDebutRevenus = '';
+    public $dateFinRevenus = '';
+    
+    // Filtres dépenses
+    public $categorieDepense = '';
+    public $periodeDepenses = 'mois';
+    public $dateDebutDepenses = '';
+    public $dateFinDepenses = '';
+    
+    // Transaction form - VOTRE CODE EXISTANT
     public $showTransactionModal = false;
     public $editingTransaction = null;
     public $reference = '';
@@ -41,8 +56,11 @@ class FinanceIndex extends Component
     public $mode_paiement = 'especes';
     public $statut = 'confirme';
     public $observation = '';
+    
+    // ✅ AJOUT DU CHAMP RESTE_À_PAYER
+    public $reste_a_payer = '';
 
-    // Compte form
+    // Compte form - VOTRE CODE EXISTANT
     public $showCompteModal = false;
     public $editingCompte = null;
     public $nom_proprietaire = '';
@@ -59,7 +77,7 @@ class FinanceIndex extends Component
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'required|string',
         'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
-        'statut' => 'required|in:attente,confirme,annule',
+        'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
 
         // Compte rules - ✅ SELON VOS VRAIES TABLES
         'type_compte' => 'required|in:principal,mobile_money,banque,credit',
@@ -73,7 +91,6 @@ class FinanceIndex extends Component
 
     public function mount()
     {
-        
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
     }
@@ -84,7 +101,279 @@ class FinanceIndex extends Component
         $this->resetPage();
     }
 
-    // TRANSACTIONS
+    // =====================================================
+    // ✅ NOUVELLES PROPRIÉTÉS CALCULÉES POUR LES STATISTIQUES
+    // =====================================================
+
+    public function getTotalEntreesProperty()
+    {
+        return Transaction::confirme()
+            ->entrees() // vente, depot, commission selon vos scopes
+            ->periode($this->dateDebut, $this->dateFin)
+            ->sum('montant_mga');
+    }
+
+    public function getTotalSortiesProperty()
+    {
+        return Transaction::confirme()
+            ->sorties() // achat, frais, etc. selon vos scopes
+            ->periode($this->dateDebut, $this->dateFin)
+            ->sum('montant_mga');
+    }
+
+    public function getBeneficeNetProperty()
+    {
+        return $this->totalEntrees - $this->totalSorties;
+    }
+
+    public function getTransactionsEnAttenteProperty()
+    {
+        return Transaction::where('statut', 'attente')->count();
+    }
+
+    // =====================================================
+    // ✅ NOUVELLES MÉTHODES POUR SUIVI CONDITIONNEL
+    // =====================================================
+
+    public function getTransactionsVoyageProperty()
+    {
+        return Transaction::with(['voyage'])
+            ->whereNotNull('voyage_id')
+            ->periode($this->dateDebut, $this->dateFin)
+            ->where('statut', '!=', 'annule')
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    public function getTransactionsAutreProperty()
+    {
+        return Transaction::whereNull('voyage_id')
+            ->periode($this->dateDebut, $this->dateFin)
+            ->where('statut', '!=', 'annule')
+            ->orderBy('date', 'desc')
+            ->get();
+    }
+
+    public function getRepartitionParTypeProperty()
+    {
+        return Transaction::periode($this->dateDebut, $this->dateFin)
+            ->where('statut', '!=', 'annule')
+            ->select('type', DB::raw('COUNT(*) as count'), DB::raw('SUM(montant_mga) as total'))
+            ->groupBy('type')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->type => ['count' => $item->count, 'total' => $item->total]];
+            })
+            ->toArray();
+    }
+
+    public function getRepartitionParStatutProperty()
+    {
+        return Transaction::periode($this->dateDebut, $this->dateFin)
+            ->select('statut', DB::raw('COUNT(*) as count'))
+            ->groupBy('statut')
+            ->pluck('count', 'statut')
+            ->toArray();
+    }
+
+    // =====================================================
+    // ✅ NOUVELLES MÉTHODES POUR REVENUS
+    // =====================================================
+
+    public function getRevenusProperty()
+    {
+        $dates = $this->getDateRangeRevenus();
+        
+        return Transaction::with(['voyage'])
+            ->entrees() // Utilise votre scope existant
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule')
+            ->orderBy('date', 'desc')
+            ->paginate(10);
+    }
+
+    public function getTotalRevenusProperty()
+    {
+        $dates = $this->getDateRangeRevenus();
+        
+        return Transaction::entrees()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule')
+            ->sum('montant_mga');
+    }
+
+    public function getRevenuMoyenProperty()
+    {
+        $total = $this->totalRevenus;
+        $count = $this->nombreRevenus;
+        
+        return $count > 0 ? $total / $count : 0;
+    }
+
+    public function getNombreRevenusProperty()
+    {
+        $dates = $this->getDateRangeRevenus();
+        
+        return Transaction::entrees()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule')
+            ->count();
+    }
+
+    private function getDateRangeRevenus()
+    {
+        if ($this->periodeRevenus === 'personnalise') {
+            return [
+                'debut' => $this->dateDebutRevenus ?: Carbon::now()->startOfMonth()->format('Y-m-d'),
+                'fin' => $this->dateFinRevenus ?: Carbon::now()->endOfMonth()->format('Y-m-d')
+            ];
+        }
+
+        switch ($this->periodeRevenus) {
+            case 'semaine':
+                return [
+                    'debut' => Carbon::now()->startOfWeek()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfWeek()->format('Y-m-d')
+                ];
+            case 'trimestre':
+                return [
+                    'debut' => Carbon::now()->startOfQuarter()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfQuarter()->format('Y-m-d')
+                ];
+            case 'annee':
+                return [
+                    'debut' => Carbon::now()->startOfYear()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfYear()->format('Y-m-d')
+                ];
+            default: // mois
+                return [
+                    'debut' => Carbon::now()->startOfMonth()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfMonth()->format('Y-m-d')
+                ];
+        }
+    }
+
+    // =====================================================
+    // ✅ NOUVELLES MÉTHODES POUR DÉPENSES
+    // =====================================================
+
+    public function getDepensesProperty()
+    {
+        $dates = $this->getDateRangeDepenses();
+        
+        $query = Transaction::with(['voyage'])
+            ->sorties() // Utilise votre scope existant
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule');
+
+        if ($this->categorieDepense) {
+            $query->where('type', $this->categorieDepense);
+        }
+
+        return $query->orderBy('date', 'desc')->paginate(10);
+    }
+
+    public function getTotalDepensesProperty()
+    {
+        $dates = $this->getDateRangeDepenses();
+        
+        $query = Transaction::sorties()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule');
+
+        if ($this->categorieDepense) {
+            $query->where('type', $this->categorieDepense);
+        }
+
+        return $query->sum('montant_mga');
+    }
+
+    public function getDepenseMoyenneProperty()
+    {
+        $total = $this->totalDepenses;
+        $count = $this->nombreDepenses;
+        
+        return $count > 0 ? $total / $count : 0;
+    }
+
+    public function getDepensesEnAttenteProperty()
+    {
+        $dates = $this->getDateRangeDepenses();
+        
+        return Transaction::sorties()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', 'attente')
+            ->sum('montant_mga');
+    }
+
+    public function getNombreDepensesProperty()
+    {
+        $dates = $this->getDateRangeDepenses();
+        
+        $query = Transaction::sorties()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule');
+
+        if ($this->categorieDepense) {
+            $query->where('type', $this->categorieDepense);
+        }
+
+        return $query->count();
+    }
+
+    public function getRepartitionDepensesProperty()
+    {
+        $dates = $this->getDateRangeDepenses();
+        
+        return Transaction::sorties()
+            ->periode($dates['debut'], $dates['fin'])
+            ->where('statut', '!=', 'annule')
+            ->select('type', DB::raw('COUNT(*) as count'), DB::raw('SUM(montant_mga) as total'))
+            ->groupBy('type')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->type => ['count' => $item->count, 'total' => $item->total]];
+            })
+            ->toArray();
+    }
+
+    private function getDateRangeDepenses()
+    {
+        if ($this->periodeDepenses === 'personnalise') {
+            return [
+                'debut' => $this->dateDebutDepenses ?: Carbon::now()->startOfMonth()->format('Y-m-d'),
+                'fin' => $this->dateFinDepenses ?: Carbon::now()->endOfMonth()->format('Y-m-d')
+            ];
+        }
+
+        switch ($this->periodeDepenses) {
+            case 'semaine':
+                return [
+                    'debut' => Carbon::now()->startOfWeek()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfWeek()->format('Y-m-d')
+                ];
+            case 'trimestre':
+                return [
+                    'debut' => Carbon::now()->startOfQuarter()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfQuarter()->format('Y-m-d')
+                ];
+            case 'annee':
+                return [
+                    'debut' => Carbon::now()->startOfYear()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfYear()->format('Y-m-d')
+                ];
+            default: // mois
+                return [
+                    'debut' => Carbon::now()->startOfMonth()->format('Y-m-d'),
+                    'fin' => Carbon::now()->endOfMonth()->format('Y-m-d')
+                ];
+        }
+    }
+
+    // =====================================================
+    // TRANSACTIONS - VOTRE CODE EXISTANT AMÉLIORÉ
+    // =====================================================
+
     public function createTransaction()
     {
         $this->resetTransactionForm();
@@ -109,55 +398,52 @@ class FinanceIndex extends Component
         $this->voyage_id = $transaction->voyage_id;
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
+        $this->reste_a_payer = $transaction->reste_a_payer; // ✅ Ajouté
         $this->observation = $transaction->observation;
         $this->showTransactionModal = true;
     }
 
     public function saveTransaction()
     {
-        $this->validate([
+        $rules = [
             'reference' => 'required|string|max:255',
             'date' => 'required|date',
-            'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait',
+            'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
             'montant_mga' => 'required|numeric|min:0',
             'objet' => 'required|string',
             'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
-            'statut' => 'required|in:attente,confirme,annule',
-        ]);
+            'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
+        ];
+
+        // ✅ VALIDATION CONDITIONNELLE POUR RESTE À PAYER
+        if ($this->statut === 'partiellement_payee') {
+            $rules['reste_a_payer'] = 'required|numeric|min:0';
+        }
+
+        $this->validate($rules);
+
+        $data = [
+            'reference' => $this->reference,
+            'date' => $this->date,
+            'type' => $this->type,
+            'from_nom' => $this->from_nom ?: null,
+            'from_compte' => $this->from_compte ?: null,
+            'to_nom' => $this->to_nom ?: null,
+            'to_compte' => $this->to_compte ?: null,
+            'montant_mga' => $this->montant_mga,
+            'objet' => $this->objet,
+            'voyage_id' => $this->voyage_id ?: null,
+            'mode_paiement' => $this->mode_paiement,
+            'statut' => $this->statut,
+            'reste_a_payer' => $this->statut === 'partiellement_payee' ? $this->reste_a_payer : null, // ✅ Ajouté
+            'observation' => $this->observation ?: null,
+        ];
 
         if ($this->editingTransaction) {
-            $this->editingTransaction->update([
-                'reference' => $this->reference,
-                'date' => $this->date,
-                'type' => $this->type,
-                'from_nom' => $this->from_nom ?: null,
-                'from_compte' => $this->from_compte ?: null,
-                'to_nom' => $this->to_nom ?: null,
-                'to_compte' => $this->to_compte ?: null,
-                'montant_mga' => $this->montant_mga,
-                'objet' => $this->objet,
-                'voyage_id' => $this->voyage_id ?: null,
-                'mode_paiement' => $this->mode_paiement,
-                'statut' => $this->statut,
-                'observation' => $this->observation ?: null,
-            ]);
+            $this->editingTransaction->update($data);
             session()->flash('success', 'Transaction modifiée avec succès');
         } else {
-            Transaction::create([
-                'reference' => $this->reference,
-                'date' => $this->date,
-                'type' => $this->type,
-                'from_nom' => $this->from_nom ?: null,
-                'from_compte' => $this->from_compte ?: null,
-                'to_nom' => $this->to_nom ?: null,
-                'to_compte' => $this->to_compte ?: null,
-                'montant_mga' => $this->montant_mga,
-                'objet' => $this->objet,
-                'voyage_id' => $this->voyage_id ?: null,
-                'mode_paiement' => $this->mode_paiement,
-                'statut' => $this->statut,
-                'observation' => $this->observation ?: null,
-            ]);
+            Transaction::create($data);
             session()->flash('success', 'Transaction ajoutée avec succès');
         }
 
@@ -176,7 +462,19 @@ class FinanceIndex extends Component
         session()->flash('success', 'Transaction confirmée');
     }
 
-    // COMPTES
+    // ✅ NOUVELLE MÉTHODE POUR MARQUER COMME PAYÉE
+    public function marquerPayee($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        $transaction->update(['statut' => 'payee']);
+        
+        session()->flash('success', 'Transaction marquée comme payée !');
+    }
+
+    // =====================================================
+    // COMPTES - VOTRE CODE EXISTANT
+    // =====================================================
+
     public function createCompte()
     {
         $this->resetCompteForm();
@@ -235,7 +533,10 @@ class FinanceIndex extends Component
         session()->flash('success', 'Compte supprimé avec succès');
     }
 
-    // MODAL MANAGEMENT
+    // =====================================================
+    // MODAL MANAGEMENT - VOTRE CODE EXISTANT AMÉLIORÉ
+    // =====================================================
+
     public function closeTransactionModal()
     {
         $this->showTransactionModal = false;
@@ -264,6 +565,7 @@ class FinanceIndex extends Component
         $this->voyage_id = '';
         $this->mode_paiement = 'especes';
         $this->statut = 'confirme';
+        $this->reste_a_payer = ''; // ✅ Ajouté
         $this->observation = '';
         $this->resetErrorBag();
     }
@@ -287,22 +589,13 @@ class FinanceIndex extends Component
 
     public function render()
     {
-        // ✅ STATISTIQUES SELON VOS VRAIS TYPES
-        $totalEntrees = Transaction::confirme()
-            ->entrees() // vente, depot, transfert
-            ->periode($this->dateDebut, $this->dateFin)
-            ->sum('montant_mga');
+        // ✅ STATISTIQUES SELON VOS VRAIS TYPES ET SCOPES
+        $totalEntrees = $this->totalEntrees;
+        $totalSorties = $this->totalSorties;
+        $beneficeNet = $this->beneficeNet;
+        $transactionsEnAttente = $this->transactionsEnAttente;
 
-        $totalSorties = Transaction::confirme()
-            ->sorties() // achat, frais, commission, paiement, avance, retrait
-            ->periode($this->dateDebut, $this->dateFin)
-            ->sum('montant_mga');
-
-        $beneficeNet = $totalEntrees - $totalSorties;
-
-        $transactionsEnAttente = Transaction::where('statut', 'attente')->count();
-
-        // Transactions paginées avec filtres
+        // Transactions paginées avec filtres - VOTRE CODE EXISTANT
         $query = Transaction::with(['fromUser', 'toUser', 'voyage'])
             ->when($this->searchTerm, function ($q) {
                 $q->where(function ($subQ) {
@@ -318,24 +611,53 @@ class FinanceIndex extends Component
 
         $transactions = $query->paginate(15);
 
-        // Comptes actifs
+        // Comptes actifs - VOTRE CODE EXISTANT
         $comptes = Compte::actif()->get();
 
-        // Données pour les selects
+        // Données pour les selects - VOTRE CODE EXISTANT
         $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();
-        
-        // ✅ AJOUTER CETTE LIGNE pour éviter l'erreur (même si on n'utilise plus les users)
         $users = collect(); // Collection vide pour compatibilité
+
+        // ✅ AJOUT DES VARIABLES MANQUANTES POUR LES VUES
+        $repartitionParType = $this->repartitionParType;
+        $repartitionParStatut = $this->repartitionParStatut;
+        $transactionsVoyage = $this->transactionsVoyage;
+        $transactionsAutre = $this->transactionsAutre;
+        $revenus = $this->revenus;
+        $depenses = $this->depenses;
+        $totalRevenus = $this->totalRevenus;
+        $revenuMoyen = $this->revenuMoyen;
+        $nombreRevenus = $this->nombreRevenus;
+        $totalDepenses = $this->totalDepenses;
+        $depenseMoyenne = $this->depenseMoyenne;
+        $depensesEnAttente = $this->depensesEnAttente;
+        $nombreDepenses = $this->nombreDepenses;
+        $repartitionDepenses = $this->repartitionDepenses;
 
         return view('livewire.finance.finance-index', compact(
             'transactions',
             'comptes',
             'voyages',
-            'users',  // ✅ Ajouté pour éviter l'erreur
+            'users',
             'totalEntrees',
             'totalSorties',
             'beneficeNet',
-            'transactionsEnAttente'
+            'transactionsEnAttente',
+            // ✅ NOUVELLES VARIABLES POUR LES VUES
+            'repartitionParType',
+            'repartitionParStatut',
+            'transactionsVoyage',
+            'transactionsAutre',
+            'revenus',
+            'depenses',
+            'totalRevenus',
+            'revenuMoyen',
+            'nombreRevenus',
+            'totalDepenses',
+            'depenseMoyenne',
+            'depensesEnAttente',
+            'nombreDepenses',
+            'repartitionDepenses'
         ));
     }
 }

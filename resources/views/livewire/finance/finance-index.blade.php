@@ -28,14 +28,14 @@
             </div>
         @endif
 
-        <!-- Tabs Navigation -->
+        <!-- Onglets -->
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex overflow-x-auto">
                     <button 
-                        wire:click="setActiveTab('dashboard')"
-                        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-sm {{ $activeTab === 'dashboard' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                        📊 Tableau de Bord
+                        wire:click="setActiveTab('suivi')"
+                        class="whitespace-nowrap py-4 px-4 border-b-2 font-medium text-sm {{ $activeTab === 'suivi' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                        📊 Suivi des Transactions
                     </button>
                     <button 
                         wire:click="setActiveTab('transactions')"
@@ -62,9 +62,9 @@
 
             <!-- Contenu des tabs -->
             <div class="p-4 md:p-6">
-                @if($activeTab === 'dashboard')
-                    <div wire:key="tab-dashboard">
-                        @include('livewire.finance.tabs.dashboard', [
+                @if($activeTab === 'suivi')
+                    <div wire:key="tab-suivi">
+                        @include('livewire.finance.tabs.suivi-transactions', [
                             'totalEntrees' => $totalEntrees,
                             'totalSorties' => $totalSorties,
                             'beneficeNet' => $beneficeNet,
@@ -86,7 +86,7 @@
                             'comptes' => $comptes
                         ])
                     </div>
-                @else
+                @elseif($activeTab === 'rapports')
                     <div wire:key="tab-rapports">
                         @include('livewire.finance.tabs.rapports', [
                             'totalEntrees' => $totalEntrees,

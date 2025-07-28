@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Voyage;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Voyage;
 use App\Models\Lieu;
-use App\Models\Vehicule;
 use App\Models\User;
+use App\Models\Voyage;
+use Livewire\Component;
+use App\Models\Vehicule;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule; // AJOUT IMPORTANT
 
 class VoyageIndex extends Component
 {
@@ -29,7 +31,7 @@ class VoyageIndex extends Component
     public $showModal = false;
     public $editingVoyage = null;
 
-    // Propriétés de formulaire - AVEC LES NOUVEAUX CHAMPS CHAUFFEUR
+    // Propriétés de formulaire
     public $reference = '';
     public $date = '';
     public $vehicule_id = '';
@@ -38,21 +40,10 @@ class VoyageIndex extends Component
     public $statut = 'en_cours';
     public $observation = '';
 
-    // RÈGLES DE VALIDATION MISES À JOUR
-    protected $rules = [
-        'reference' => 'required|string|max:255|unique:voyages,reference',
-        'date' => 'required|date',
-        'vehicule_id' => 'required|exists:vehicules,id',
-        'chauffeur_nom' => 'required|string|max:255',
-        'chauffeur_phone' => 'nullable|string|max:20',
-        'statut' => 'required|in:en_cours,termine,annule',
-        'observation' => 'nullable|string|max:1000'
-    ];
-
     // MESSAGES DE VALIDATION EN FRANÇAIS
     protected $messages = [
         'reference.required' => 'La référence est obligatoire.',
-        'reference.unique' => 'Cette référence existe déjà.',
+        'reference.unique' => 'Cette référence existe déjà parmi les voyages actifs.',
         'date.required' => 'La date est obligatoire.',
         'vehicule_id.required' => 'Le véhicule est obligatoire.',
         'chauffeur_nom.required' => 'Le nom du chauffeur est obligatoire.',
@@ -64,6 +55,54 @@ class VoyageIndex extends Component
     public function mount()
     {
         $this->date = now()->format('Y-m-d');
+    }
+
+    // MÉTHODE POUR OBTENIR LES RÈGLES DE VALIDATION DYNAMIQUES
+    public function getRules()
+    {
+        $rules = [
+            'reference' => ['required', 'string', 'max:255'],
+            'date' => 'required|date',
+            'vehicule_id' => 'required|exists:vehicules,id',
+            'chauffeur_nom' => 'required|string|max:255',
+            'chauffeur_phone' => 'nullable|string|max:20',
+            'statut' => 'required|in:en_cours,termine,annule',
+            'observation' => 'nullable|string|max:1000'
+        ];
+
+        // RÈGLE D'UNICITÉ ADAPTÉE AVEC SOFTDELETES
+        if ($this->editingVoyage) {
+            // Pour l'édition : ignore l'enregistrement actuel ET exclut les soft deleted
+            $rules['reference'][] = Rule::unique('voyages', 'reference')
+                ->ignore($this->editingVoyage->id)
+                ->whereNull('deleted_at');
+        } else {
+            // Pour la création : exclut seulement les soft deleted
+            $rules['reference'][] = Rule::unique('voyages', 'reference')
+                ->whereNull('deleted_at');
+        }
+
+        return $rules;
+    }
+
+    // ALTERNATIVE AVEC SYNTAXE STRING (moins lisible mais plus compacte)
+    public function getRulesAlternative()
+    {
+        if ($this->editingVoyage) {
+            $uniqueRule = 'unique:voyages,reference,' . $this->editingVoyage->id . ',id,deleted_at,NULL';
+        } else {
+            $uniqueRule = 'unique:voyages,reference,NULL,id,deleted_at,NULL';
+        }
+
+        return [
+            'reference' => 'required|string|max:255|' . $uniqueRule,
+            'date' => 'required|date',
+            'vehicule_id' => 'required|exists:vehicules,id',
+            'chauffeur_nom' => 'required|string|max:255',
+            'chauffeur_phone' => 'nullable|string|max:20',
+            'statut' => 'required|in:en_cours,termine,annule',
+            'observation' => 'nullable|string|max:1000'
+        ];
     }
 
     // MÉTHODES DE RÉINITIALISATION ET PAGINATION
@@ -119,7 +158,7 @@ class VoyageIndex extends Component
         $this->resetPage();
     }
 
-    // NOUVELLE MÉTHODE POUR GÉRER LE STATUT (radio buttons)
+    // MÉTHODE POUR GÉRER LE STATUT (radio buttons)
     public function setStatut($nouveauStatut)
     {
         $statutsAutorises = ['en_cours', 'termine', 'annule'];
@@ -129,7 +168,7 @@ class VoyageIndex extends Component
         }
     }
 
-    // MÉTHODES CRUD - MISES À JOUR AVEC LES CHAMPS CHAUFFEUR
+    // MÉTHODES CRUD
     public function create()
     {
         $this->resetForm();
@@ -153,14 +192,9 @@ class VoyageIndex extends Component
 
     public function save()
     {
-        // Ajustement des règles de validation pour l'édition
-        if ($this->editingVoyage) {
-            $this->rules['reference'] = 'required|string|max:255|unique:voyages,reference,' . $this->editingVoyage->id;
-        }
+        // UTILISATION DES RÈGLES DYNAMIQUES
+        $this->validate($this->getRules(), $this->messages);
 
-        $this->validate();
-
-        // DONNÉES MISES À JOUR AVEC LES CHAMPS CHAUFFEUR
         $data = [
             'reference' => $this->reference,
             'date' => $this->date,
@@ -180,18 +214,6 @@ class VoyageIndex extends Component
         }
 
         $this->closeModal();
-    }
-
-    public function delete(Voyage $voyage)
-    {
-        // Vérifier s'il y a des chargements ou déchargements
-        if ($voyage->chargements()->exists() || $voyage->dechargements()->exists()) {
-            session()->flash('error', 'Impossible de supprimer ce voyage car il contient des chargements ou déchargements.');
-            return;
-        }
-
-        $voyage->delete();
-        session()->flash('success', 'Voyage supprimé avec succès');
     }
 
     public function changeStatut(Voyage $voyage, $nouveauStatut)
@@ -235,7 +257,7 @@ class VoyageIndex extends Component
         $this->editingVoyage = null;
     }
 
-    // MÉTHODES PRIVÉES - MISES À JOUR AVEC LES CHAMPS CHAUFFEUR
+    // MÉTHODES PRIVÉES
     private function resetForm()
     {
         $this->reference = '';
@@ -251,15 +273,34 @@ class VoyageIndex extends Component
     private function generateReference()
     {
         $year = date('y');
-        $count = Voyage::whereYear('created_at', date('Y'))->count() + 1;
+        // IMPORTANT : Compter seulement les voyages NON supprimés
+        $count = Voyage::withoutTrashed()->whereYear('created_at', date('Y'))->count() + 1;
         return 'V' . str_pad($count, 3, '0', STR_PAD_LEFT) . '/' . $year;
     }
 
     // MÉTHODES D'EXPORT/ACTIONS EN MASSE
     public function exportSelected($voyageIds)
     {
-        // Logique d'export (CSV, PDF, etc.)
         session()->flash('success', count($voyageIds) . ' voyages exportés avec succès');
+    }
+
+    public function delete(Voyage $voyage)
+    {
+        try {
+            if ($voyage->trashed()) {
+                $this->addError("delete.{$voyage->id}", 'Ce voyage est déjà supprimé.');
+                return;
+            }
+
+            // Supprimer les chargements et déchargements associés
+            $voyage->chargements()->delete();
+            $voyage->dechargements()->delete();
+
+            $voyage->delete();
+            session()->flash('success', 'Voyage et ses chargements/déchargements supprimés avec succès');
+        } catch (\Exception $e) {
+            $this->addError("delete.{$voyage->id}", 'Erreur lors de la suppression : ' . $e->getMessage());
+        }
     }
 
     public function deleteSelected($voyageIds)
@@ -276,20 +317,40 @@ class VoyageIndex extends Component
         session()->flash('success', $count . ' voyages supprimés avec succès');
     }
 
+    // MÉTHODE POUR RESTAURER UN VOYAGE SUPPRIMÉ (BONUS)
+    public function restore($voyageId)
+    {
+        $voyage = Voyage::withTrashed()->find($voyageId);
+        
+        if ($voyage && $voyage->trashed()) {
+            // Vérifier si la référence est maintenant disponible
+            $existingVoyage = Voyage::withoutTrashed()
+                ->where('reference', $voyage->reference)
+                ->first();
+                
+            if ($existingVoyage) {
+                session()->flash('error', 'Impossible de restaurer : la référence "' . $voyage->reference . '" est déjà utilisée.');
+                return;
+            }
+            
+            $voyage->restore();
+            session()->flash('success', 'Voyage restauré avec succès');
+        }
+    }
+
     public function render()
     {
-        // REQUÊTE PRINCIPALE OPTIMISÉE - AVEC RECHERCHE SUR LES CHAMPS CHAUFFEUR
-        $voyages = Voyage::query()
+        $voyages = Voyage::withoutTrashed()
             ->with(['vehicule', 'chargements', 'dechargements'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('reference', 'like', '%' . $this->search . '%')
-                      ->orWhere('observation', 'like', '%' . $this->search . '%')
-                      ->orWhere('chauffeur_nom', 'like', '%' . $this->search . '%')
-                      ->orWhere('chauffeur_phone', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('vehicule', function ($vehicule) {
-                          $vehicule->where('immatriculation', 'like', '%' . $this->search . '%');
-                      });
+                    ->orWhere('observation', 'like', '%' . $this->search . '%')
+                    ->orWhere('chauffeur_nom', 'like', '%' . $this->search . '%')
+                    ->orWhere('chauffeur_phone', 'like', '%' . $this->search . '%')
+                    ->orWhereHas('vehicule', function ($vehicule) {
+                        $vehicule->where('immatriculation', 'like', '%' . $this->search . '%');
+                    });
                 });
             })
             ->when($this->filterStatut, function ($query) {
@@ -307,34 +368,31 @@ class VoyageIndex extends Component
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
 
-        // STATISTIQUES AMÉLIORÉES
         $stats = [
-            'total' => Voyage::count(),
-            'en_cours' => Voyage::where('statut', 'en_cours')->count(),
-            'termine' => Voyage::where('statut', 'termine')->count(),
-            'annule' => Voyage::where('statut', 'annule')->count(),
-            'aujourd_hui' => Voyage::whereDate('date', today())->count(),
-            'cette_semaine' => Voyage::whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()])->count(),
-            'ce_mois' => Voyage::whereMonth('date', now()->month)
-                               ->whereYear('date', now()->year)->count(),
-            'poids_total_charge' => Voyage::with('chargements')
-                                         ->get()
-                                         ->sum(function ($voyage) {
-                                             return $voyage->chargements->sum('poids_depart_kg');
-                                         }),
-            'poids_total_decharge' => Voyage::with('dechargements')
-                                           ->get()
-                                           ->sum(function ($voyage) {
-                                               return $voyage->dechargements->sum('poids_arrivee_kg');
-                                           }),
+            'total' => Voyage::withoutTrashed()->count(),
+            'en_cours' => Voyage::withoutTrashed()->where('statut', 'en_cours')->count(),
+            'termine' => Voyage::withoutTrashed()->where('statut', 'termine')->count(),
+            'annule' => Voyage::withoutTrashed()->where('statut', 'annule')->count(),
+            'aujourd_hui' => Voyage::withoutTrashed()->whereDate('date', today())->count(),
+            'cette_semaine' => Voyage::withoutTrashed()->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'ce_mois' => Voyage::withoutTrashed()->whereMonth('date', now()->month)
+                            ->whereYear('date', now()->year)->count(),
+            'poids_total_charge' => Voyage::withoutTrashed()->with('chargements')
+                                        ->get()
+                                        ->sum(function ($voyage) {
+                                            return $voyage->chargements->sum('poids_depart_kg');
+                                        }),
+            'poids_total_decharge' => Voyage::withoutTrashed()->with('dechargements')
+                                        ->get()
+                                        ->sum(function ($voyage) {
+                                            return $voyage->dechargements->sum('poids_arrivee_kg');
+                                        }),
         ];
 
-        // DONNÉES POUR LES SELECTS
         $vehicules = Vehicule::where('statut', 'actif')
                             ->orderBy('immatriculation')
                             ->get();
 
-        // OPTIONS POUR LES FILTRES
         $statutOptions = [
             'en_cours' => 'En cours',
             'termine' => 'Terminé',
@@ -342,8 +400,8 @@ class VoyageIndex extends Component
         ];
 
         return view('livewire.voyage.voyage-index', compact(
-            'voyages', 
-            'stats', 
+            'voyages',
+            'stats',
             'vehicules',
             'statutOptions'
         ));

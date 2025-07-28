@@ -24,7 +24,11 @@ return new class extends Migration
             $table->decimal('ecart_poids_kg', 10, 2)->default(0);
             $table->text('observation')->nullable(); // Français + Malagasy
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['reference', 'deleted_at'], 'voyages_reference_deleted_at_unique');
         });
+        
     }
 
     /**

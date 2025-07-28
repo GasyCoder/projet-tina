@@ -27,6 +27,9 @@ return new class extends Migration
             $table->decimal('poids_depart_kg', 10, 2);
             $table->text('observation')->nullable(); // Français + Malagasy
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['reference', 'deleted_at'], 'chargements_reference_deleted_at_unique');
         });
     }
 

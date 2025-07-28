@@ -37,6 +37,9 @@ return new class extends Migration
             $table->enum('statut_commercial', ['en_attente', 'vendu', 'retourne', 'transfere'])->default('en_attente');
             $table->text('observation')->nullable(); // Français + Malagasy
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['reference', 'deleted_at'], 'dechargements_reference_deleted_at_unique');
         });
     }
 

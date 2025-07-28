@@ -17,7 +17,6 @@ return new class extends Migration
             $table->enum('type', ['camion', 'semi-remorque', 'pick-up', 'tracteur', 'autre']);
             $table->string('marque')->nullable();
             $table->string('modele')->nullable();
-            $table->string('chauffeur')->nullable();
             $table->integer('capacite_max_kg')->nullable();
             $table->enum('statut', ['actif', 'maintenance', 'inactif'])->default('actif');
             $table->timestamps();

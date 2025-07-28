@@ -18,9 +18,11 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Référence</th>
+                            <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Date</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Chargeur</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Propriétaire</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Produit</th>
+                            <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Lieu de chargement</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Quantité</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Poids</th>
                             <th class="px-3 py-2 sm:px-6 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -33,7 +35,9 @@
                                 <td class="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {{ $chargement->reference }}
                                 </td>
-                                
+                                <td class="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $chargement->date ? $chargement->date->format('d/m/Y') : 'Non définie' }}
+                                </td>
                                 <!-- Chargeur -->
                                 <td class="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                                     <div>
@@ -58,7 +62,17 @@
                                 <td class="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                                     {{ $chargement->produit->nom ?? 'N/A' }}
                                 </td>
-                                
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                                    <div class="flex items-center">
+                                        <div class="p-1 bg-green-100 rounded mr-2">
+                                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                        </div>
+                                        <span class="truncate max-w-[120px]">{{ $chargement->depart->nom ?? 'N/A' }}</span>
+                                    </div>
+                                </td>     
                                 <!-- Quantité -->
                                 <td class="px-3 py-3 sm:px-6 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                                     {{ $chargement->sacs_pleins_depart }}

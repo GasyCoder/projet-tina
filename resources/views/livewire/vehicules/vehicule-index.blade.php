@@ -410,18 +410,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Chauffeur -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Chauffeur</label>
-                                        <input 
-                                            wire:model="chauffeur"
-                                            type="text"
-                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                            placeholder="Nom du chauffeur"
-                                        >
-                                        @error('chauffeur') <p class="mt-1 text-sm text-red-600">{{ $message }}</p>     @enderror
-                                    </div>
-
                                     <!-- Capacité -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Capacité maximale (kg)</label>

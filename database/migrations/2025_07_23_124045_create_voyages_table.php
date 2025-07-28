@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('reference')->unique(); // V020/25
             $table->date('date');
-            $table->foreignId('origine_id')->constrained('lieux');
             $table->foreignId('vehicule_id')->constrained('vehicules');
+            $table->string('chauffeur_nom');
+            $table->string('chauffeur_phone')->nullable();
             $table->enum('statut', ['en_cours', 'termine', 'annule'])->default('en_cours');
             $table->integer('ecart_sacs_pleins')->default(0);
             $table->integer('ecart_sacs_demi')->default(0);

@@ -19,7 +19,8 @@ class LieuxIndex extends Component
 
     // Form fields
     public $nom = '';
-    public $type = 'origine';
+    public $type = 'depart';
+    public $point_chargement = '';
     public $region = '';
     public $telephone = '';
     public $adresse = '';
@@ -27,7 +28,8 @@ class LieuxIndex extends Component
 
     protected $rules = [
         'nom' => 'required|string|max:255',
-        'type' => 'required|in:origine,destination,depot',
+        'type' => 'required|in:depart,destination,depot',
+        'point_chargement' => 'nullable|string|max:255',
         'telephone' => 'nullable|string|max:20',
         'region' => 'nullable|string|max:255',
         'adresse' => 'nullable|string',
@@ -67,6 +69,7 @@ class LieuxIndex extends Component
         $this->nom = $lieu->nom;
         $this->type = $lieu->type;
         $this->region = $lieu->region;
+        $this->point_chargement = $lieu->point_chargement;
         $this->telephone = $lieu->telephone;
         $this->adresse = $lieu->adresse;
         $this->actif = $lieu->actif;
@@ -82,6 +85,7 @@ class LieuxIndex extends Component
                 'nom' => $this->nom,
                 'type' => $this->type,
                 'region' => $this->region,
+                'point_chargement' => $this->point_chargement,
                 'telephone' => $this->telephone,
                 'adresse' => $this->adresse,
                 'actif' => $this->actif,
@@ -92,6 +96,7 @@ class LieuxIndex extends Component
                 'nom' => $this->nom,
                 'type' => $this->type,
                 'region' => $this->region,
+                'point_chargement' => $this->point_chargement,
                 'telephone' => $this->telephone,
                 'adresse' => $this->adresse,
                 'actif' => $this->actif,
@@ -124,7 +129,8 @@ class LieuxIndex extends Component
     private function resetForm()
     {
         $this->nom = '';
-        $this->type = 'origine';
+        $this->type = 'depart';
+        $this->point_chargement = '';
         $this->region = '';
         $this->telephone = '';
         $this->adresse = '';
@@ -147,7 +153,8 @@ class LieuxIndex extends Component
 
         $stats = [
             'total' => Lieu::count(),
-            'origines' => Lieu::where('type', 'origine')->count(),
+            'departs' => Lieu::where('type', 'depart')->count(),
+            'points' => Lieu::where('type', 'point_chargement')->count(),
             'destinations' => Lieu::where('type', 'destination')->count(),
             'depots' => Lieu::where('type', 'depot')->count(),
         ];

@@ -51,7 +51,7 @@ class Dashboard extends Component
             'proprietaires_actifs' => User::where('type', 'proprietaire')->where('actif', true)->count(),
             
             // Activité récente
-            'derniers_voyages' => Voyage::with(['origine', 'vehicule'])
+            'derniers_voyages' => Voyage::with(['vehicule'])
                 ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get(),

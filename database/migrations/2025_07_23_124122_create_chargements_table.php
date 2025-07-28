@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('voyage_id')->constrained('voyages')->cascadeOnDelete();
             $table->string('reference'); // CH001, CH002
+            $table->date('date');
             $table->string('chargeur_nom')->nullable();
             $table->string('chargeur_contact')->nullable();
+            $table->foreignId('depart_id')->constrained('lieux');
             $table->string('proprietaire_nom')->nullable();
             $table->string('proprietaire_contact')->nullable();
             $table->foreignId('produit_id')->constrained('produits');

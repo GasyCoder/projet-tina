@@ -4,7 +4,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Lieux</h1>
-                <p class="text-sm text-gray-600">Gérez les origines, destinations et dépôts</p>
+                <p class="text-sm text-gray-600">Gérez les départ, destinations et dépôts</p>
             </div>
             <button wire:click="create" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
 
         <!-- Stats rapides -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-            <div class="bg-white rounded-lg shadow p-3 md:p-4">
+            <div class="bg-white rounded-lg shadow p-2 md:p-2">
                 <div class="flex items-center">
                     <div class="p-2 bg-blue-100 rounded-lg">
                         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,11 +51,27 @@
                         </svg>
                     </div>
                     <div class="ml-3">
-                        <p class="text-xs md:text-sm font-medium text-gray-600">Origines</p>
-                        <p class="text-lg font-bold text-gray-900">{{ $stats['origines'] }}</p>
+                        <p class="text-xs md:text-sm font-medium text-gray-600">Départ</p>
+                        <p class="text-lg font-bold text-gray-900">{{ $stats['departs'] }}</p>
                     </div>
                 </div>
             </div>
+
+            <div class="bg-white rounded-lg shadow p-3 md:p-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-xs md:text-sm font-medium text-gray-600">Point de chargement</p>
+                        <p class="text-lg font-bold text-gray-900">{{ $stats['points'] }}</p>
+                    </div>
+                </div>
+            </div>
+
 
             <div class="bg-white rounded-lg shadow p-3 md:p-4">
                 <div class="flex items-center">
@@ -107,7 +123,8 @@
                     <div class="flex items-center gap-3">
                         <select wire:model.live="filterType" class="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                             <option value="">Tous les types</option>
-                            <option value="origine">Origines</option>
+                            <option value="depart">Départs</option>
+                            <option value="point_chargement">Points de chargement</option>
                             <option value="destination">Destinations</option>
                             <option value="depot">Dépôts</option>
                         </select>
@@ -146,6 +163,16 @@
                                     @endif
                                 </div>
                             </th>
+                            <th wire:click="sortBy('region')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                <div class="flex items      center gap-1">
+                                    <span>Point de chargement</span>
+                                    @if($sortField === 'point_chargement')
+                                        <svg class="w-4 h-4 {{ $sortDirection === 'asc' ? 'rotate-0' : 'rotate-180' }}" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z"/>
+                                        </svg>
+                                    @endif
+                                </div>
+                            </th>
                             <th wire:click="sortBy('region')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 hidden md:table-cell">
                                 <div class="flex items-center gap-1">
                                     <span>Région</span>
@@ -176,7 +203,7 @@
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        @if($lieu->type === 'origine')
+                                        @if($lieu->type === 'depart')
                                             <div class="p-1 bg-green-100 rounded mr-3">
                                                 <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -195,7 +222,7 @@
                                                 </svg>
                                             </div>
                                         @endif
-                                        
+                                    
                                         <div>
                                             <div class="text-sm font-medium text-gray-900">{{ $lieu->nom }}</div>
                                             <div class="text-xs text-gray-500 sm:hidden">
@@ -206,10 +233,13 @@
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap hidden sm:table-cell">
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                        {{ $lieu->type === 'origine' ? 'bg-green-100 text-green-800' : 
+                                        {{ $lieu->type === 'depart' ? 'bg-green-100 text-green-800' : 
                                            ($lieu->type === 'destination' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800') }}">
                                         {{ ucfirst($lieu->type) }}
                                     </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                                    {{ $lieu->point_chargement ?: '-' }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                                     {{ $lieu->region ?: '-' }}
@@ -297,7 +327,7 @@
                                             wire:model="nom"
                                             type="text"
                                             class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                            placeholder="ANKIRIRIKA, VISHAL, Depot Mounaf..."
+                                            placeholder="BORIZINY, VISHAL, Depot Mounaf..."
                                         >
                                         @error('nom') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
@@ -307,7 +337,7 @@
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700">Type *</label>
                                             <select wire:model="type" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                                <option value="origine">Origine</option>
+                                                <option value="depart">Départ</option>
                                                 <option value="destination">Destination</option>
                                                 <option value="depot">Dépôt</option>
                                             </select>
@@ -321,8 +351,7 @@
                                                 wire:model="region"
                                                 type="text"
                                                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                                                placeholder="SOFIA, ANALAMANGA..."
-                                            >
+                                                placeholder="SOFIA, ANALAMANGA...">
                                             @error('region') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                         </div>
                                     </div>

@@ -126,7 +126,7 @@
                             <input 
                                 wire:model.live.debounce.300ms="search"
                                 type="text"
-                                placeholder="Rechercher par référence, origine, véhicule..."
+                                placeholder="Rechercher par référence, départ, véhicule..."
                                 class="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                             >
                         </div>
@@ -174,7 +174,6 @@
                                     @endif
                                 </div>
                             </th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Origine</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Véhicule</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Numéro de chauffeur</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Chargements</th>
@@ -204,17 +203,6 @@
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                                     {{ $voyage->date ? $voyage->date->format('d/m/Y') : 'N/A' }}
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
-                                    <div class="flex items-center">
-                                        <div class="p-1 bg-green-100 rounded mr-2">
-                                            <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                        </div>
-                                        <span class="truncate max-w-[120px]">{{ $voyage->origine->nom ?? 'N/A' }}</span>
-                                    </div>
-                                </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                                     @if($voyage->vehicule)
                                         <div>
@@ -226,19 +214,19 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-    @if($voyage->numero_chauffeur)
-        <div class="flex items-center">
-            <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
-                <span class="text-xs font-medium text-blue-600">
-                    {{ substr($voyage->numero_chauffeur, 0, 1) }}
-                </span>
-            </div>
-            <span>{{ $voyage->numero_chauffeur }}</span>
-        </div>
-    @else
-        <span class="text-red-400 text-xs">❌ Non renseigné</span>
-    @endif
-</td>
+                                    @if($voyage->chauffeur_phone)
+                                        <div class="flex items-center">
+                                            <div class="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                                                <span class="text-xs font-medium text-blue-600">
+                                                    {{ substr($voyage->chauffeur_phone, 0, 1) }}
+                                                </span>
+                                            </div>
+                                            <span>{{ $voyage->chauffeur_phone }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-red-400 text-xs">❌ Non renseigné</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                                     <div class="flex items-center gap-2">
                                         @if($voyage->chargements->count() > 0)
@@ -252,7 +240,7 @@
                                             </span>
                                         @endif
                                         @if($voyage->chargements->count() === 0 && $voyage->dechargements->count() === 0)
-                                            <span class="text-gray-400 text-xs">Vide</span>
+                                            <span class="text-red-400 text-xs">Vide</span>
                                         @endif
                                     </div>
                                 </td>
@@ -288,10 +276,9 @@
                                 <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('voyages.show', $voyage) }}" class="text-green-600 hover:text-green-900" title="Voir détails">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+                                        </svg>
                                         </a>
                                         <button wire:click="edit({{ $voyage->id }})" class="text-blue-600 hover:text-blue-900" title="Modifier">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -375,60 +362,105 @@
                                             @error('date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                         </div>
                                     </div>
+                                <!-- Véhicule -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Véhicule *</label>
+                                    <select wire:model="vehicule_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="">Sélectionner un véhicule</option>
+                                        @foreach($vehicules as $vehicule)
+                                            <option value="{{ $vehicule->id }}">
+                                                {{ $vehicule->immatriculation }} 
+                                                ({{ $vehicule->marque }} {{ $vehicule->modele }})
+                                                @if($vehicule->capacite_max_kg)
+                                                    - {{ number_format($vehicule->capacite_max_kg/1000, 1) }}T
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('vehicule_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                </div>
 
-                                    <!-- Départ -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700">Départ *</label>
-                                        <select wire:model="origine_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                            <option value="">Sélectionner une origine</option>
-                                            @foreach($origines as $origine)
-                                                <option value="{{ $origine->id }}">{{ $origine->nom }} ({{ $origine->region }})</option>
-                                            @endforeach
-                                        </select>
-                                        @error('origine_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label class="block text-sm font-medium text-gray-700">Nom chauffeur *</label>
+                                        <input 
+                                            wire:model="chauffeur_nom"
+                                            type="text"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Entrez le nom du chauffeur"
+                                        >
+                                        @error('chauffeur_nom') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
 
-                                   <!-- Véhicule -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Véhicule *</label>
-        <select wire:model="vehicule_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-            <option value="">Sélectionner un véhicule</option>
-            @foreach($vehicules as $vehicule)
-                <option value="{{ $vehicule->id }}">
-                    {{ $vehicule->immatriculation }} 
-                    ({{ $vehicule->marque }} {{ $vehicule->modele }})
-                    @if($vehicule->capacite_max_kg)
-                        - {{ number_format($vehicule->capacite_max_kg/1000, 1) }}T
-                    @endif
-                </option>
-            @endforeach
-        </select>
-        @error('vehicule_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-    </div>
-
-    <!-- Numéro de chauffeur -->
-    <div>
-        <label class="block text-sm font-medium text-gray-700">Numéro de chauffeur *</label>
-        <input 
-            wire:model="numero_chauffeur"
-            type="text"
-            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            placeholder="Entrez le numéro du chauffeur"
-        >
-        @error('numero_chauffeur') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-    </div>
-</div>
-
+                                    <!-- Numéro de chauffeur -->
                                     <div>
-                                            <label class="block text-sm font-medium text-gray-700">Statut *</label>
-                                            <select wire:model="statut" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm">
-                                                <option value="en_cours">En cours</option>
-                                                <option value="termine">Terminé</option>
-                                                <option value="annule">Annulé</option>
-                                            </select>
-                                            @error('statut') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                        <label class="block text-sm font-medium text-gray-700">Numéro de chauffeur *</label>
+                                        <input 
+                                            wire:model="chauffeur_phone"
+                                            type="text"
+                                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                            placeholder="Entrez le numéro du chauffeur"
+                                        >
+                                        @error('chauffeur_phone') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                     </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-3">Statut *</label>
+                                    
+                                    <!-- Version MISE À JOUR avec setStatut() -->
+                                    <div class="flex flex-row space-x-6">
+                                        <div class="flex items-center">
+                                            <input id="statut_en_cours" 
+                                                name="statut"
+                                                type="radio" 
+                                                value="en_cours"
+                                                wire:click="setStatut('en_cours')"
+                                                @if($statut === 'en_cours') checked @endif
+                                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                            <label for="statut_en_cours" class="ml-2 text-sm text-gray-700 cursor-pointer"
+                                                wire:click="setStatut('en_cours')">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    En cours
+                                                </span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="flex items-center">
+                                            <input id="statut_termine" 
+                                                name="statut"
+                                                type="radio" 
+                                                value="termine"
+                                                wire:click="setStatut('termine')"
+                                                @if($statut === 'termine') checked @endif
+                                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                            <label for="statut_termine" class="ml-2 text-sm text-gray-700 cursor-pointer"
+                                                wire:click="setStatut('termine')">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    Terminé
+                                                </span>
+                                            </label>
+                                        </div>
+                                        
+                                        <div class="flex items-center">
+                                            <input id="statut_annule" 
+                                                name="statut"
+                                                type="radio" 
+                                                value="annule"
+                                                wire:click="setStatut('annule')"
+                                                @if($statut === 'annule') checked @endif
+                                                class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                            <label for="statut_annule" class="ml-2 text-sm text-gray-700 cursor-pointer"
+                                                wire:click="setStatut('annule')">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    Annulé
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    @error('statut') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
+                                </div>
 
                                     <!-- Observation -->
                                     <div>

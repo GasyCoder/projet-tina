@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('lieux', function (Blueprint $table) {
             $table->id();
             $table->string('nom'); // ANKIRIRIKA, VISHAL, etc.
-            $table->enum('type', ['origine', 'destination', 'depot']);
+            $table->enum('type', ['depart', 'point_chargement', 'destination', 'depot']);
             $table->string('region')->nullable();
             $table->string('telephone')->nullable();
             $table->text('adresse')->nullable();

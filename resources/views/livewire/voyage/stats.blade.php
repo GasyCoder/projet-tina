@@ -10,6 +10,7 @@
             <div class="ml-2 md:ml-3 min-w-0">
                 <p class="text-xs md:text-sm font-medium text-gray-600 truncate">Total chargé</p>
                 <p class="text-base md:text-lg font-bold text-gray-900">{{ number_format($totalPoidsCharge, 0) }} kg</p>
+                <p class="text-xs text-gray-500">{{ number_format($totalSacsCharges, 1) }} sacs</p>
             </div>
         </div>
     </div>
@@ -25,6 +26,7 @@
             <div class="ml-2 md:ml-3 min-w-0">
                 <p class="text-xs md:text-sm font-medium text-gray-600 truncate">Total déchargé</p>
                 <p class="text-base md:text-lg font-bold text-gray-900">{{ number_format($totalPoidsDecharge, 0) }} kg</p>
+                <p class="text-xs text-gray-500">{{ number_format($totalSacsDecharges, 1) }} sacs</p>
             </div>
         </div>
     </div>
@@ -32,32 +34,54 @@
     <!-- Écart -->
     <div class="bg-white rounded-lg shadow p-3 md:p-4">
         <div class="flex items-center">
-            <div class="p-1.5 md:p-2 {{ $ecartPoids != 0 ? 'bg-red-100' : 'bg-gray-100' }} rounded-lg flex-shrink-0">
-                <svg class="w-4 h-4 md:w-5 md:h-5 {{ $ecartPoids != 0 ? 'text-red-600' : 'text-gray-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="p-1.5 md:p-2 {{ ($ecartPoids != 0 || $ecartSacs != 0) ? 'bg-red-100' : 'bg-gray-100' }} rounded-lg flex-shrink-0">
+                <svg class="w-4 h-4 md:w-5 md:h-5 {{ ($ecartPoids != 0 || $ecartSacs != 0) ? 'text-red-600' : 'text-gray-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="ml-2 md:ml-3 min-w-0">
                 <p class="text-xs md:text-sm font-medium text-gray-600 truncate">Écart</p>
-                <p class="text-base md:text-lg font-bold {{ $ecartPoids != 0 ? 'text-red-600' : 'text-gray-900' }}">
+                <p class="text-base md:text-lg font-bold {{ ($ecartPoids != 0 || $ecartSacs != 0) ? 'text-red-600' : 'text-gray-900' }}">
                     {{ $ecartPoids > 0 ? '+' : '' }}{{ number_format($ecartPoids, 0) }} kg
+                </p>
+                <p class="text-xs {{ ($ecartPoids != 0 || $ecartSacs != 0) ? 'text-red-500' : 'text-gray-500' }}">
+                    {{ $ecartSacs > 0 ? '+' : '' }}{{ number_format($ecartSacs, 1) }} sacs
                 </p>
             </div>
         </div>
     </div>
 
-    <!-- CA Ventes -->
+    <!-- Progression / Opérations -->
     <div class="bg-white rounded-lg shadow p-3 md:p-4">
         <div class="flex items-center">
-            <div class="p-1.5 md:p-2 bg-yellow-100 rounded-lg flex-shrink-0">
-                <svg class="w-4 h-4 md:w-5 md:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+            <div class="p-1.5 md:p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <svg class="w-4 h-4 md:w-5 md:h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
             </div>
             <div class="ml-2 md:ml-3 min-w-0">
-                <p class="text-xs md:text-sm font-medium text-gray-600 truncate">CA Ventes</p>
-                <p class="text-base md:text-lg font-bold text-gray-900">{{ number_format($totalVentes, 0) }} MGA</p>
+                <p class="text-xs md:text-sm font-medium text-gray-600 truncate">Progression</p>
+                <p class="text-base md:text-lg font-bold text-gray-900">{{ number_format($pourcentageCompletion, 1) }}%</p>
+                <p class="text-xs text-gray-500">{{ $nombreDechargements }}/{{ $nombreChargements }} opérations</p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Barre de progression visuelle (optionnelle) -->
+@if($totalPoidsCharge > 0)
+<div class="mt-4 bg-white rounded-lg shadow p-3 md:p-4">
+    <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700">Progression du déchargement</span>
+        <span class="text-sm text-gray-500">{{ number_format($pourcentageCompletion, 1) }}%</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+             style="width: {{ min(100, $pourcentageCompletion) }}%"></div>
+    </div>
+    <div class="flex justify-between text-xs text-gray-500 mt-1">
+        <span>{{ number_format($totalPoidsDecharge, 0) }} kg déchargés</span>
+        <span>{{ number_format($totalPoidsCharge, 0) }} kg total</span>
+    </div>
+</div>
+@endif

@@ -5,7 +5,8 @@
             <div class="flex-1 min-w-0">
                 <h1 class="text-xl md:text-2xl font-bold text-gray-900 truncate">{{ $voyage->reference }}</h1>
                 <p class="text-xs md:text-sm text-gray-600 truncate">
-                    {{ $voyage->date ? $voyage->date->format('d/m/Y') : 'Date non définie' }} - {{ $voyage->origine->nom ?? 'N/A' }}
+                    {{ $voyage->date ? $voyage->date->format('d/m/Y') : 'Date non définie' }}
+                    {{-- {{ $voyage->depart->nom ?? 'N/A' }} --}}
                 </p>
             </div>
             <div class="flex items-center space-x-2 sm:space-x-4">
@@ -52,10 +53,11 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs sm:text-sm font-medium text-gray-600">Chauffeur</p>
-                    @if($voyage->vehicule && $voyage->vehicule->chauffeur)
-                        <p class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ $voyage->vehicule->chauffeur }}</p>
+                    @if($voyage->vehicule && $voyage->chauffeur_nom)
+                        <p class="text-base sm:text-lg font-bold text-gray-900 truncate">{{ $voyage->chauffeur_nom }}</p>
+                        <p class="text-xs sm:text-sm text-gray-500">{{ $voyage->chauffeur_phone}}</p>
                     @else
-                        <p class="text-base sm:text-lg font-bold text-red-500">Non renseigné</p>
+                        <p class="text-base sm:text-lg font-bold text-red-500">Non renseigné</p>²
                     @endif
                 </div>
             </div>

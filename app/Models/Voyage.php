@@ -12,13 +12,14 @@ class Voyage extends Model
     protected $fillable = [
         'reference',
         'date',
-        'origine_id',
         'vehicule_id',
         'statut',
         'ecart_sacs_pleins',
         'ecart_sacs_demi',
         'ecart_poids_kg',
-        'observation'
+        'observation',
+        'chauffeur_phone',
+        'chauffeur_nom'
     ];
 
     protected $casts = [
@@ -27,10 +28,6 @@ class Voyage extends Model
     ];
 
     // Relations
-    public function origine()
-    {
-        return $this->belongsTo(Lieu::class, 'origine_id');
-    }
 
     public function vehicule()
     {

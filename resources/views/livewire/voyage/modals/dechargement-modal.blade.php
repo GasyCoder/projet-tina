@@ -1,23 +1,161 @@
-{{-- resources/views/livewire/voyage/modals/dechargement-modal.blade.php - VERSION CORRIGÉE --}}
+{{-- resources/views/livewire/voyage/modals/dechargement-modal.blade.php --}}
 @if($showDechargementModal)
-    <div class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeDechargementModal"></div>
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-                <form wire:submit="saveDechargement">
-                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">
-                            {{ $editingDechargement ? 'Modifier' : 'Ajouter' }} un déchargement
-                        </h3>
+<div class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeDechargementModal"></div>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
+            
+            <!-- En-tête avec étapes -->
+            <div class="bg-blue-50 px-6 py-4 border-b">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        {{ $editingDechargement ? 'Modifier' : 'Créer' }} un déchargement
+                    </h3>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center">
+                            <span class="flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium {{ $dechargement_step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600' }}">1</span>
+                            <span class="ml-2 {{ $dechargement_step >= 1 ? 'text-blue-600 font-medium' : 'text-gray-500' }}">Voyage</span>
+                            <div class="w-8 h-0.5 mx-2 {{ $dechargement_step >= 2 ? 'bg-blue-600' : 'bg-gray-300' }}"></div>
+                            <span class="flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium {{ $dechargement_step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600' }}">2</span>
+                            <span class="ml-2 {{ $dechargement_step >= 2 ? 'text-blue-600 font-medium' : 'text-gray-500' }}">Chargement</span>
+                            <div class="w-8 h-0.5 mx-2 {{ $dechargement_step >= 3 ? 'bg-blue-600' : 'bg-gray-300' }}"></div>
+                            <span class="flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium {{ $dechargement_step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600' }}">3</span>
+                            <span class="ml-2 {{ $dechargement_step >= 3 ? 'text-blue-600 font-medium' : 'text-gray-500' }}">Détails</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form wire:submit="saveDechargement">
+                <div class="bg-white px-6 pt-6 pb-4">
+
+                    {{-- ÉTAPE 1: VOYAGE --}}
+                    @if($dechargement_step == 1)
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <h4 class="text-lg font-medium text-gray-900 mb-2">🚛 Sélectionner le voyage</h4>
+                            <p class="text-sm text-gray-600">Choisissez le voyage pour créer un déchargement</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Voyages disponibles *</label>
+                            <select wire:model.live="selected_voyage_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-3 px-4 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                                <option value="">Sélectionner un voyage...</option>
+                                @if($available_voyages)
+                                    @foreach($available_voyages as $v)
+                                    <option value="{{ $v->id }}">
+                                        {{ $v->reference }} - {{ $v->date->format('d/m/Y') }} ({{ $v->vehicule->immatriculation ?? 'N/A' }}) - {{ $v->chargements->count() }} chargement(s)
+                                    </option>
+                                    @endforeach
+                                @endif
+                            </select>
+                            @error('selected_voyage_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        @if($selected_voyage)
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h5 class="font-medium text-blue-900 mb-3">📋 Voyage {{ $selected_voyage->reference }}</h5>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><span class="text-blue-700">Date:</span> {{ $selected_voyage->date->format('d/m/Y') }}</div>
+                                <div><span class="text-blue-700">Véhicule:</span> {{ $selected_voyage->vehicule->immatriculation ?? 'N/A' }}</div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+
+                    {{-- ÉTAPE 2: CHARGEMENT --}}
+                    @if($dechargement_step == 2)
+                    <div class="space-y-6">
+                        <div class="text-center">
+                            <h4 class="text-lg font-medium text-gray-900 mb-2">📦 Sélectionner le chargement</h4>
+                            <p class="text-sm text-gray-600">Voyage: <strong>{{ $selected_voyage->reference }}</strong></p>
+                        </div>
+                        @if($available_chargements && $available_chargements->count() > 0)
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Chargements disponibles *</label>
+                            <select wire:model.live="chargement_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-3 px-4 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                                <option value="">Sélectionner un chargement...</option>
+                                @foreach($available_chargements as $chargement)
+                                <option value="{{ $chargement->id }}">
+                                    {{ $chargement->reference }} - {{ $chargement->proprietaire_nom }} ({{ $chargement->produit->nom ?? 'N/A' }}) - {{ $this->formatNumber($chargement->poids_depart_kg, 0) }} kg
+                                </option>
+                                @endforeach
+                            </select>
+                            @error('chargement_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        @if($chargement_id && $selectedChargement = $available_chargements->find($chargement_id))
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h5 class="font-medium text-green-900 mb-3">📦 Chargement {{ $selectedChargement->reference }}</h5>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><span class="text-green-700">Propriétaire:</span> {{ $selectedChargement->proprietaire_nom }}</div>
+                                <div><span class="text-green-700">Produit:</span> {{ $selectedChargement->produit->nom ?? 'N/A' }}</div>
+                                <div><span class="text-green-700">Poids chargé:</span> {{ $this->formatNumber($selectedChargement->poids_depart_kg, 1) }} kg</div>
+                                <div><span class="text-green-700">Sacs chargés:</span> {{ $this->formatNumber($selectedChargement->sacs_pleins_depart, 0) }}</div>
+                            </div>
+                            
+                            {{-- ✅ NOUVEAU : Afficher un avertissement si le chargement a déjà des déchargements (mode édition) --}}
+                            @if($selectedChargement->dechargements->count() > 0)
+                            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                <div class="flex">
+                                    <div class="text-yellow-400 mr-2">⚠️</div>
+                                    <div class="text-sm text-yellow-800">
+                                        <strong>Mode édition :</strong> Ce chargement a déjà {{ $selectedChargement->dechargements->count() }} déchargement(s).
+                                        Vous pouvez modifier le déchargement existant.
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        @endif
+                        @else
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 text-6xl mb-4">📭</div>
+                            <h5 class="text-lg font-medium text-gray-900 mb-2">Aucun chargement disponible</h5>
+                            <p class="text-sm text-gray-600">
+                                @if($this->editingDechargement)
+                                    Mode édition du déchargement {{ $this->editingDechargement->reference }}
+                                @else
+                                    Tous les chargements de ce voyage ont déjà été déchargés.
+                                @endif
+                            </p>
+                            <button type="button" wire:click="goToStep(1)" class="mt-4 text-blue-600 hover:text-blue-500">← Choisir un autre voyage</button>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
+
+                    {{-- ÉTAPE 3: DÉTAILS --}}
+                    @if($dechargement_step == 3)
+                    <div class="space-y-6">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <h4 class="text-lg font-medium text-gray-900 mb-3">📋 Récapitulatif</h4>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600">Voyage:</span>
+                                    <div class="font-medium">{{ $selected_voyage->reference }}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Chargement:</span>
+                                    @if($chargement_id && $selectedChargement = $available_chargements->find($chargement_id))
+                                    <div class="font-medium">{{ $selectedChargement->reference }}</div>
+                                    @endif
+                                </div>
+                                <div>
+                                    <span class="text-gray-600">Poids:</span>
+                                    @if($selectedChargement)
+                                    <div class="font-medium">{{ number_format($selectedChargement->poids_depart_kg, 1) }} kg</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="grid grid-cols-2 gap-4">
-                            <!-- Référence et Type -->
+                            <!-- Référence -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Référence *</label>
                                 <input wire:model="dechargement_reference" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
                                 @error('dechargement_reference') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
-
+                            <!-- Type -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Type *</label>
                                 <select wire:model="type_dechargement" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
@@ -29,97 +167,62 @@
                                 @error('type_dechargement') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
-                            <!-- SÉLECTION DU CHARGEMENT SOURCE -->
+                            <!-- Interlocuteurs -->
                             <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Chargement à décharger *</label>
-                                <select wire:model="chargement_id" {{ $editingDechargement ? '' : 'wire:change="updatedChargementId"' }} class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Sélectionner un chargement</option>
-                                    @foreach($voyage->chargements as $chargement)
-                                        @php
-                                            $hasDechargement = \App\Models\Dechargement::where('chargement_id', $chargement->id)->exists();
-                                        @endphp
-                                        @if(!$hasDechargement || ($editingDechargement && $editingDechargement->chargement_id == $chargement->id))
-                                            <option value="{{ $chargement->id }}">
-                                                {{ $chargement->reference }} - {{ $chargement->proprietaire_nom }} 
-                                                ({{ $chargement->produit->nom ?? 'N/A' }}) 
-                                                - {{ number_format($chargement->poids_depart_kg, 0) }} kg
-                                            </option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                                @error('chargement_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">👥 Informations des interlocuteurs</h4>
                             </div>
-
-                            <!-- Aperçu du chargement sélectionné -->
-                            @if($chargement_id && $selectedChargement = $voyage->chargements->find($chargement_id))
-                                <div class="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                    <h4 class="font-medium text-blue-900 mb-2">📦 Chargement {{ $selectedChargement->reference }}</h4>
-                                    <div class="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span class="text-blue-700">Propriétaire:</span> {{ $selectedChargement->proprietaire_nom }}
-                                        </div>
-                                        <div>
-                                            <span class="text-blue-700">Produit:</span> {{ $selectedChargement->produit->nom ?? 'N/A' }}
-                                        </div>
-                                        <div>
-                                            <span class="text-blue-700">Poids chargé:</span> {{ number_format($selectedChargement->poids_depart_kg, 0) }} kg
-                                        </div>
-                                        <div>
-                                            <span class="text-blue-700">Sacs chargés:</span> {{ $selectedChargement->sacs_pleins_depart }}
-                                            @if($selectedChargement->sacs_demi_depart > 0)
-                                                + {{ $selectedChargement->sacs_demi_depart }}/2
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
-
-                            <!-- Pointeur et dépot-->
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Nom du pointeur</label>
-                                <input 
-                                    wire:model="pointeur_nom"
-                                    type="text"
-                                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Ex: Ndriana, Ravo..."
-                                >
+                                <label class="block text-sm font-medium text-gray-700">Nom de l'interlocuteur <span class="text-xs text-gray-500">(Client/Acheteur)</span></label>
+                                <input wire:model="interlocuteur_nom" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: M. Rakoto Jean, Société FITIAVANA">
+                                @error('interlocuteur_nom') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Contact de l'interlocuteur</label>
+                                <input wire:model="interlocuteur_contact" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 032 12 345 67 ou 020 22 123 45">
+                                @error('interlocuteur_contact') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Nom du pointeur <span class="text-xs text-gray-500">(Superviseur déchargement)</span></label>
+                                <input wire:model="pointeur_nom" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: Ndriana, Ravo, Hery">
                                 @error('pointeur_nom') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
-
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Lieu de livraison (Dépot)</label>
+                                <label class="block text-sm font-medium text-gray-700">Contact du pointeur</label>
+                                <input wire:model="pointeur_contact" type="text" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 033 98 765 43">
+                                @error('pointeur_contact') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <!-- Lieu livraison -->
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700">Lieu de livraison / Dépôt de destination</label>
                                 <select wire:model="lieu_livraison_id" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Sélectionner un lieu</option>
+                                    <option value="">Sélectionner le lieu de destination...</option>
                                     @foreach($destinations as $destination)
-                                        <option value="{{ $destination->id }}">{{ $destination->nom }} ({{ $destination->region }})</option>
+                                    <option value="{{ $destination->id }}">{{ $destination->nom }} ({{ $destination->region }})</option>
                                     @endforeach
                                 </select>
                                 @error('lieu_livraison_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
-                            <!-- SEULEMENT quantités reçues à l'arrivée -->
+                            <!-- Quantités -->
                             <div class="col-span-2">
-                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">Quantités reçues à destination</h4>
+                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">📊 Quantités reçues à destination</h4>
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Sacs pleins reçus</label>
-                                <input wire:model="sacs_pleins_arrivee" type="number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <input wire:model="sacs_pleins_arrivee" type="number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 25">
                                 @error('sacs_pleins_arrivee') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Sacs demi reçus</label>
-                                <input wire:model="sacs_demi_arrivee" type="number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <input wire:model="sacs_demi_arrivee" type="number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 2">
                                 @error('sacs_demi_arrivee') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
-
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Poids reçu (kg)</label>
-                                <input wire:model="poids_arrivee_kg" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                <label class="block text-sm font-medium text-gray-700">Poids total reçu (kg)</label>
+                                <input wire:model="poids_arrivee_kg" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 3250.50">
                                 @error('poids_arrivee_kg') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
-
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Statut commercial *</label>
                                 <select wire:model="statut_commercial" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
@@ -131,171 +234,236 @@
                                 @error('statut_commercial') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
 
-                            <!-- Calcul automatique des écarts -->
-                            @if($chargement_id && $poids_arrivee_kg && $selectedChargement = $voyage->chargements->find($chargement_id))
-                                <div class="col-span-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    @php
-                                        $ecart = $selectedChargement->poids_depart_kg - $poids_arrivee_kg;
-                                        $pourcentage = $selectedChargement->poids_depart_kg > 0 ? ($ecart / $selectedChargement->poids_depart_kg) * 100 : 0;
-                                    @endphp
-                                    <p class="text-sm text-yellow-800">
-                                        <strong>Écart :</strong> {{ number_format($ecart, 1) }} kg 
-                                        ({{ number_format($pourcentage, 1) }}% {{ $ecart > 0 ? 'de perte' : 'de gain' }})
-                                    </p>
-                                </div>
-                            @endif
-
-                            {{-- Section Informations financières avec calculs automatiques --}}
-                            @if($type_dechargement === 'vente')
-                                <div class="col-span-2">
-                                    <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">💰 Informations financières</h4>
-                                </div>
-
-                                {{-- Prix unitaire (saisie manuelle) --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Prix unitaire (MGA/kg) *</label>
-                                    <input 
-                                        wire:model.live="prix_unitaire_mga" 
-                                        type="number" 
-                                        step="0.01" 
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Ex: 2500"
-                                    >
-                                    @error('prix_unitaire_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                {{-- Montant total (calculé automatiquement) --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">
-                                        Montant total (MGA) 
-                                        <span class="text-xs text-blue-600">✨ Calculé automatiquement</span>
-                                    </label>
-                                    <input 
-                                        wire:model="montant_total_mga" 
-                                        type="text" 
-                                        readonly 
-                                        class="mt-1 block w-full border border-gray-200 rounded-md shadow-sm py-2 px-3 bg-blue-50 text-blue-900 font-medium cursor-not-allowed"
-                                        placeholder="Sera calculé automatiquement"
-                                    >
-                                    <p class="mt-1 text-xs text-blue-600">
-                                        @if($prix_unitaire_mga && $poids_arrivee_kg)
-                                            {{ number_format($prix_unitaire_mga, 0) }} MGA/kg × {{ number_format($poids_arrivee_kg, 1) }} kg = {{ number_format($montant_total_mga, 0) }} MGA
-                                        @else
-                                            Remplissez le prix unitaire et le poids reçu
-                                        @endif
-                                    </p>
-                                </div>
-
-                                {{-- Paiement reçu (saisie manuelle ou auto) --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">
-                                        Paiement reçu (MGA)
-                                        <button 
-                                            type="button" 
-                                            wire:click="setFullPayment" 
-                                            class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200"
-                                            @if(!$montant_total_mga) disabled @endif
-                                        >
-                                            💰 Paiement complet
-                                        </button>
-                                    </label>
-                                    <input 
-                                        wire:model.live="paiement_mga" 
-                                        type="number" 
-                                        step="0.01" 
-                                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Montant payé par le client"
-                                    >
-                                    @error('paiement_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                </div>
-
-                                {{-- Reste à encaisser (calculé automatiquement) --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">
-                                        Reste à encaisser (MGA)
-                                        <span class="text-xs text-blue-600">✨ Calculé automatiquement</span>
-                                    </label>
-                                    
-                                    @php
-                                        // ✅ Conversion sécurisée des valeurs
-                                        $reste_numerique = is_numeric($reste_mga) ? (float)$reste_mga : 0;
-                                        $montant_total_numerique = is_numeric($montant_total_mga) ? (float)$montant_total_mga : 0;
-                                        $paiement_numerique = is_numeric($paiement_mga) ? (float)$paiement_mga : 0;
-                                    @endphp
-                                    
-                                    <div class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 font-medium
-                                        @if($reste_numerique > 0) bg-yellow-50 border-yellow-300 text-yellow-800
-                                        @elseif($reste_numerique < 0) bg-red-50 border-red-300 text-red-800  
-                                        @else bg-green-50 border-green-300 text-green-800 @endif">
-                                        
-                                        @if($reste_numerique > 0)
-                                            <span class="flex items-center">
-                                                ⚠️ {{ number_format($reste_numerique, 0) }} MGA 
-                                                <span class="ml-2 text-xs">(Paiement partiel)</span>
-                                            </span>
-                                        @elseif($reste_numerique < 0)
-                                            <span class="flex items-center">
-                                                ❌ {{ number_format(abs($reste_numerique), 0) }} MGA 
-                                                <span class="ml-2 text-xs">(Trop-perçu - Vérifiez les montants)</span>
-                                            </span>
-                                        @else
-                                            <span class="flex items-center">
-                                                ✅ 0 MGA 
-                                                <span class="ml-2 text-xs">(Paiement complet)</span>
-                                            </span>
-                                        @endif
-                                    </div>
-                                    
-                                    {{-- Aide contextuelle --}}
-                                    @if($montant_total_numerique > 0 || $paiement_numerique > 0)
-                                        <p class="mt-1 text-xs text-gray-600">
-                                            {{ number_format($montant_total_numerique, 0) }} - {{ number_format($paiement_numerique, 0) }} = {{ number_format($reste_numerique, 0) }} MGA
-                                        </p>
-                                    @endif
-                                </div>
-
-                                {{-- Résumé visuel rapide --}}
-                                @if($montant_total_mga)
-                                    <div class="col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                                        <div class="grid grid-cols-3 gap-4 text-sm text-center">
-                                            <div>
-                                                <div class="text-gray-600">Montant dû</div>
-                                                <div class="font-bold text-lg text-blue-600">{{ number_format($montant_total_mga, 0) }} MGA</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-gray-600">Payé</div>
-                                                <div class="font-bold text-lg text-green-600">{{ number_format($paiement_mga ?: 0, 0) }} MGA</div>
-                                            </div>
-                                            <div>
-                                                <div class="text-gray-600">Reste</div>
-                                                <div class="font-bold text-lg {{ $reste_mga > 0 ? 'text-yellow-600' : ($reste_mga < 0 ? 'text-red-600' : 'text-green-600') }}">
-                                                    {{ number_format($reste_mga ?: 0, 0) }} MGA
-                                                </div>
-                                            </div>
+                            {{-- ✅ NOUVEAU : Calcul d'écarts avec explications --}}
+                            @if($chargement_id && ($poids_arrivee_kg || $sacs_pleins_arrivee) && $selectedChargement = $available_chargements->find($chargement_id))
+                            <div class="col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <h5 class="font-medium text-blue-900 mb-3">📊 Analyse des écarts (chargement → réception)</h5>
+                                @php
+                                    $ecart_poids = $selectedChargement->poids_depart_kg - ($poids_arrivee_kg ?: 0);
+                                    $ecart_sacs_pleins = $selectedChargement->sacs_pleins_depart - ($sacs_pleins_arrivee ?: 0);
+                                    $ecart_sacs_demi = $selectedChargement->sacs_demi_depart - ($sacs_demi_arrivee ?: 0);
+                                    $pourcentage_ecart = $selectedChargement->poids_depart_kg > 0 ? ($ecart_poids / $selectedChargement->poids_depart_kg) * 100 : 0;
+                                @endphp
+                                
+                                <div class="grid grid-cols-3 gap-4 text-sm">
+                                    <div>
+                                        <span class="text-blue-700">Écart poids:</span>
+                                        <div class="font-medium {{ $ecart_poids > 0 ? 'text-orange-600' : ($ecart_poids < 0 ? 'text-green-600' : 'text-blue-600') }}">
+                                            {{ $ecart_poids > 0 ? '-' : ($ecart_poids < 0 ? '+' : '') }}{{ number_format(abs($ecart_poids), 1) }} kg
                                         </div>
                                     </div>
+                                    <div>
+                                        <span class="text-blue-700">Écart sacs pleins:</span>
+                                        <div class="font-medium {{ $ecart_sacs_pleins > 0 ? 'text-orange-600' : ($ecart_sacs_pleins < 0 ? 'text-green-600' : 'text-blue-600') }}">
+                                            {{ $ecart_sacs_pleins > 0 ? '-' : ($ecart_sacs_pleins < 0 ? '+' : '') }}{{ abs($ecart_sacs_pleins) }} sacs
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="text-blue-700">Pourcentage:</span>
+                                        <div class="font-medium {{ abs($pourcentage_ecart) > 5 ? 'text-orange-600' : 'text-blue-600' }}">
+                                            {{ number_format(abs($pourcentage_ecart), 1) }}%
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3 p-2 rounded text-xs {{ abs($pourcentage_ecart) > 10 ? 'bg-orange-100 text-orange-800' : (abs($pourcentage_ecart) > 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800') }}">
+                                    @if(abs($pourcentage_ecart) > 10)
+                                        ⚠️ <strong>Écart significatif ({{ number_format(abs($pourcentage_ecart), 1) }}%)</strong> - Peut être dû à la qualité, humidité, tassement, ou autres facteurs. Vérifiez les conditions de transport.
+                                    @elseif(abs($pourcentage_ecart) > 5)
+                                        ℹ️ <strong>Écart modéré ({{ number_format(abs($pourcentage_ecart), 1) }}%)</strong> - Variation normale due aux conditions de transport, pesée, ou qualité du produit.
+                                    @else
+                                        ✅ <strong>Écart faible ({{ number_format(abs($pourcentage_ecart), 1) }}%)</strong> - Variation normale et acceptable dans les opérations de transport.
+                                    @endif
+                                </div>
+                                
+                                <div class="mt-2 text-xs text-blue-600">
+                                    <strong>Note:</strong> Les écarts ne signifient pas automatiquement des "pertes". Ils peuvent être dus à la qualité, l'humidité, le tassement, les conditions de pesée, etc. 
+                                    Les pertes réelles (disparition physique) sont rares et doivent être déclarées séparément.
+                                </div>
+                            </div>
+                            @endif
+
+                            {{-- SECTION FINANCIÈRE AMÉLIORÉE --}}
+                            @if($type_dechargement === 'vente')
+                            <div class="col-span-2">
+                                <h4 class="text-md font-medium text-gray-900 mb-2 border-t pt-4">💰 Informations financières</h4>
+                                @if($selected_product)
+                                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <div>
+                                            <span class="text-blue-700">Produit:</span>
+                                            <span class="font-medium">{{ $selected_product->nom_complet }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-blue-700">Unité de vente:</span>
+                                            <span class="font-bold px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs uppercase">{{ $product_unite }}</span>
+                                        </div>
+                                    </div>
+                                    @if($product_unite === 'sacs')
+                                    <div class="mt-2 text-xs text-blue-600">
+                                        ℹ️ Poids moyen par sac: {{ number_format($product_poids_moyen_sac, 0) }} kg
+                                    </div>
+                                    @endif
+                                </div>
                                 @endif
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Prix unitaire 
+                                    @if($selected_product)
+                                    <span class="text-blue-600">(MGA/{{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sac' : $product_unite) }})</span>
+                                    @endif
+                                    *
+                                </label>
+                                <div class="relative">
+                                    <input wire:model.live="prix_unitaire_mga" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-20 focus:ring-blue-500 focus:border-blue-500" 
+                                           placeholder="@if($product_prix_reference > 0){{ number_format($product_prix_reference, 0) }}@else{{ $product_unite === 'kg' ? 'Ex: 3200' : ($product_unite === 'sacs' ? 'Ex: 140000' : 'Ex: 2500') }}@endif">
+                                    @if($product_prix_reference > 0)
+                                    <button type="button" wire:click="$set('prix_unitaire_mga', {{ $product_prix_reference }})" class="absolute inset-y-0 right-0 px-3 py-2 text-xs bg-gray-100 text-gray-700 border-l border-gray-300 rounded-r-md hover:bg-gray-200" title="Utiliser prix de référence">📋 Réf</button>
+                                    @endif
+                                </div>
+                                @if($product_prix_reference > 0)
+                                <p class="mt-1 text-xs text-gray-500">
+                                    💡 Prix de référence: {{ number_format($product_prix_reference, 0) }} MGA/{{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sac' : $product_unite) }}
+                                </p>
+                                @endif
+                                @error('prix_unitaire_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Quantité à facturer
+                                    @if($selected_product)
+                                    <span class="text-blue-600">({{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sacs' : $product_unite) }})</span>
+                                    @endif
+                                    <span class="text-xs text-blue-600">✨ Calculé selon unité produit</span>
+                                </label>
+                                <input wire:model="quantite_vendue" type="text" readonly class="mt-1 block w-full border border-gray-200 rounded-md shadow-sm py-2 px-3 bg-green-50 text-green-900 font-medium cursor-not-allowed">
+                                <p class="mt-1 text-xs text-green-600">
+                                    @if($selected_product && $quantite_vendue > 0)
+                                        @if($product_unite === 'kg')
+                                            📊 {{ number_format($quantite_vendue, 1) }} kg (basé sur le poids total reçu)
+                                        @elseif($product_unite === 'sacs')
+                                            📊 {{ number_format($quantite_vendue, 1) }} sacs ({{ $sacs_pleins_arrivee ?: 0 }} pleins + {{ ($sacs_demi_arrivee ?: 0) }} × 0.5 demi)
+                                        @elseif($product_unite === 'tonnes')
+                                            📊 {{ number_format($quantite_vendue, 3) }} tonnes ({{ number_format($poids_arrivee_kg ?: 0, 0) }} kg ÷ 1000)
+                                        @else
+                                            📊 {{ number_format($quantite_vendue, 1) }} {{ $product_unite }}
+                                        @endif
+                                    @else
+                                        @if($selected_product)
+                                            @if($product_unite === 'kg')
+                                                Remplissez le "Poids total reçu (kg)"
+                                            @elseif($product_unite === 'sacs')
+                                                Remplissez "Sacs pleins reçus" et "Sacs demi reçus"
+                                            @else
+                                                Remplissez les quantités reçues
+                                            @endif
+                                        @else
+                                            Sélectionnez d'abord un chargement
+                                        @endif
+                                    @endif
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Montant total (MGA) <span class="text-xs text-blue-600">✨ Calculé automatiquement</span></label>
+                                <input wire:model="montant_total_mga" type="text" readonly class="mt-1 block w-full border border-gray-200 rounded-md shadow-sm py-2 px-3 bg-blue-50 text-blue-900 font-medium cursor-not-allowed" placeholder="Sera calculé automatiquement">
+                                <p class="mt-1 text-xs text-blue-600">
+                                @if($prix_unitaire_mga && $quantite_vendue && $selected_product)
+                                    💰 {{ number_format(floatval($prix_unitaire_mga), 0) }} MGA/{{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sac' : $product_unite) }} × {{ number_format(floatval($quantite_vendue), $product_unite === 'tonnes' ? 3 : 1) }} {{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sacs' : $product_unite) }} = {{ number_format(floatval($montant_total_mga), 0) }} MGA
+                                @else
+                                    Remplissez le prix unitaire et les quantités correspondant à l'unité du produit
+                                @endif
+                                </p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Paiement reçu (MGA)
+                                    <button type="button" wire:click="setFullPayment" class="ml-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200" @if(!$montant_total_mga) disabled @endif title="Remplir automatiquement le montant total">💰 Paiement complet</button>
+                                </label>
+                                <input wire:model.live="paiement_mga" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: 750000 (montant effectivement payé par le client)">
+                                @error('paiement_mga') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Reste à encaisser (MGA) <span class="text-xs text-blue-600">✨ Calculé automatiquement</span></label>
+                                @php
+                                    $reste_numerique = is_numeric($reste_mga) ? (float)$reste_mga : 0;
+                                @endphp
+                                <div class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 font-medium @if($reste_numerique > 0) bg-yellow-50 border-yellow-300 text-yellow-800 @elseif($reste_numerique < 0) bg-red-50 border-red-300 text-red-800 @else bg-green-50 border-green-300 text-green-800 @endif">
+                                    @if($reste_numerique > 0)
+                                    ⚠️ {{ number_format($reste_numerique, 0) }} MGA (Paiement partiel - créance client)
+                                    @elseif($reste_numerique < 0)
+                                    ❌ {{ number_format(abs($reste_numerique), 0) }} MGA (Trop-perçu - vérifiez les montants)
+                                    @else
+                                    ✅ 0 MGA (Transaction soldée - paiement complet)
+                                    @endif
+                                </div>
+                                @if($montant_total_mga || $paiement_mga)
+                                <p class="mt-1 text-xs text-gray-600">
+                                    📊 Calcul: {{ number_format($montant_total_mga ?: 0, 0) }} MGA (montant dû) - {{ number_format($paiement_mga ?: 0, 0) }} MGA (payé) = {{ number_format($reste_numerique, 0) }} MGA
+                                </p>
+                                @endif
+                            </div>
+                            
+                            {{-- ✅ NOUVEAU : Résumé visuel adapté avec unités --}}
+                            @if($montant_total_mga && $selected_product)
+                            <div class="col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <h5 class="text-sm font-medium text-gray-900 mb-3">💼 Résumé de la transaction commerciale</h5>
+                                <div class="grid grid-cols-4 gap-4 text-sm text-center">
+                                    <div>
+                                        <div class="text-gray-600">Quantité facturée</div>
+                                        <div class="font-bold text-lg text-blue-600">{{ number_format($quantite_vendue, $product_unite === 'tonnes' ? 3 : 1) }}</div>
+                                        <div class="text-xs text-gray-500">{{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sacs' : $product_unite) }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-600">Prix unitaire</div>
+                                        <div class="font-bold text-lg text-blue-600">{{ number_format($prix_unitaire_mga ?: 0, 0) }}</div>
+                                        <div class="text-xs text-gray-500">MGA/{{ $product_unite === 'kg' ? 'kg' : ($product_unite === 'sacs' ? 'sac' : $product_unite) }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-600">Montant facturé</div>
+                                        <div class="font-bold text-xl text-green-600">{{ number_format($montant_total_mga, 0) }}</div>
+                                        <div class="text-xs text-gray-500">MGA</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-600">Solde</div>
+                                        <div class="font-bold text-lg {{ $reste_mga > 0 ? 'text-yellow-600' : ($reste_mga < 0 ? 'text-red-600' : 'text-green-600') }}">{{ number_format($reste_mga ?: 0, 0) }}</div>
+                                        <div class="text-xs text-gray-500">
+                                            @if($reste_mga > 0) créance @elseif($reste_mga < 0) surplus @else soldé @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
                             @endif
 
                             <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700">Observation</label>
-                                <textarea wire:model="dechargement_observation" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                <label class="block text-sm font-medium text-gray-700">Observations / Remarques</label>
+                                <textarea wire:model="dechargement_observation" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: Qualité bonne, quelques sacs légèrement humides, livraison en bon état, client satisfait..."></textarea>
                                 @error('dechargement_observation') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     </div>
+                    @endif
 
-                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <!-- ✅ NOUVEAU : Bouton Aperçu au lieu de Ajouter directement -->
-                        <button type="button" wire:click="showPreview" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
-                            🔍 Aperçu avant {{ $editingDechargement ? 'modification' : 'ajout' }}
-                        </button>
-                        <button type="button" wire:click="closeDechargementModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                            Annuler
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+
+                <!-- Boutons -->
+                <div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse">
+                    @if($dechargement_step == 1)
+                    <button type="button" wire:click="$set('dechargement_step', 2)" @if(!$selected_voyage_id) disabled @endif class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 disabled:bg-gray-400 sm:ml-3 sm:w-auto sm:text-sm">Suivant →</button>
+                    @elseif($dechargement_step == 2)
+                    @if($chargement_id)
+                    <span class="w-full inline-flex justify-center rounded-md border border-green-300 shadow-sm px-4 py-2 bg-green-50 text-base font-medium text-green-700 sm:ml-3 sm:w-auto sm:text-sm">✅ Sélectionné</span>
+                    @endif
+                    <button type="button" wire:click="goToStep(1)" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">← Retour</button>
+                    @elseif($dechargement_step == 3)
+                    <button type="button" wire:click="showPreview" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 sm:ml-3 sm:w-auto sm:text-sm">🔍 Aperçu</button>
+                    <button type="button" wire:click="goToStep(2)" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">← Retour</button>
+                    @endif
+                    <button type="button" wire:click="closeDechargementModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">Annuler</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
 @endif

@@ -12,6 +12,7 @@ class Lieu extends Model
     protected $fillable = [
         'nom',
         'type',
+        'point_chargement',
         'region',
         'adresse',
         'telephone',
@@ -23,9 +24,9 @@ class Lieu extends Model
     ];
 
     // Relations
-    public function voyagesOrigine()
+    public function voyagesDepart()
     {
-        return $this->hasMany(Voyage::class, 'origine_id');
+        return $this->hasMany(Voyage::class, 'depart_id');
     }
 
     public function dechargements()
@@ -38,9 +39,9 @@ class Lieu extends Model
         return $this->hasMany(StockDepot::class, 'depot_id');
     }
 
-    public function transfertsOrigine()
+    public function transfertsDepart()
     {
-        return $this->hasMany(TransfertStock::class, 'depot_origine_id');
+        return $this->hasMany(TransfertStock::class, 'depot_depart_id');
     }
 
     public function transfertsDestination()
@@ -54,9 +55,9 @@ class Lieu extends Model
     }
 
     // Scopes
-    public function scopeOrigines($query)
+    public function scopeDepart($query)
     {
-        return $query->where('type', 'origine');
+        return $query->where('type', 'depart');
     }
 
     public function scopeDepots($query)

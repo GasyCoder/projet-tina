@@ -628,6 +628,64 @@ class VoyageShow extends Component
         $this->showPreview();
     }
 
+
+    public function viewDechargementDetail($dechargementId)
+    {
+        $dechargement = Dechargement::with(['chargement.produit', 'chargement.depart', 'voyage.vehicule', 'lieuLivraison'])
+            ->find($dechargementId);
+        
+        if (!$dechargement) {
+            session()->flash('error', 'Déchargement introuvable');
+            return;
+        }
+
+        $chargement = $dechargement->chargement;
+
+        // Construire previewData exactement comme dans showPreview()
+        $this->previewData = [
+            'voyage' => [
+                'reference' => $dechargement->voyage->reference,
+                'date' => $dechargement->voyage->date->format('d/m/Y'),
+                'vehicule' => $dechargement->voyage->vehicule->immatriculation ?? 'N/A',
+            ],
+            'chargement' => [
+                'reference' => $chargement->reference,
+                'proprietaire_nom' => $chargement->proprietaire_nom,
+                'produit' => $chargement->produit->nom ?? 'N/A',
+                'depart' => $chargement->depart->nom ?? 'N/A',
+                'sacs_pleins_depart' => $this->ensureNumeric($chargement->sacs_pleins_depart),
+                'sacs_demi_depart' => $this->ensureNumeric($chargement->sacs_demi_depart),
+                'poids_depart_kg' => $this->ensureNumeric($chargement->poids_depart_kg),
+            ],
+            'dechargement' => [
+                'reference' => $dechargement->reference,
+                'type' => $dechargement->type,
+                'interlocuteur_nom' => $dechargement->interlocuteur_nom ?: 'Non renseigné',
+                'pointeur_nom' => $dechargement->pointeur_nom ?: 'Non renseigné',
+                'lieu_livraison' => $dechargement->lieuLivraison->nom ?? 'Non renseigné',
+                'sacs_pleins_arrivee' => $this->ensureNumeric($dechargement->sacs_pleins_arrivee),
+                'sacs_demi_arrivee' => $this->ensureNumeric($dechargement->sacs_demi_arrivee),
+                'poids_arrivee_kg' => $this->ensureNumeric($dechargement->poids_arrivee_kg),
+                'product_unite' => $chargement->produit->unite ?? 'kg',
+                'quantite_vendue' => $this->ensureNumeric($dechargement->poids_arrivee_kg), // Simple pour l'instant
+                'prix_unitaire_mga' => $this->ensureNumeric($dechargement->prix_unitaire_mga),
+                'montant_total_mga' => $this->ensureNumeric($dechargement->montant_total_mga),
+                'paiement_mga' => $this->ensureNumeric($dechargement->paiement_mga),
+                'reste_mga' => $this->ensureNumeric($dechargement->reste_mga),
+                'statut_commercial' => $dechargement->statut_commercial,
+            ],
+            'calculs' => [
+                'ecart_sacs_pleins' => $chargement->sacs_pleins_depart - ($dechargement->sacs_pleins_arrivee ?: 0),
+                'ecart_sacs_demi' => $chargement->sacs_demi_depart - ($dechargement->sacs_demi_arrivee ?: 0),
+                'ecart_poids_kg' => $chargement->poids_depart_kg - ($dechargement->poids_arrivee_kg ?: 0),
+                'pourcentage_ecart' => $chargement->poids_depart_kg > 0 ? 
+                    (($chargement->poids_depart_kg - ($dechargement->poids_arrivee_kg ?: 0)) / $chargement->poids_depart_kg) * 100 : 0,
+            ]
+        ];
+
+        $this->showPreviewModal = true;
+    }
+
     public function showPreview()
     {
         $this->calculateFinancials();

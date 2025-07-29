@@ -94,12 +94,34 @@ class FinanceIndex extends Component
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
     }
+public function setActiveTab($tab)
+{
+    $this->activeTab = $tab;
+    $this->resetPage();
+    
+    // Réinitialiser les filtres de période
+    $this->periodeRevenus = 'mois';
+    $this->periodeDepenses = 'mois';
+    $this->dateDebutRevenus = '';
+    $this->dateFinRevenus = '';
+    $this->dateDebutDepenses = '';
+    $this->dateFinDepenses = '';
+}
 
-    public function setActiveTab($tab)
-    {
-        $this->activeTab = $tab;
-        $this->resetPage();
-    }
+public function updatedPeriodeRevenus()
+{
+    $this->resetPage();
+}
+
+public function updatedPeriodeDepenses()
+{
+    $this->resetPage();
+}
+
+public function updatedCategorieDepense()
+{
+    $this->resetPage();
+}
 
     // =====================================================
     // ✅ NOUVELLES PROPRIÉTÉS CALCULÉES POUR LES STATISTIQUES
@@ -107,17 +129,19 @@ class FinanceIndex extends Component
 
     public function getTotalEntreesProperty()
     {
-        return Transaction::confirme()
-            ->entrees() // vente, depot, commission selon vos scopes
-            ->periode($this->dateDebut, $this->dateFin)
+        // ✅ UTILISATION DIRECTE DES TYPES AU LIEU DES SCOPES
+        return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
+            ->where('statut', '!=', 'annule')
+            ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->sum('montant_mga');
     }
 
     public function getTotalSortiesProperty()
     {
-        return Transaction::confirme()
-            ->sorties() // achat, frais, etc. selon vos scopes
-            ->periode($this->dateDebut, $this->dateFin)
+        // ✅ UTILISATION DIRECTE DES TYPES AU LIEU DES SCOPES
+        return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->where('statut', '!=', 'annule')
+            ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->sum('montant_mga');
     }
 
@@ -139,7 +163,7 @@ class FinanceIndex extends Component
     {
         return Transaction::with(['voyage'])
             ->whereNotNull('voyage_id')
-            ->periode($this->dateDebut, $this->dateFin)
+            ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->where('statut', '!=', 'annule')
             ->orderBy('date', 'desc')
             ->get();
@@ -148,7 +172,7 @@ class FinanceIndex extends Component
     public function getTransactionsAutreProperty()
     {
         return Transaction::whereNull('voyage_id')
-            ->periode($this->dateDebut, $this->dateFin)
+            ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->where('statut', '!=', 'annule')
             ->orderBy('date', 'desc')
             ->get();
@@ -156,7 +180,7 @@ class FinanceIndex extends Component
 
     public function getRepartitionParTypeProperty()
     {
-        return Transaction::periode($this->dateDebut, $this->dateFin)
+        return Transaction::whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->where('statut', '!=', 'annule')
             ->select('type', DB::raw('COUNT(*) as count'), DB::raw('SUM(montant_mga) as total'))
             ->groupBy('type')
@@ -169,7 +193,7 @@ class FinanceIndex extends Component
 
     public function getRepartitionParStatutProperty()
     {
-        return Transaction::periode($this->dateDebut, $this->dateFin)
+        return Transaction::whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->select('statut', DB::raw('COUNT(*) as count'))
             ->groupBy('statut')
             ->pluck('count', 'statut')
@@ -185,8 +209,8 @@ class FinanceIndex extends Component
         $dates = $this->getDateRangeRevenus();
         
         return Transaction::with(['voyage'])
-            ->entrees() // Utilise votre scope existant
-            ->periode($dates['debut'], $dates['fin'])
+            ->whereIn('type', ['vente', 'depot', 'commission']) // Types de revenus
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->orderBy('date', 'desc')
             ->paginate(10);
@@ -196,8 +220,8 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeRevenus();
         
-        return Transaction::entrees()
-            ->periode($dates['debut'], $dates['fin'])
+        return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->sum('montant_mga');
     }
@@ -214,21 +238,20 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeRevenus();
         
-        return Transaction::entrees()
-            ->periode($dates['debut'], $dates['fin'])
+        return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->count();
     }
 
     private function getDateRangeRevenus()
     {
-        if ($this->periodeRevenus === 'personnalise') {
-            return [
-                'debut' => $this->dateDebutRevenus ?: Carbon::now()->startOfMonth()->format('Y-m-d'),
-                'fin' => $this->dateFinRevenus ?: Carbon::now()->endOfMonth()->format('Y-m-d')
-            ];
-        }
-
+          if ($this->periodeRevenus === 'personnalise' && $this->dateDebutRevenus && $this->dateFinRevenus) {
+        return [
+            'debut' => $this->dateDebutRevenus,
+            'fin' => $this->dateFinRevenus
+        ];
+    }
         switch ($this->periodeRevenus) {
             case 'semaine':
                 return [
@@ -262,8 +285,8 @@ class FinanceIndex extends Component
         $dates = $this->getDateRangeDepenses();
         
         $query = Transaction::with(['voyage'])
-            ->sorties() // Utilise votre scope existant
-            ->periode($dates['debut'], $dates['fin'])
+            ->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert']) // Types de dépenses
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
 
         if ($this->categorieDepense) {
@@ -277,8 +300,8 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         
-        $query = Transaction::sorties()
-            ->periode($dates['debut'], $dates['fin'])
+        $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
 
         if ($this->categorieDepense) {
@@ -300,8 +323,8 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         
-        return Transaction::sorties()
-            ->periode($dates['debut'], $dates['fin'])
+        return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', 'attente')
             ->sum('montant_mga');
     }
@@ -310,8 +333,8 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         
-        $query = Transaction::sorties()
-            ->periode($dates['debut'], $dates['fin'])
+        $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
 
         if ($this->categorieDepense) {
@@ -325,8 +348,8 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         
-        return Transaction::sorties()
-            ->periode($dates['debut'], $dates['fin'])
+        return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->select('type', DB::raw('COUNT(*) as count'), DB::raw('SUM(montant_mga) as total'))
             ->groupBy('type')
@@ -587,6 +610,51 @@ class FinanceIndex extends Component
         return 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
+    // =====================================================
+    // ✅ MÉTHODES EXISTANTES QUE VOUS AVIEZ PEUT-ÊTRE
+    // =====================================================
+
+    public function updatedSearchTerm()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterType()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatut()
+    {
+        $this->resetPage();
+    }
+
+    public function clearFilters()
+    {
+        $this->searchTerm = '';
+        $this->filterType = '';
+        $this->filterStatut = '';
+        $this->filterPersonne = '';
+        $this->resetPage();
+    }
+
+    // =====================================================
+    // ✅ MÉTHODE DE DEBUG (TEMPORAIRE)
+    // =====================================================
+    
+    public function debugData()
+    {
+        $revenus = $this->revenus;
+        $depenses = $this->depenses;
+        
+        session()->flash('debug', [
+            'revenus_count' => $revenus->total(),
+            'depenses_count' => $depenses->total(),
+            'total_revenus' => $this->totalRevenus,
+            'total_depenses' => $this->totalDepenses,
+        ]);
+    }
+
     public function render()
     {
         // ✅ STATISTIQUES SELON VOS VRAIS TYPES ET SCOPES
@@ -596,7 +664,7 @@ class FinanceIndex extends Component
         $transactionsEnAttente = $this->transactionsEnAttente;
 
         // Transactions paginées avec filtres - VOTRE CODE EXISTANT
-        $query = Transaction::with(['fromUser', 'toUser', 'voyage'])
+        $query = Transaction::with(['voyage'])
             ->when($this->searchTerm, function ($q) {
                 $q->where(function ($subQ) {
                     $subQ->where('reference', 'like', '%' . $this->searchTerm . '%')
@@ -605,14 +673,19 @@ class FinanceIndex extends Component
             })
             ->when($this->filterType, fn($q) => $q->where('type', $this->filterType))
             ->when($this->filterStatut, fn($q) => $q->where('statut', $this->filterStatut))
-            ->when($this->filterPersonne, fn($q) => $q->parPersonne($this->filterPersonne))
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->periode($this->dateDebut, $this->dateFin))
+            ->when($this->filterPersonne, function($q) {
+                $q->where(function($subQ) {
+                    $subQ->where('from_nom', 'like', '%' . $this->filterPersonne . '%')
+                        ->orWhere('to_nom', 'like', '%' . $this->filterPersonne . '%');
+                });
+            })
+            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
             ->orderBy('date', 'desc');
 
         $transactions = $query->paginate(15);
 
         // Comptes actifs - VOTRE CODE EXISTANT
-        $comptes = Compte::actif()->get();
+        $comptes = Compte::where('actif', true)->get();
 
         // Données pour les selects - VOTRE CODE EXISTANT
         $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();

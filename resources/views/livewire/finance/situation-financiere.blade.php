@@ -186,100 +186,205 @@
             </div>
         @endif
 
-        <!-- Modal Situation -->
         @if($showSituationModal)
-            <div class="fixed inset-0 z-50 overflow-y-auto">
-                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeSituationModal"></div>
-                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-                        <form wire:submit="saveSituation">
-                            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">
-                                    {{ $editingSituation ? '✏️ Modifier' : '➕ Ajouter' }} une situation financière
-                                </h3>
-
-                                <div class="grid grid-cols-1 gap-4">
-                                    <!-- Informations de base -->
-                                    <div>
-                                        <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2">📋 Informations générales</h4>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">📅 Date *</label>
-                                            <input wire:model="dateSituation" type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                            @error('dateSituation') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">📍 Lieu *</label>
-                                            <select wire:model="lieu" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                                <option value="">Sélectionner un lieu</option>
-                                                <option value="mahajanga">🏢 Mahajanga</option>
-                                                <option value="antananarivo">🏢 Antananarivo</option>
-                                                <option value="autre">🏢 Autres lieux</option>
-                                            </select>
-                                            @error('lieu') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">📝 Description *</label>
-                                        <input wire:model="description" type="text" placeholder="Ex: loyer, vadiny herve, caisse, mvola..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                        @error('description') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                    </div>
-
-                                    <!-- Montants -->
-                                    <div>
-                                        <h4 class="text-md font-medium text-gray-900 mb-3 border-b pb-2 mt-4">💰 Montants</h4>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">💵 Montant Initial (MGA) *</label>
-                                            <input wire:model.live="montantInitial" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                            @error('montantInitial') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">💵 Montant Final (MGA) *</label>
-                                            <input wire:model.live="montantFinal" type="number" step="0.01" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                                            @error('montantFinal') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                                        </div>
-                                    </div>
-
-                                    <!-- Écart calculé automatiquement -->
-                                    @if($montantInitial && $montantFinal)
-                                        <div>
-                                            <div class="bg-gray-50 p-3 rounded-md">
-                                                <label class="block text-sm font-medium text-gray-700">📊 Écart calculé</label>
-                                                @php $ecart = $montantFinal - $montantInitial @endphp
-                                                <div class="text-lg font-semibold {{ $ecart >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                                    {{ $ecart >= 0 ? '+' : '' }}{{ number_format($ecart, 0, ',', ' ') }} MGA
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">💬 Commentaire</label>
-                                        <textarea wire:model="commentaire" rows="3" placeholder="Commentaires ou observations..." class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
-                                    {{ $editingSituation ? '✏️ Modifier' : '➕ Ajouter' }}
-                                </button>
-                                <button type="button" wire:click="closeSituationModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                    Annuler
-                                </button>
-                            </div>
-                        </form>
+<div class="fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" wire:click="closeSituationModal"></div>
+        
+        <!-- Modal container with pharmacy-style design -->
+        <div class="inline-block bg-white rounded-lg shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+            <form wire:submit.prevent="saveSituation" class="divide-y divide-gray-200">
+                <!-- Header with pharmacy-style colors -->
+                <div class="bg-blue-600 px-4 py-3 sm:px-6 rounded-t-lg">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            {{ $editingSituation ? 'MODIFICATION' : 'NOUVELLE SITUATION' }}
+                        </h3>
+                        <button wire:click="closeSituationModal" class="text-white hover:text-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
-            </div>
-        @endif
+
+                <!-- Main content area -->
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Left column - Basic info -->
+                        <div class="md:col-span-1 space-y-4">
+                            <!-- Date picker -->
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-blue-800 mb-1">DATE</label>
+                                <input wire:model="dateSituation" type="date" class="w-full border border-blue-200 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                @error('dateSituation') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <!-- Location selector -->
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-blue-800 mb-1">LIEU</label>
+                                <select wire:model="lieu" class="w-full border border-blue-200 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="mahajanga">🏢 Mahajanga</option>
+                                    <option value="antananarivo">🏢 Antananarivo</option>
+                                    <option value="autre">🏢 Autre lieu</option>
+                                </select>
+                                @error('lieu') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <!-- Quick amount entry -->
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-blue-800 mb-1">MONTANT INITIAL</label>
+                                <div class="relative">
+                                    <input wire:model.live="montantInitial" type="number" step="0.01" placeholder="0.00" class="w-full border border-blue-200 rounded-md py-2 pl-8 pr-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <span class="absolute left-2 top-2 text-gray-500">Ar</span>
+                                </div>
+                                @error('montantInitial') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <label class="block text-sm font-medium text-blue-800 mb-1">MONTANT FINAL</label>
+                                <div class="relative">
+                                    <input wire:model.live="montantFinal" type="number" step="0.01" placeholder="0.00" class="w-full border border-blue-200 rounded-md py-2 pl-8 pr-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <span class="absolute left-2 top-2 text-gray-500">Ar</span>
+                                </div>
+                                @error('montantFinal') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            </div>
+
+                            <!-- Quick calculation display -->
+                            @if($montantInitial && $montantFinal)
+                            <div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-green-800">ÉCART:</span>
+                                    @php $ecart = $montantFinal - $montantInitial @endphp
+                                    <span class="text-sm font-bold {{ $ecart >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $ecart >= 0 ? '+' : '' }}{{ number_format($ecart, 0, ',', ' ') }} MGA
+                                    </span>
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+
+                        <!-- Right column - Items list -->
+                        <div class="md:col-span-2">
+                      <!-- Description input with quick add -->
+<div class="mb-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">OPÉRATIONS</label>
+    <div class="flex gap-2">
+        <input 
+            wire:model="newDescription" 
+            type="text" 
+            placeholder="Description (ex: Loyer, Trosa...)" 
+            class="flex-1 border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+        <input 
+            wire:model="newAmount" 
+            type="number" 
+            step="0.01"
+            placeholder="Montant" 
+            class="w-24 border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+        <button 
+            type="button" 
+            wire:click="addDescriptionItem"
+            class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700"
+        >
+            Ajouter
+        </button>
+    </div>
+    @error('newDescription') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+    @error('newAmount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+</div>
+                            <!-- Items list table -->
+                            <div class="overflow-y-auto max-h-64 border border-gray-200 rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Montant (MGA)</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach($descriptionsList as $index => $item)
+                                        <tr>
+                                            <td class="px-3 py-2 whitespace-nowrap">
+                                                <input 
+                                                    type="text" 
+                                                    wire:model="descriptionsList.{{ $index }}.text"
+                                                    class="w-full border-0 focus:ring-2 focus:ring-blue-500 p-1"
+                                                >
+                                            </td>
+                                            <td class="px-3 py-2 whitespace-nowrap">
+                                                <div class="relative">
+                                                    <input 
+                                                        type="number" 
+                                                        step="0.01"
+                                                        wire:model="descriptionsList.{{ $index }}.amount"
+                                                        class="w-full border-0 focus:ring-2 focus:ring-blue-500 p-1 pl-6"
+                                                    >
+                                                    <span class="absolute left-1 top-1 text-gray-400">Ar</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-3 py-2 whitespace-nowrap text-right">
+                                                <button 
+                                                    type="button" 
+                                                    wire:click="removeDescription({{ $index }})"
+                                                    class="text-red-500 hover:text-red-700"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Comment section -->
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">OBSERVATIONS</label>
+                                <textarea 
+                                    wire:model="commentaire" 
+                                    rows="2" 
+                                    placeholder="Notes complémentaires..." 
+                                    class="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with action buttons -->
+                <div class="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse bg-gray-50 rounded-b-lg">
+                    <button 
+                        type="submit" 
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {{ $editingSituation ? 'MODIFIER' : 'ENREGISTRER' }}
+                    </button>
+                    <button 
+                        type="button" 
+                        wire:click="closeSituationModal" 
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif                                            
+
     </div>
 </div>

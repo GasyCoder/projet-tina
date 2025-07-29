@@ -10,6 +10,8 @@ use Carbon\Carbon;
 
 class SituationFinanciere extends Component
 {
+    
+
     use WithPagination;
 
     // Propriétés de filtrage
@@ -29,7 +31,32 @@ class SituationFinanciere extends Component
     public $montantInitial = 0;
     public $montantFinal = 0;
     public $commentaire = '';
+    // Dans votre fichier de composant Livewire (par exemple app/Livewire/SituationManager.php)
 
+    public $newDescription = '';
+    public $newAmount = 0;
+
+    public function addDescriptionItem()
+    {
+        $this->validate([
+            'newDescription' => 'required|string|max:255',
+            'newAmount' => 'required|numeric',
+        ]);
+
+        $this->descriptionsList[] = [
+            'text' => $this->newDescription,
+            'amount' => $this->newAmount
+        ];
+
+        $this->newDescription = '';
+        $this->newAmount = 0;
+    }
+
+    public function removeDescription($index)
+    {
+        unset($this->descriptionsList[$index]);
+        $this->descriptionsList = array_values($this->descriptionsList); // Réindexer le tableau
+    }
     protected $rules = [
         'dateSituation' => 'required|date',
         'lieu' => 'required|in:mahajanga,antananarivo,autre',
@@ -53,6 +80,7 @@ class SituationFinanciere extends Component
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
         $this->dateSituation = Carbon::now()->format('Y-m-d');
+        
     }
 
     public function render()
@@ -164,6 +192,21 @@ class SituationFinanciere extends Component
             session()->flash('error', '❌ Erreur lors de l\'enregistrement : ' . $e->getMessage());
         }
     }
+    // Dans votre composant Livewire
+    public $previousDescriptions = []; // Remplir ce tableau avec les descriptions historiques
+    public $descriptionsList = [];
+
+    public function addNewDescription()
+    {
+        $this->descriptionsList[] = ['text' => $this->description, 'amount' => null];
+        $this->description = '';
+    }
+
+    // public function removeDescription($index)
+    // {
+    //     unset($this->descriptionsList[$index]);
+    //     $this->descriptionsList = array_values($this->descriptionsList); // Réindexer le tableau
+    // }
 
     public function editSituation($id)
     {

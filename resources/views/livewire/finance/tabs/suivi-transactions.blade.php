@@ -3,16 +3,7 @@
     <div class="max-w-7xl mx-auto">
         <!-- En-tête avec onglets -->
         <div class="mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800">Tableau de Bord Financier</h1>
-                    <p class="text-gray-600">Suivi complet des transactions</p>
-                </div>
-               
-            </div>
             
-            <!-- Onglets de navigation -->
-            <div class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8">
                     <button 
                         wire:click="setActiveTab('suivi')"
@@ -33,7 +24,7 @@
                         💸 Liste des Dépenses
                     </button>
                 </nav>
-            </div>
+          
         </div>
 
         

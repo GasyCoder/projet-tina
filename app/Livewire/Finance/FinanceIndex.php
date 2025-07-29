@@ -16,9 +16,16 @@ class FinanceIndex extends Component
 {
     use WithPagination;
 
+    // =====================================================
+    // PROPRIÉTÉS DE L'INTERFACE
+    // =====================================================
+
     public $activeTab = 'suivi';
 
-    // Filtres existants
+    // =====================================================
+    // FILTRES DE BASE
+    // =====================================================
+
     public $searchTerm = '';
     public $filterType = '';
     public $filterStatut = '';
@@ -26,21 +33,27 @@ class FinanceIndex extends Component
     public $dateFin = '';
     public $filterPersonne = '';
 
-    // ✅ NOUVEAUX FILTRES POUR LES FONCTIONNALITÉS AJOUTÉES
+    // =====================================================
+    // FILTRES AVANCÉS
+    // =====================================================
+
     public $typeSuivi = 'tous'; // tous, voyage, autre
-    
+
     // Filtres revenus
     public $periodeRevenus = 'mois';
     public $dateDebutRevenus = '';
     public $dateFinRevenus = '';
-    
+
     // Filtres dépenses
     public $categorieDepense = '';
     public $periodeDepenses = 'mois';
     public $dateDebutDepenses = '';
     public $dateFinDepenses = '';
-    
-    // Transaction form - VOTRE CODE EXISTANT
+
+    // =====================================================
+    // FORMULAIRE TRANSACTION
+    // =====================================================
+
     public $showTransactionModal = false;
     public $editingTransaction = null;
     public $reference = '';
@@ -56,11 +69,12 @@ class FinanceIndex extends Component
     public $mode_paiement = 'especes';
     public $statut = 'confirme';
     public $observation = '';
-    
-    // ✅ AJOUT DU CHAMP RESTE_À_PAYER
     public $reste_a_payer = '';
 
-    // Compte form - VOTRE CODE EXISTANT
+    // =====================================================
+    // FORMULAIRE COMPTE
+    // =====================================================
+
     public $showCompteModal = false;
     public $editingCompte = null;
     public $nom_proprietaire = '';
@@ -70,66 +84,92 @@ class FinanceIndex extends Component
     public $solde_actuel_mga = 0;
     public $compte_actif = true;
 
+    // =====================================================
+    // RÈGLES DE VALIDATION
+    // =====================================================
+
     protected $rules = [
-        // Transaction rules - ✅ SELON VOS VRAIES TABLES
+        // Transaction rules
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'required|string',
         'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
         'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
-
-        // Compte rules - ✅ SELON VOS VRAIES TABLES
-        'type_compte' => 'required|in:principal,mobile_money,banque,credit',
-        'nom_compte' => 'required|string|max:255',
-        'solde_actuel_mga' => 'required|numeric',
-
         'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
         'voyage_id' => 'nullable|exists:voyages,id',
         'reste_a_payer' => 'required_if:statut,partiellement_payee|numeric|min:0',
+
+        // Compte rules
+        'type_compte' => 'required|in:principal,mobile_money,banque,credit',
+        'nom_compte' => 'required|string|max:255',
+        'solde_actuel_mga' => 'required|numeric',
     ];
+
+    // =====================================================
+    // INITIALISATION ET GESTION DES ONGLETS
+    // =====================================================
 
     public function mount()
     {
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
     }
-public function setActiveTab($tab)
-{
-    $this->activeTab = $tab;
-    $this->resetPage();
-    
-    // Réinitialiser les filtres de période
-    $this->periodeRevenus = 'mois';
-    $this->periodeDepenses = 'mois';
-    $this->dateDebutRevenus = '';
-    $this->dateFinRevenus = '';
-    $this->dateDebutDepenses = '';
-    $this->dateFinDepenses = '';
-}
 
-public function updatedPeriodeRevenus()
-{
-    $this->resetPage();
-}
+    public function setActiveTab($tab)
+    {
+        $this->activeTab = $tab;
+        $this->resetPage();
 
-public function updatedPeriodeDepenses()
-{
-    $this->resetPage();
-}
-
-public function updatedCategorieDepense()
-{
-    $this->resetPage();
-}
+        // Réinitialiser les filtres de période
+        $this->periodeRevenus = 'mois';
+        $this->periodeDepenses = 'mois';
+        $this->dateDebutRevenus = '';
+        $this->dateFinRevenus = '';
+        $this->dateDebutDepenses = '';
+        $this->dateFinDepenses = '';
+    }
 
     // =====================================================
-    // ✅ NOUVELLES PROPRIÉTÉS CALCULÉES POUR LES STATISTIQUES
+    // LISTENERS POUR MISE À JOUR AUTOMATIQUE
+    // =====================================================
+
+    public function updatedPeriodeRevenus()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPeriodeDepenses()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCategorieDepense()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedSearchTerm()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterType()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterStatut()
+    {
+        $this->resetPage();
+    }
+
+    // =====================================================
+    // PROPRIÉTÉS CALCULÉES - STATISTIQUES GÉNÉRALES
     // =====================================================
 
     public function getTotalEntreesProperty()
     {
-        // ✅ UTILISATION DIRECTE DES TYPES AU LIEU DES SCOPES
         return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
             ->where('statut', '!=', 'annule')
             ->whereBetween('date', [$this->dateDebut, $this->dateFin])
@@ -138,7 +178,6 @@ public function updatedCategorieDepense()
 
     public function getTotalSortiesProperty()
     {
-        // ✅ UTILISATION DIRECTE DES TYPES AU LIEU DES SCOPES
         return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->where('statut', '!=', 'annule')
             ->whereBetween('date', [$this->dateDebut, $this->dateFin])
@@ -156,7 +195,7 @@ public function updatedCategorieDepense()
     }
 
     // =====================================================
-    // ✅ NOUVELLES MÉTHODES POUR SUIVI CONDITIONNEL
+    // PROPRIÉTÉS CALCULÉES - SUIVI CONDITIONNEL
     // =====================================================
 
     public function getTransactionsVoyageProperty()
@@ -201,15 +240,15 @@ public function updatedCategorieDepense()
     }
 
     // =====================================================
-    // ✅ NOUVELLES MÉTHODES POUR REVENUS
+    // PROPRIÉTÉS CALCULÉES - REVENUS
     // =====================================================
 
     public function getRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        
+
         return Transaction::with(['voyage'])
-            ->whereIn('type', ['vente', 'depot', 'commission']) // Types de revenus
+            ->whereIn('type', ['vente', 'depot', 'commission'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->orderBy('date', 'desc')
@@ -219,7 +258,7 @@ public function updatedCategorieDepense()
     public function getTotalRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        
+
         return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
@@ -230,14 +269,14 @@ public function updatedCategorieDepense()
     {
         $total = $this->totalRevenus;
         $count = $this->nombreRevenus;
-        
+
         return $count > 0 ? $total / $count : 0;
     }
 
     public function getNombreRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        
+
         return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
@@ -246,12 +285,13 @@ public function updatedCategorieDepense()
 
     private function getDateRangeRevenus()
     {
-          if ($this->periodeRevenus === 'personnalise' && $this->dateDebutRevenus && $this->dateFinRevenus) {
-        return [
-            'debut' => $this->dateDebutRevenus,
-            'fin' => $this->dateFinRevenus
-        ];
-    }
+        if ($this->periodeRevenus === 'personnalise' && $this->dateDebutRevenus && $this->dateFinRevenus) {
+            return [
+                'debut' => $this->dateDebutRevenus,
+                'fin' => $this->dateFinRevenus
+            ];
+        }
+
         switch ($this->periodeRevenus) {
             case 'semaine':
                 return [
@@ -277,15 +317,15 @@ public function updatedCategorieDepense()
     }
 
     // =====================================================
-    // ✅ NOUVELLES MÉTHODES POUR DÉPENSES
+    // PROPRIÉTÉS CALCULÉES - DÉPENSES
     // =====================================================
 
     public function getDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        
+
         $query = Transaction::with(['voyage'])
-            ->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert']) // Types de dépenses
+            ->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
 
@@ -299,7 +339,7 @@ public function updatedCategorieDepense()
     public function getTotalDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        
+
         $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
@@ -315,14 +355,14 @@ public function updatedCategorieDepense()
     {
         $total = $this->totalDepenses;
         $count = $this->nombreDepenses;
-        
+
         return $count > 0 ? $total / $count : 0;
     }
 
     public function getDepensesEnAttenteProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        
+
         return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', 'attente')
@@ -332,7 +372,7 @@ public function updatedCategorieDepense()
     public function getNombreDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        
+
         $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
@@ -347,7 +387,7 @@ public function updatedCategorieDepense()
     public function getRepartitionDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        
+
         return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
@@ -394,7 +434,7 @@ public function updatedCategorieDepense()
     }
 
     // =====================================================
-    // TRANSACTIONS - VOTRE CODE EXISTANT AMÉLIORÉ
+    // GESTION DES TRANSACTIONS
     // =====================================================
 
     public function createTransaction()
@@ -421,7 +461,7 @@ public function updatedCategorieDepense()
         $this->voyage_id = $transaction->voyage_id;
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
-        $this->reste_a_payer = $transaction->reste_a_payer; // ✅ Ajouté
+        $this->reste_a_payer = $transaction->reste_a_payer;
         $this->observation = $transaction->observation;
         $this->showTransactionModal = true;
     }
@@ -438,7 +478,7 @@ public function updatedCategorieDepense()
             'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
         ];
 
-        // ✅ VALIDATION CONDITIONNELLE POUR RESTE À PAYER
+        // Validation conditionnelle pour reste à payer
         if ($this->statut === 'partiellement_payee') {
             $rules['reste_a_payer'] = 'required|numeric|min:0';
         }
@@ -458,7 +498,7 @@ public function updatedCategorieDepense()
             'voyage_id' => $this->voyage_id ?: null,
             'mode_paiement' => $this->mode_paiement,
             'statut' => $this->statut,
-            'reste_a_payer' => $this->statut === 'partiellement_payee' ? $this->reste_a_payer : null, // ✅ Ajouté
+            'reste_a_payer' => $this->statut === 'partiellement_payee' ? $this->reste_a_payer : null,
             'observation' => $this->observation ?: null,
         ];
 
@@ -485,17 +525,16 @@ public function updatedCategorieDepense()
         session()->flash('success', 'Transaction confirmée');
     }
 
-    // ✅ NOUVELLE MÉTHODE POUR MARQUER COMME PAYÉE
     public function marquerPayee($id)
     {
         $transaction = Transaction::findOrFail($id);
         $transaction->update(['statut' => 'payee']);
-        
+
         session()->flash('success', 'Transaction marquée comme payée !');
     }
 
     // =====================================================
-    // COMPTES - VOTRE CODE EXISTANT
+    // GESTION DES COMPTES
     // =====================================================
 
     public function createCompte()
@@ -510,7 +549,7 @@ public function updatedCategorieDepense()
         $this->editingCompte = $compte;
         $this->nom_proprietaire = $compte->nom_proprietaire;
         $this->type_compte = $compte->type_compte;
-        $this->nom_compte = $compte->nom_compte;
+        $this->nom_compte = $compte->nom_compte ?: $compte->nom; // ✅ Utiliser nom_compte ou nom comme fallback
         $this->numero_compte = $compte->numero_compte;
         $this->solde_actuel_mga = $compte->solde_actuel_mga;
         $this->compte_actif = $compte->actif;
@@ -527,6 +566,7 @@ public function updatedCategorieDepense()
 
         if ($this->editingCompte) {
             $this->editingCompte->update([
+                'nom' => $this->nom_compte, // ✅ Ajout du champ 'nom' requis
                 'nom_proprietaire' => $this->nom_proprietaire ?: null,
                 'type_compte' => $this->type_compte,
                 'nom_compte' => $this->nom_compte,
@@ -537,13 +577,15 @@ public function updatedCategorieDepense()
             session()->flash('success', 'Compte modifié avec succès');
         } else {
             Compte::create([
-                'nom_proprietaire' => $this->nom_proprietaire ?: null,
+                'nom' => $this->nom_compte ?: 'NomInconnu',
+                'nom_proprietaire' => $this->nom_proprietaire,
                 'type_compte' => $this->type_compte,
                 'nom_compte' => $this->nom_compte,
-                'numero_compte' => $this->numero_compte ?: null,
+                'numero_compte' => $this->numero_compte,
                 'solde_actuel_mga' => $this->solde_actuel_mga,
                 'actif' => $this->compte_actif,
             ]);
+
             session()->flash('success', 'Compte ajouté avec succès');
         }
 
@@ -557,7 +599,7 @@ public function updatedCategorieDepense()
     }
 
     // =====================================================
-    // MODAL MANAGEMENT - VOTRE CODE EXISTANT AMÉLIORÉ
+    // GESTION DES MODALES
     // =====================================================
 
     public function closeTransactionModal()
@@ -588,7 +630,7 @@ public function updatedCategorieDepense()
         $this->voyage_id = '';
         $this->mode_paiement = 'especes';
         $this->statut = 'confirme';
-        $this->reste_a_payer = ''; // ✅ Ajouté
+        $this->reste_a_payer = '';
         $this->observation = '';
         $this->resetErrorBag();
     }
@@ -604,29 +646,14 @@ public function updatedCategorieDepense()
         $this->resetErrorBag();
     }
 
+    // =====================================================
+    // MÉTHODES UTILITAIRES
+    // =====================================================
+
     private function generateTransactionReference()
     {
         $count = Transaction::whereDate('created_at', Carbon::today())->count() + 1;
         return 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
-    }
-
-    // =====================================================
-    // ✅ MÉTHODES EXISTANTES QUE VOUS AVIEZ PEUT-ÊTRE
-    // =====================================================
-
-    public function updatedSearchTerm()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFilterType()
-    {
-        $this->resetPage();
-    }
-
-    public function updatedFilterStatut()
-    {
-        $this->resetPage();
     }
 
     public function clearFilters()
@@ -638,15 +665,22 @@ public function updatedCategorieDepense()
         $this->resetPage();
     }
 
-    // =====================================================
-    // ✅ MÉTHODE DE DEBUG (TEMPORAIRE)
-    // =====================================================
-    
+    public function genererRapport()
+    {
+        // Logique pour générer un rapport selon les dates
+        $this->dispatch('rapportGenere', [
+            'debut' => $this->dateDebut,
+            'fin' => $this->dateFin,
+        ]);
+
+        session()->flash('success', 'Rapport généré avec succès !');
+    }
+
     public function debugData()
     {
         $revenus = $this->revenus;
         $depenses = $this->depenses;
-        
+
         session()->flash('debug', [
             'revenus_count' => $revenus->total(),
             'depenses_count' => $depenses->total(),
@@ -655,15 +689,19 @@ public function updatedCategorieDepense()
         ]);
     }
 
+    // =====================================================
+    // MÉTHODE DE RENDU PRINCIPALE
+    // =====================================================
+
     public function render()
     {
-        // ✅ STATISTIQUES SELON VOS VRAIS TYPES ET SCOPES
+        // Statistiques générales
         $totalEntrees = $this->totalEntrees;
         $totalSorties = $this->totalSorties;
         $beneficeNet = $this->beneficeNet;
         $transactionsEnAttente = $this->transactionsEnAttente;
 
-        // Transactions paginées avec filtres - VOTRE CODE EXISTANT
+        // Transactions paginées avec filtres
         $query = Transaction::with(['voyage'])
             ->when($this->searchTerm, function ($q) {
                 $q->where(function ($subQ) {
@@ -673,8 +711,8 @@ public function updatedCategorieDepense()
             })
             ->when($this->filterType, fn($q) => $q->where('type', $this->filterType))
             ->when($this->filterStatut, fn($q) => $q->where('statut', $this->filterStatut))
-            ->when($this->filterPersonne, function($q) {
-                $q->where(function($subQ) {
+            ->when($this->filterPersonne, function ($q) {
+                $q->where(function ($subQ) {
                     $subQ->where('from_nom', 'like', '%' . $this->filterPersonne . '%')
                         ->orWhere('to_nom', 'like', '%' . $this->filterPersonne . '%');
                 });
@@ -684,14 +722,12 @@ public function updatedCategorieDepense()
 
         $transactions = $query->paginate(15);
 
-        // Comptes actifs - VOTRE CODE EXISTANT
+        // Comptes et données de référence
         $comptes = Compte::where('actif', true)->get();
-
-        // Données pour les selects - VOTRE CODE EXISTANT
         $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();
         $users = collect(); // Collection vide pour compatibilité
 
-        // ✅ AJOUT DES VARIABLES MANQUANTES POUR LES VUES
+        // Variables pour les vues
         $repartitionParType = $this->repartitionParType;
         $repartitionParStatut = $this->repartitionParStatut;
         $transactionsVoyage = $this->transactionsVoyage;
@@ -716,7 +752,6 @@ public function updatedCategorieDepense()
             'totalSorties',
             'beneficeNet',
             'transactionsEnAttente',
-            // ✅ NOUVELLES VARIABLES POUR LES VUES
             'repartitionParType',
             'repartitionParStatut',
             'transactionsVoyage',

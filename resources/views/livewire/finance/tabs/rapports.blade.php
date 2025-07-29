@@ -18,13 +18,7 @@
         </div>
     </div>
 
-    <!-- Graphique revenus/dépenses -->
-    <div class="bg-white p-6 rounded-lg shadow">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">📈 Évolution Revenus vs Dépenses</h3>
-        <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-            <p class="text-gray-500">Graphique à implémenter avec Chart.js</p>
-        </div>
-    </div>
+
 
     <!-- Résumé par type -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -59,26 +59,39 @@
                     </a>
                 </div>
             </div>
-
-            <!-- Carte Finance -->
-            <a href="{{ route('finance.index') }}" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                <div class="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-green-100 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-lg font-semibold text-gray-900">Finance</h3>
-                    </div>
+<!-- Carte Finance (avec sous-menu déroulant sur clic) -->
+<div x-data="{ openFinance: false }" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <div class="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-green-100 rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-                <div class="p-4">
-                    <p class="text-sm text-gray-600">Suivi des transactions et rapports financiers.</p>
-                    <div class="mt-4 flex justify-end">
-                        <span class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">Accéder →</span>
-                    </div>
-                </div>
-            </a>
+                <h3 class="text-lg font-semibold text-gray-900">Finance</h3>
+            </div>
+            <button @click="openFinance = !openFinance" class="text-gray-500 hover:text-green-600">
+                <svg x-show="!openFinance" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+                <svg x-show="openFinance" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    <div x-show="openFinance" x-transition class="divide-y divide-gray-100">
+        <a href="{{ route('finance.index') }}" class="block p-4 hover:bg-gray-50 transition-colors duration-200">
+            <p class="text-sm font-medium text-gray-900">Gestion financière</p>
+            <p class="text-xs text-gray-600">Suivi général des transactions.</p>
+        </a>
+        <a href="{{ route('finance.situations') }}" class="block p-4 hover:bg-gray-50 transition-colors duration-200">
+            <p class="text-sm font-medium text-gray-900">Situations financières</p>
+            <p class="text-xs text-gray-600">Bilan des revenus/dépenses.</p>
+        </a>
+    </div>
+</div>
 
             <!-- Carte Stocks (conditionnelle pour admins) -->
             @if(Auth::user()->isAdmin())

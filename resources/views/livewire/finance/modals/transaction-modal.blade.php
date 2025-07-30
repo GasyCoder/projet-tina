@@ -571,169 +571,170 @@
                                 </div>
                             </div>
 
-                                <!-- PARTICIPANTS -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                                                👥
-                                            </span>
-                                            Participants
-                                        </h4>
-                                    </div>
-                                    
-                                    <div class="p-6 space-y-4">
-                                        <div wire:key="participants-from-{{ $type }}-{{ md5(json_encode($dechargement_ids ?? [])) }}">
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <span class="flex items-center justify-between">
-                                                    <span>💸 Qui donne l'argent</span>
-                                                    @if(in_array($type, ['achat', 'vente']))
-                                                        <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-rempli</span>
-                                                    @endif
-                                                </span>
-                                            </label>
-                                            
-                                            @if(in_array($type, ['achat', 'vente']))
-                                                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 min-h-[50px] flex items-center">
-                                                    <span class="font-medium">{{ $from_nom ?: 'En attente de sélection...' }}</span>
-                                                </div>
-                                                <input type="hidden" wire:model="from_nom">
-                                            @else
-                                                <input wire:model.live="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC..." 
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                            @endif
-                                            
-                                            <p class="mt-2 text-xs text-gray-500">
-                                                @if($type === 'achat')
-                                                    Auto-rempli avec les lieux de chargement (départ)
-                                                @elseif($type === 'vente')
-                                                    Auto-rempli avec les interlocuteurs (acheteurs)
-                                                @else
-                                                    Saisie libre - peut être externe au système
-                                                @endif
-                                            </p>
-                                            
-                                            @if($from_nom)
-                                                <div class="mt-2 flex items-center text-green-600 text-xs bg-green-50 p-2 rounded">
-                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                    <strong>Valeur détectée:</strong> "{{ $from_nom }}"
-                                                </div>
-                                            @endif
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <span class="flex items-center justify-between">
-                                                    <span>💰 Qui reçoit l'argent</span>
-                                                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Saisie manuelle</span>
-                                                </span>
-                                            </label>
-                                            <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Votre entreprise..." 
-                                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                            <p class="mt-2 text-xs text-gray-500">
-                                                @if($type === 'vente')
-                                                    Qui reçoit le paiement (ex: votre entreprise, chauffeur, etc.)
-                                                @elseif($type === 'achat')
-                                                    Le fournisseur qui reçoit le paiement
-                                                @else
-                                                    Saisie libre - peut être externe au système
-                                                @endif
-                                            </p>
-                                        </div>
-                                    </div>
+                            <!-- PARTICIPANTS -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
+                                    <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                            👥
+                                        </span>
+                                        Participants
+                                    </h4>
                                 </div>
-
-                                <!-- MODALITÉS DE PAIEMENT -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                                                💳
+                                
+                                <div class="p-6 space-y-4">
+                                    <div wire:key="participants-from-{{ $type }}-{{ md5(json_encode($dechargement_ids ?? [])) }}">
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            <span class="flex items-center justify-between">
+                                                <span>💸 Qui donne l'argent</span>
+                                                @if(in_array($type, ['vente']))
+                                                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-rempli</span>
+                                                @endif
                                             </span>
-                                            Modalités
-                                        </h4>
-                                    </div>
-                                    
-                                    <div class="p-6 space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Mode de paiement *</label>
-                                            <select wire:model="mode_paiement" 
-                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
-                                                <option value="especes">💵 Espèces</option>
-                                                <option value="AirtelMoney">📱 AirtelMoney</option>
-                                                <option value="Mvola">📱 Mvola</option>
-                                                <option value="OrangeMoney">📱 OrangeMoney</option>
-                                                <option value="banque">🏦 Banque</option>
-                                            </select>
-                                            @error('mode_paiement') 
-                                                <div class="mt-2 flex items-center text-red-600 text-sm">
-                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">Statut de la transaction *</label>
-                                            <select wire:model.live="statut" 
-                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
-                                                <option value="payee">✅ Payée</option>
-                                                <option value="partiellement_payee">⚠️ Partiellement payée</option>
-                                                <option value="attente">⏳ En attente</option>
-                                                <option value="annule">❌ Annulé</option>
-                                            </select>
-                                            @error('statut') 
-                                                <div class="mt-2 flex items-center text-red-600 text-sm">
-                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                    {{ $message }}
-                                                </div>
-                                            @enderror
-                                        </div>
-
-                                        @if($statut === 'partiellement_payee')
-                                            <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">💰 Reste à payer (MGA) *</label>
-                                                <input wire:model="reste_a_payer" type="number" step="0.01" 
-                                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
-                                                @error('reste_a_payer') 
-                                                    <div class="mt-2 flex items-center text-red-600 text-sm">
-                                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                        </svg>
-                                                        {{ $message }}
-                                                    </div>
-                                                @enderror
-                                                <p class="mt-2 text-xs text-gray-500">Montant restant à payer pour cette transaction</p>
+                                        </label>
+                                        
+                                        @if(in_array($type, ['vente']))
+                                            <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 min-h-[50px] flex items-center">
+                                                <span class="font-medium">{{ $from_nom ?: 'En attente de sélection...' }}</span>
+                                            </div>
+                                            <input type="hidden" wire:model="from_nom">
+                                        @else
+                                            <input wire:model.live="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC..." 
+                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                        @endif
+                                        
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            @if($type === 'achat')
+                                                Auto-rempli avec les lieux de chargement (départ)
+                                            @elseif($type === 'vente')
+                                                Auto-rempli avec les interlocuteurs (acheteurs)
+                                            @else
+                                                Saisie libre - peut être externe au système
+                                            @endif
+                                        </p>
+                                        
+                                        @if($from_nom)
+                                            <div class="mt-2 flex items-center text-green-600 text-xs bg-green-50 p-2 rounded">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                <strong>Valeur détectée:</strong> "{{ $from_nom }}"
                                             </div>
                                         @endif
                                     </div>
-                                </div>
 
-                                <!-- OBSERVATIONS -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                                                📝
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                            <span class="flex items-center justify-between">
+                                                <span>💰 Qui reçoit l'argent</span>
+                                                <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Saisie manuelle</span>
                                             </span>
-                                            Notes
-                                        </h4>
-                                    </div>
-                                    
-                                    <div class="p-6">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Observations</label>
-                                        <textarea wire:model="observation" rows="4" 
-                                                  placeholder="Notes supplémentaires, commentaires en français ou malagasy..."
-                                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors resize-none"></textarea>
-                                        <p class="mt-2 text-xs text-gray-500">Informations complémentaires sur cette transaction</p>
+                                        </label>
+                                        <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Votre entreprise..." 
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                        <p class="mt-2 text-xs text-gray-500">
+                                            @if($type === 'vente')
+                                                Qui reçoit le paiement (ex: votre entreprise, chauffeur, etc.)
+                                            @elseif($type === 'achat')
+                                                Le fournisseur qui reçoit le paiement
+                                            @else
+                                                Saisie libre - peut être externe au système
+                                            @endif
+                                        </p>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- MODALITÉS DE PAIEMENT -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100">
+                                    <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <span class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                                            💳
+                                        </span>
+                                        Modalités
+                                    </h4>
+                                </div>
+                                
+                                <div class="p-6 space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Mode de paiement *</label>
+                                        <select wire:model="mode_paiement" 
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
+                                            <option value="especes">💵 Espèces</option>
+                                            <option value="AirtelMoney">📱 AirtelMoney</option>
+                                            <option value="Mvola">📱 Mvola</option>
+                                            <option value="OrangeMoney">📱 OrangeMoney</option>
+                                            <option value="banque">🏦 Banque</option>
+                                        </select>
+                                        @error('mode_paiement') 
+                                            <div class="mt-2 flex items-center text-red-600 text-sm">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                {{ $message }}
+                                            </div>
+                                        @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Statut de la transaction *</label>
+                                        <select wire:model.live="statut" 
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
+                                            <option value="payee">✅ Payée</option>
+                                            <option value="partiellement_payee">⚠️ Partiellement payée</option>
+                                            <option value="attente">⏳ En attente</option>
+                                            <option value="annule">❌ Annulé</option>
+                                        </select>
+                                        @error('statut') 
+                                            <div class="mt-2 flex items-center text-red-600 text-sm">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                {{ $message }}
+                                            </div>
+                                        @enderror
+                                    </div>
+
+                                    @if($statut === 'partiellement_payee')
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">💰 Reste à payer (MGA) *</label>
+                                            <input wire:model="reste_a_payer" type="number" step="0.01" 
+                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
+                                            @error('reste_a_payer') 
+                                                <div class="mt-2 flex items-center text-red-600 text-sm">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ $message }}
+                                                </div>
+                                            @enderror
+                                            <p class="mt-2 text-xs text-gray-500">Montant restant à payer pour cette transaction</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- OBSERVATIONS -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">
+                                    <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                            📝
+                                        </span>
+                                        Notes
+                                    </h4>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Observations</label>
+                                    <textarea wire:model="observation" rows="4" 
+                                                placeholder="Notes supplémentaires, commentaires en français ou malagasy..."
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors resize-none"></textarea>
+                                    <p class="mt-2 text-xs text-gray-500">Informations complémentaires sur cette transaction</p>
+                                </div>
+                            </div>
+
                             </div>
                         </div>
                     </div>

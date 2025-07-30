@@ -132,6 +132,11 @@ class VoyageShow extends Component
         $this->voyage = $voyage;
         $this->date = now()->format('Y-m-d');
         
+        // ✅ NOUVEAU : Lire le tab depuis l'URL avec validation
+        $validTabs = ['chargements', 'dechargements', 'synthese'];
+        $requestedTab = request()->query('tab', 'chargements');
+        $this->activeTab = in_array($requestedTab, $validTabs) ? $requestedTab : 'chargements';
+        
         // Pré-configuration pour le déchargement
         $this->selected_voyage_id = $voyage->id;
         $this->selected_voyage = $voyage;
@@ -249,7 +254,15 @@ class VoyageShow extends Component
     public function setActiveTab($tab)
     {
         $this->activeTab = $tab;
+        
+        // ✅ NOUVEAU : Mettre à jour l'URL avec le paramètre tab
+        $this->js("
+            const url = new URL(window.location);
+            url.searchParams.set('tab', '{$tab}');
+            window.history.pushState({}, '', url);
+        ");
     }
+
 
     public function setTypeProprietaire($type)
     {
@@ -514,6 +527,9 @@ class VoyageShow extends Component
         $this->editingDechargement = null;
         $this->dechargement_step = 1;
         
+        // ✅ IMPORTANT : S'assurer que la date est définie
+        $this->date = now()->format('Y-m-d');
+        
         // Toujours charger les voyages disponibles
         $this->loadAvailableVoyages();
         
@@ -527,6 +543,7 @@ class VoyageShow extends Component
         
         $this->showDechargementModal = true;
     }
+
 
     public function editDechargement(Dechargement $dechargement)
     {
@@ -549,7 +566,8 @@ class VoyageShow extends Component
             $this->product_prix_reference = $chargement->produit->prix_reference_mga;
         }
         
-        // Remplir le formulaire
+        // Remplir le formulaire avec TOUTES les données, y compris la date
+        $this->date = $dechargement->date ? $dechargement->date->format('Y-m-d') : now()->format('Y-m-d'); // ✅ AJOUT DATE
         $this->dechargement_reference = $dechargement->reference;
         $this->chargement_id = $dechargement->chargement_id;
         $this->type_dechargement = $dechargement->type;
@@ -573,6 +591,8 @@ class VoyageShow extends Component
         
         $this->showDechargementModal = true;
     }
+
+
 
     public function saveDechargement()
     {
@@ -746,13 +766,40 @@ class VoyageShow extends Component
 
     public function confirmSaveDechargement()
     {
+        // Fermer le modal de prévisualisation
         $this->showPreviewModal = false;
+        
+        // Utiliser la méthode existante pour sauvegarder
         $this->proceedWithSave();
+        
+        // Nettoyer seulement si la sauvegarde a réussi (pas d'exception lancée)
+        $this->showDechargementModal = false;
+        $this->resetDechargementForm();
+        $this->editingDechargement = null;
+        $this->voyage->refresh();
+        
+        // Changer vers le tab déchargements pour voir le résultat
+        $this->activeTab = 'dechargements';
     }
+
 
     private function proceedWithSave()
     {
         try {
+            // ✅ FORCER une valeur de date si elle est vide
+            if (empty($this->date)) {
+                $this->date = now()->format('Y-m-d');
+            }
+            
+            // ✅ DEBUG: Vérifier les données avant sauvegarde
+            Log::info('proceedWithSave - Début sauvegarde déchargement', [
+                'voyage_id' => $this->selected_voyage_id,
+                'chargement_id' => $this->chargement_id,
+                'reference' => $this->dechargement_reference,
+                'date' => $this->date,
+                'editing' => $this->editingDechargement ? $this->editingDechargement->id : null
+            ]);
+            
             $this->calculateFinancials();
 
             $data = [
@@ -760,6 +807,7 @@ class VoyageShow extends Component
                 'reference' => $this->dechargement_reference,
                 'chargement_id' => $this->chargement_id,
                 'type' => $this->type_dechargement,
+                'date' => $this->date, // ✅ AJOUT DU CHAMP DATE MANQUANT
                 'interlocuteur_nom' => $this->interlocuteur_nom,
                 'interlocuteur_contact' => $this->interlocuteur_contact,
                 'pointeur_nom' => $this->pointeur_nom,
@@ -776,21 +824,35 @@ class VoyageShow extends Component
                 'observation' => $this->dechargement_observation,
             ];
 
+            // ✅ DEBUG: Vérifier que date est bien dans le tableau
+            Log::info('proceedWithSave - Données à sauvegarder', [
+                'date_in_data' => isset($data['date']),
+                'date_value' => $data['date'],
+                'all_data' => $data
+            ]);
+
             if ($this->editingDechargement) {
                 $this->editingDechargement->update($data);
+                Log::info('Déchargement modifié', ['id' => $this->editingDechargement->id]);
                 session()->flash('success', 'Déchargement modifié avec succès');
             } else {
-                Dechargement::create($data);
+                $dechargement = Dechargement::create($data);
+                Log::info('Déchargement créé', ['id' => $dechargement->id]);
                 session()->flash('success', 'Déchargement ajouté avec succès');
             }
 
-            $this->closeDechargementModal();
-            $this->voyage->refresh();
-
         } catch (\Exception $e) {
+            Log::error('Erreur sauvegarde déchargement dans proceedWithSave', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'data' => $data ?? [],
+                'date_value' => $this->date ?? 'NULL'
+            ]);
             session()->flash('error', 'Erreur lors de la sauvegarde: ' . $e->getMessage());
         }
     }
+
 
     public function deleteDechargement(Dechargement $dechargement)
     {
@@ -943,6 +1005,7 @@ class VoyageShow extends Component
         $this->resetErrorBag();
     }
 
+
     private function resetDechargementForm()
     {
         $this->dechargement_step = 1;
@@ -957,6 +1020,9 @@ class VoyageShow extends Component
         $this->product_poids_moyen_sac = 120;
         $this->product_prix_reference = 0;
         $this->quantite_vendue = 0;
+        
+        // ✅ IMPORTANT : Garder une date valide au lieu de la vider
+        $this->date = now()->format('Y-m-d'); // ✅ TOUJOURS AVOIR UNE DATE
         
         $this->dechargement_reference = '';
         $this->chargement_id = '';

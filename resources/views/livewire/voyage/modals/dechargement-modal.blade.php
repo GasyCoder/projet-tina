@@ -69,6 +69,12 @@
                             <h4 class="text-lg font-medium text-gray-900 mb-2">📦 Sélectionner le chargement</h4>
                             <p class="text-sm text-gray-600">Voyage: <strong>{{ $selected_voyage->reference }}</strong></p>
                         </div>
+                           {{-- NOUVEAU: Champ Date --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">Date du déchargement *</label>
+                            <input wire:model="date" type="date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-3 px-4 focus:ring-blue-500 focus:border-blue-500 text-lg">
+                            @error('date') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
                         @if($available_chargements && $available_chargements->count() > 0)
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-3">Chargements disponibles *</label>

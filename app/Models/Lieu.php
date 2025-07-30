@@ -12,7 +12,6 @@ class Lieu extends Model
     protected $fillable = [
         'nom',
         'type',
-        'point_chargement',
         'region',
         'adresse',
         'telephone',

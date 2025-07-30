@@ -15,6 +15,7 @@ class Dechargement extends Model
         'chargement_id',
         'reference',
         'type',
+        'date',
         'interlocuteur_nom',
         'interlocuteur_contact',
         'pointeur_nom',
@@ -36,7 +37,8 @@ class Dechargement extends Model
         'prix_unitaire_mga' => 'decimal:2',
         'montant_total_mga' => 'decimal:2',
         'paiement_mga' => 'decimal:2',
-        'reste_mga' => 'decimal:2'
+        'reste_mga' => 'decimal:2',
+        'date' => 'date',
     ];
 
     // Relations

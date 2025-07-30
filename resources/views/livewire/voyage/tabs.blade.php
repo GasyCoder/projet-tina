@@ -1,21 +1,24 @@
 <div class="bg-white rounded-lg shadow">
     <div class="border-b border-gray-200">
         <nav class="-mb-px flex space-x-8 px-6">
-            <button 
-                wire:click="setActiveTab('chargements')"
+            <a 
+                href="{{ route('voyages.show', $voyage->id) }}?tab=chargements"
+                wire:click.prevent="setActiveTab('chargements')"
                 class="py-4 px-1 border-b-2 font-medium text-sm {{ $activeTab === 'chargements' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                 📦 Chargements ({{ $voyage->chargements->count() }})
-            </button>
-            <button 
-                wire:click="setActiveTab('dechargements')"
+            </a>
+            <a 
+                href="{{ route('voyages.show', $voyage->id) }}?tab=dechargements"
+                wire:click.prevent="setActiveTab('dechargements')"
                 class="py-4 px-1 border-b-2 font-medium text-sm {{ $activeTab === 'dechargements' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                 🏪 Déchargements ({{ $voyage->dechargements->count() }})
-            </button>
-            <button 
-                wire:click="setActiveTab('synthese')"
+            </a>
+            <a 
+                href="{{ route('voyages.show', $voyage->id) }}?tab=synthese"
+                wire:click.prevent="setActiveTab('synthese')"
                 class="py-4 px-1 border-b-2 font-medium text-sm {{ $activeTab === 'synthese' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
                 📊 Synthèse
-            </button>
+            </a>
         </nav>
     </div>
 

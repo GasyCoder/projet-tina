@@ -74,4 +74,120 @@ class Voyage extends Model
     {
         return $query->where('statut', 'termine');
     }
+
+
+
+    /**
+     * Vérifie si le voyage a des déchargements (requis pour vente)
+     */
+    public function hasValidDechargements()
+    {
+        return $this->dechargements()->exists();
+    }
+
+    /**
+     * Vérifie si le voyage a des chargements (requis pour achat)
+     */
+    public function hasValidChargements()
+    {
+        return $this->chargements()->exists();
+    }
+
+    /**
+     * Obtient les chargements disponibles pour transaction (pas déjà utilisés)
+     */
+    public function getChargementsDisponibles()
+    {
+        return $this->chargements()->whereDoesntHave('transactions', function($query) {
+            $query->where('statut', '!=', 'annule');
+        })->get();
+    }
+
+    /**
+     * Obtient les déchargements disponibles pour transaction (pas déjà utilisés)
+     */
+    public function getDechargementsDisponibles()
+    {
+        return $this->dechargements()->whereDoesntHave('transactions', function($query) {
+            $query->where('statut', '!=', 'annule');
+        })->get();
+    }
+
+    /**
+     * Vérifie si le voyage peut être utilisé pour un achat
+     */
+    public function canBeUsedForAchat()
+    {
+        return $this->hasValidChargements() && $this->getChargementsDisponibles()->count() > 0;
+    }
+
+    /**
+     * Vérifie si le voyage peut être utilisé pour une vente
+     */
+    public function canBeUsedForVente()
+    {
+        return $this->hasValidDechargements() && $this->getDechargementsDisponibles()->count() > 0;
+    }
+
+    // =====================================
+    // AJOUTS DANS App\Models\Chargement.php
+    // =====================================
+
+    /**
+     * Relation avec les transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'chargement_id');
+    }
+
+    /**
+     * Vérifie si le chargement est déjà utilisé dans une transaction active
+     */
+    public function isUsedInTransaction()
+    {
+        return $this->transactions()->where('statut', '!=', 'annule')->exists();
+    }
+
+    /**
+     * Obtient la transaction active liée à ce chargement
+     */
+    public function getActiveTransaction()
+    {
+        return $this->transactions()->where('statut', '!=', 'annule')->first();
+    }
+
+    /**
+     * Scope pour les chargements disponibles
+     */
+    public function scopeDisponibles($query)
+    {
+        return $query->whereDoesntHave('transactions', function($q) {
+            $q->where('statut', '!=', 'annule');
+        });
+    }
+
+    /**
+     * Relation avec chargement
+     */
+    public function chargement()
+    {
+        return $this->belongsTo(Chargement::class);
+    }
+
+    /**
+     * Relation avec déchargement
+     */
+    public function dechargement()
+    {
+        return $this->belongsTo(Dechargement::class);
+    }
+
+    /**
+     * Scope pour les transactions actives (non annulées)
+     */
+    public function scopeActives($query)
+    {
+        return $query->where('statut', '!=', 'annule');
+    }
 }

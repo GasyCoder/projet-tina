@@ -241,7 +241,7 @@
         <!-- Modals -->
         <div x-data="{ transactionModal: @entangle('showTransactionModal'), compteModal: @entangle('showCompteModal') }">
             @include('livewire.finance.modals.transaction-modal', [
-                'voyages' => $voyages,
+                'voyagesDisponibles' => $voyagesDisponibles,
                 'comptes' => $comptes
             ])
             @include('livewire.finance.modals.compte-modal')

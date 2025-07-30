@@ -108,4 +108,23 @@ class Dechargement extends Model
     {
         return $query->where('reste_mga', '>', 0);
     }
+
+
+    /**
+     * Scope pour les déchargements disponibles (non utilisés dans des transactions actives)
+     */
+    public function scopeDisponibles($query)
+    {
+        return $query->whereDoesntHave('transactions', function($q) {
+            $q->where('statut', '!=', 'annule');
+        });
+    }
+
+    /**
+     * Relation avec les transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'dechargement_id');
+    }
 }

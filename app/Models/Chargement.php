@@ -89,4 +89,24 @@ class Chargement extends Model
     {
         return $this->dechargements()->first();
     }
+
+
+    /**
+     * Scope pour les chargements disponibles (non utilisés dans des transactions actives)
+     */
+    public function scopeDisponibles($query)
+    {
+        return $query->whereDoesntHave('transactions', function($q) {
+            $q->where('statut', '!=', 'annule');
+        });
+    }
+
+    /**
+     * Relation avec les transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'chargement_id');
+    }
+
 }

@@ -88,15 +88,48 @@ class FinanceIndex extends Component
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
-        'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
+        'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
         'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
         'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
         'voyage_id' => 'nullable|exists:voyages,id',
         'reste_a_payer' => 'required_if:statut,partiellement_payee|numeric|min:0',
-        'type_compte' => 'required|in:principal,mobile_money,banque,credit',
+        'type_compte' => 'required|in:principal,AirtelMoney,Mvola,OrangeMoney,banque',
         'nom_compte' => 'required|string|max:255',
         'solde_actuel_mga' => 'required|numeric',
     ];
+
+    /**
+     * Règles de validation améliorées
+     */
+    protected function getValidationRules()
+    {
+        $rules = [
+            'reference' => 'required|string|max:255',
+            'date' => 'required|date',
+            'type' => 'required|in:achat,vente,Autre',
+            'montant_mga' => 'required|numeric|min:0',
+            'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
+            'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
+        ];
+
+        // Validation spécifique selon le type
+        if ($this->type === 'achat') {
+            $rules['voyage_id'] = 'required|exists:voyages,id';
+            $rules['chargement_ids'] = 'required|array|min:1';
+            $rules['chargement_ids.*'] = 'exists:chargements,id';
+        } elseif ($this->type === 'vente') {
+            $rules['voyage_id'] = 'required|exists:voyages,id';
+            $rules['dechargement_ids'] = 'required|array|min:1';
+            $rules['dechargement_ids.*'] = 'exists:dechargements,id';
+        }
+
+        if ($this->statut === 'partiellement_payee') {
+            $rules['reste_a_payer'] = 'required|numeric|min:0';
+        }
+
+        return $rules;
+    }
+
 
     // =====================================================
     // LISTENERS POUR AUTO-COMPLETION
@@ -106,12 +139,28 @@ class FinanceIndex extends Component
         Log::info('updatedChargementIds called', ['type' => $this->type, 'chargement_ids' => $this->chargement_ids]);
         
         if ($this->type === 'achat' && !empty($this->chargement_ids)) {
+            // Vérifier que tous les chargements sont disponibles
+            $chargementsIndisponibles = Chargement::whereIn('id', $this->chargement_ids)
+                ->whereHas('transactions', function($q) {
+                    $q->where('statut', '!=', 'annule');
+                })
+                ->pluck('reference')
+                ->toArray();
+
+            if (!empty($chargementsIndisponibles)) {
+                $this->addError('chargement_ids', 'Les chargements suivants sont déjà utilisés : ' . implode(', ', $chargementsIndisponibles));
+                $this->chargement_ids = array_diff($this->chargement_ids, 
+                    Chargement::whereIn('reference', $chargementsIndisponibles)->pluck('id')->toArray()
+                );
+                return;
+            }
+
             $chargements = Chargement::with(['depart', 'produit'])->whereIn('id', $this->chargement_ids)->get();
             
             Log::info('Chargements trouvés', ['count' => $chargements->count()]);
             
             // Calculer montant total basé sur le poids et prix fixe de 1500 MGA/kg
-            $prixParKg = 1500; // Prix fixe par kg
+            $prixParKg = 1500;
             $poidsTotal = $chargements->sum('poids_depart_kg');
             $this->montant_mga = $poidsTotal * $prixParKg;
             
@@ -138,6 +187,22 @@ class FinanceIndex extends Component
         Log::info('=== DEBUT updatedDechargementIds ===', ['type' => $this->type, 'dechargement_ids' => $this->dechargement_ids]);
         
         if ($this->type === 'vente' && !empty($this->dechargement_ids)) {
+            // Vérifier que tous les déchargements sont disponibles
+            $dechargementsIndisponibles = Dechargement::whereIn('id', $this->dechargement_ids)
+                ->whereHas('transactions', function($q) {
+                    $q->where('statut', '!=', 'annule');
+                })
+                ->pluck('reference')
+                ->toArray();
+
+            if (!empty($dechargementsIndisponibles)) {
+                $this->addError('dechargement_ids', 'Les déchargements suivants sont déjà utilisés : ' . implode(', ', $dechargementsIndisponibles));
+                $this->dechargement_ids = array_diff($this->dechargement_ids, 
+                    Dechargement::whereIn('reference', $dechargementsIndisponibles)->pluck('id')->toArray()
+                );
+                return;
+            }
+
             $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])->whereIn('id', $this->dechargement_ids)->get();
             
             Log::info('Dechargements trouvés', ['count' => $dechargements->count()]);
@@ -147,48 +212,50 @@ class FinanceIndex extends Component
             
             Log::info('Calcul montant vente', ['montant' => $this->montant_mga]);
             
-            // AVANT la modification
-            Log::info('AVANT modification lieux_display', ['lieux_display' => $this->lieux_display]);
-            
-            // ✅ FORCER: Afficher VRAIMENT les lieux de livraison, PAS les produits
+            // Récupérer interlocuteurs et lieux
+            $interlocuteurs = [];
             $lieux = [];
+            
             foreach($dechargements as $dechargement) {
+                if ($dechargement->interlocuteur_nom) {
+                    $interlocuteurs[] = $dechargement->interlocuteur_nom;
+                }
+                
                 $lieuNom = $dechargement->lieuLivraison->nom ?? 'LIEU_NULL';
                 $lieux[] = $lieuNom;
             }
+            
+            $interlocuteurs = array_unique(array_filter($interlocuteurs));
             $lieux = array_unique(array_filter($lieux));
             
-            $this->lieux_display = implode(', ', $lieux); // Virgule pour les destinations
-            $this->to_nom = $this->lieux_display;
+            $this->from_nom = implode(', ', $interlocuteurs);
+            $this->lieux_display = implode(', ', $lieux);
+            $this->to_nom = '';
             
-            // APRES la modification
-            Log::info('APRES modification lieux_display', [
+            Log::info('CORRECTION appliquée', [
+                'from_nom' => $this->from_nom,
                 'lieux_display' => $this->lieux_display,
-                'lieux_array' => $lieux,
-                'to_nom' => $this->to_nom
+                'to_nom' => $this->to_nom,
+                'interlocuteurs' => $interlocuteurs,
+                'lieux' => $lieux
             ]);
-            
-            Log::info('Détails des déchargements', $dechargements->map(function($d) {
-                return [
-                    'id' => $d->id,
-                    'reference' => $d->reference,
-                    'lieu_livraison_id' => $d->lieu_livraison_id,
-                    'lieu_nom' => $d->lieuLivraison->nom ?? 'NULL',
-                    'produit_nom' => $d->chargement->produit->nom_complet ?? 'NULL'
-                ];
-            })->toArray());
         } else {
-            // Reset si pas de déchargements sélectionnés
             if ($this->type === 'vente') {
                 Log::info('RESET lieux_display pour vente');
                 $this->montant_mga = '';
                 $this->lieux_display = '';
+                $this->from_nom = '';
                 $this->to_nom = '';
             }
         }
         
-        Log::info('=== FIN updatedDechargementIds ===', ['final_lieux_display' => $this->lieux_display]);
+        Log::info('=== FIN updatedDechargementIds ===', [
+            'final_from_nom' => $this->from_nom,
+            'final_lieux_display' => $this->lieux_display,
+            'final_to_nom' => $this->to_nom
+        ]);
     }
+
 
     public function updatedVoyageId()
     {
@@ -199,7 +266,39 @@ class FinanceIndex extends Component
         $this->lieux_display = '';
         $this->from_nom = '';
         $this->to_nom = '';
+
+        // Vérifications selon le type
+        if ($this->voyage_id && $this->type) {
+            $voyage = Voyage::find($this->voyage_id);
+            
+            if (!$voyage) {
+                $this->addError('voyage_id', 'Voyage introuvable.');
+                $this->voyage_id = '';
+                return;
+            }
+
+            if ($this->type === 'achat' && !$voyage->canBeUsedForAchat()) {
+                $this->addError('voyage_id', 'Ce voyage n\'a pas de chargements disponibles pour une transaction d\'achat.');
+                $this->voyage_id = '';
+                return;
+            }
+
+            if ($this->type === 'vente' && !$voyage->canBeUsedForVente()) {
+                $this->addError('voyage_id', 'Ce voyage n\'a pas de déchargements disponibles pour une transaction de vente.');
+                $this->voyage_id = '';
+                return;
+            }
+
+            // Log pour debug
+            Log::info('Voyage sélectionné valide', [
+                'voyage_id' => $this->voyage_id,
+                'type' => $this->type,
+                'chargements_disponibles' => $this->type === 'achat' ? $voyage->getChargementsDisponibles()->count() : 0,
+                'dechargements_disponibles' => $this->type === 'vente' ? $voyage->getDechargementsDisponibles()->count() : 0
+            ]);
+        }
     }
+
 
     public function updatedType()
     {
@@ -621,30 +720,153 @@ class FinanceIndex extends Component
         $this->to_compte = $transaction->to_compte;
         $this->montant_mga = $transaction->montant_mga;
         $this->voyage_id = $transaction->voyage_id;
-        $this->chargement_ids = $transaction->chargement_id ? [$transaction->chargement_id] : [];
-        $this->dechargement_ids = $transaction->dechargement_id ? [$transaction->dechargement_id] : [];
+        
+        // ✅ CORRIGER: Récupérer tous les éléments correspondants au montant
+        if ($transaction->type === 'achat' && $transaction->voyage_id) {
+            // Pour les achats, essayer de retrouver les chargements correspondant au montant
+            $chargements = Chargement::where('voyage_id', $transaction->voyage_id)->get();
+            $this->chargement_ids = $this->findMatchingChargements($chargements, $transaction->montant_mga);
+            
+            // Recalculer l'affichage des lieux pour les achats
+            if (!empty($this->chargement_ids)) {
+                $this->updatedChargementIds();
+            }
+        } else {
+            $this->chargement_ids = $transaction->chargement_id ? [$transaction->chargement_id] : [];
+        }
+        
+        if ($transaction->type === 'vente' && $transaction->voyage_id) {
+            // Pour les ventes, essayer de retrouver les déchargements correspondant au montant
+            $dechargements = Dechargement::where('voyage_id', $transaction->voyage_id)->get();
+            $this->dechargement_ids = $this->findMatchingDechargements($dechargements, $transaction->montant_mga);
+            
+            // ✅ CORRECTION: Recalculer l'affichage pour les ventes mais garder les valeurs existantes
+            if (!empty($this->dechargement_ids)) {
+                // Sauvegarder les valeurs actuelles de la transaction
+                $originalFromNom = $transaction->from_nom;
+                $originalToNom = $transaction->to_nom;
+                
+                // Recalculer pour avoir lieux_display à jour
+                $this->updatedDechargementIds();
+                
+                // Mais garder les valeurs originales si elles existent
+                // (car l'utilisateur a peut-être personnalisé)
+                if ($originalFromNom) {
+                    $this->from_nom = $originalFromNom;
+                }
+                if ($originalToNom) {
+                    $this->to_nom = $originalToNom;
+                }
+            }
+        } else {
+            $this->dechargement_ids = $transaction->dechargement_id ? [$transaction->dechargement_id] : [];
+        }
+        
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
         $this->reste_a_payer = $transaction->reste_a_payer;
         $this->observation = $transaction->observation;
         $this->showTransactionModal = true;
+        
+        Log::info('Transaction éditée', [
+            'id' => $transaction->id,
+            'type' => $transaction->type,
+            'montant' => $transaction->montant_mga,
+            'chargement_ids_found' => $this->chargement_ids,
+            'dechargement_ids_found' => $this->dechargement_ids,
+            'from_nom' => $this->from_nom,
+            'to_nom' => $this->to_nom
+        ]);
+    }
+
+    // Méthode pour retrouver les chargements correspondant au montant
+    private function findMatchingChargements($chargements, $montantTotal)
+    {
+        $prixParKg = 1500;
+        $poidsTarget = $montantTotal / $prixParKg;
+        $selected = [];
+        $poidsActuel = 0;
+        
+        // Essayer de trouver une combinaison de chargements qui correspond au montant
+        foreach ($chargements as $chargement) {
+            if ($poidsActuel + $chargement->poids_depart_kg <= $poidsTarget + 1) { // +1 pour tolérance
+                $selected[] = $chargement->id;
+                $poidsActuel += $chargement->poids_depart_kg;
+            }
+            if (abs($poidsActuel - $poidsTarget) < 1) break; // Assez proche
+        }
+        
+        return $selected;
+    }
+
+    // Méthode pour retrouver les déchargements correspondant au montant
+    private function findMatchingDechargements($dechargements, $montantTotal)
+    {
+        $selected = [];
+        $montantActuel = 0;
+        $tolerance = 1000; // Tolérance de 1000 MGA
+        
+        // Essayer de trouver une combinaison de déchargements qui correspond au montant
+        foreach ($dechargements as $dechargement) {
+            if ($montantActuel + $dechargement->montant_total_mga <= $montantTotal + $tolerance) {
+                $selected[] = $dechargement->id;
+                $montantActuel += $dechargement->montant_total_mga;
+            }
+            
+            // Si on est assez proche du montant cible, on s'arrête
+            if (abs($montantActuel - $montantTotal) < $tolerance) {
+                break;
+            }
+        }
+        
+        Log::info('findMatchingDechargements', [
+            'montant_total' => $montantTotal,
+            'montant_actuel' => $montantActuel,
+            'selected_ids' => $selected,
+            'tolerance' => $tolerance
+        ]);
+        
+        return $selected;
     }
 
     public function saveTransaction()
     {
-        $rules = [
-            'reference' => 'required|string|max:255',
-            'date' => 'required|date',
-            'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
-            'montant_mga' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
-            'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
-        ];
-        if ($this->statut === 'partiellement_payee') {
-            $rules['reste_a_payer'] = 'required|numeric|min:0';
-        }
-        $this->validate($rules);
+        $this->validate($this->getValidationRules());
 
+        // Validations métier supplémentaires
+        if ($this->type === 'achat' && !empty($this->chargement_ids)) {
+            $chargementsUtilises = Chargement::whereIn('id', $this->chargement_ids)
+                ->whereHas('transactions', function($q) {
+                    $q->where('statut', '!=', 'annule');
+                    if ($this->editingTransaction) {
+                        $q->where('id', '!=', $this->editingTransaction->id);
+                    }
+                })
+                ->exists();
+
+            if ($chargementsUtilises) {
+                $this->addError('chargement_ids', 'Un ou plusieurs chargements sont déjà utilisés dans une autre transaction.');
+                return;
+            }
+        }
+
+        if ($this->type === 'vente' && !empty($this->dechargement_ids)) {
+            $dechargementsUtilises = Dechargement::whereIn('id', $this->dechargement_ids)
+                ->whereHas('transactions', function($q) {
+                    $q->where('statut', '!=', 'annule');
+                    if ($this->editingTransaction) {
+                        $q->where('id', '!=', $this->editingTransaction->id);
+                    }
+                })
+                ->exists();
+
+            if ($dechargementsUtilises) {
+                $this->addError('dechargement_ids', 'Un ou plusieurs déchargements sont déjà utilisés dans une autre transaction.');
+                return;
+            }
+        }
+
+        // Sauvegarde (reste du code existant)
         $data = [
             'reference' => $this->reference,
             'date' => $this->date,
@@ -671,6 +893,7 @@ class FinanceIndex extends Component
             Transaction::create($data);
             session()->flash('success', 'Transaction ajoutée avec succès');
         }
+
         $this->closeTransactionModal();
     }
 
@@ -721,7 +944,7 @@ class FinanceIndex extends Component
     public function saveCompte()
     {
         $this->validate([
-            'type_compte' => 'required|in:principal,mobile_money,banque,credit',
+            'type_compte' => 'required|in:principal,AirtelMoney,Mvola,OrangeMoney,banque',
             'nom_compte' => 'required|string|max:255',
             'solde_actuel_mga' => 'required|numeric',
         ]);
@@ -808,13 +1031,37 @@ class FinanceIndex extends Component
     // =====================================================
     // MÉTHODES UTILITAIRES
     // =====================================================
+
+
+    /**
+     * Génère une référence unique de transaction en tenant compte des SoftDeletes
+     */
     private function generateTransactionReference()
     {
-        $count = Transaction::whereDate('created_at', Carbon::today())->count() + 1;
-        return 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
+        // ✅ SOLUTION 1: Compter TOUTES les transactions (même soft-deleted)
+        $count = Transaction::withTrashed()
+            ->whereDate('created_at', Carbon::today())
+            ->count() + 1;
+        
+        $reference = 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
+        
+        // ✅ SOLUTION 2: Vérifier l'unicité et incrémenter si nécessaire
+        while (Transaction::withTrashed()->where('reference', $reference)->exists()) {
+            $count++;
+            $reference = 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
+        }
+        
+        Log::info('Nouvelle référence générée', [
+            'reference' => $reference,
+            'count_today' => $count - 1,
+            'date' => Carbon::today()->format('Y-m-d')
+        ]);
+        
+        return $reference;
     }
 
-    public function clearFilters()
+
+        public function clearFilters()
     {
         $this->searchTerm = '';
         $this->filterType = '';
@@ -845,17 +1092,95 @@ class FinanceIndex extends Component
         ]);
     }
 
+
+    /**
+     * Computed property pour les voyages selon le type de transaction
+     */
+    public function getVoyagesDisponiblesProperty()
+    {
+        if (!$this->type) {
+            return collect();
+        }
+
+        $query = Voyage::select('id', 'reference', 'date', 'statut')
+            ->with(['chargements', 'dechargements'])
+            ->latest();
+
+        if ($this->type === 'achat') {
+            // Pour achat : voyages avec chargements disponibles
+            $query->whereHas('chargements', function($q) {
+                $q->disponibles(); // Scope ajouté dans Chargement
+            });
+        } elseif ($this->type === 'vente') {
+            // Pour vente : voyages avec déchargements disponibles
+            $query->whereHas('dechargements', function($q) {
+                $q->disponibles(); // Scope ajouté dans Dechargement
+            });
+        }
+
+        return $query->limit(50)->get()->filter(function($voyage) {
+            if ($this->type === 'achat') {
+                return $voyage->canBeUsedForAchat();
+            } elseif ($this->type === 'vente') {
+                return $voyage->canBeUsedForVente();
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Computed property pour les chargements disponibles du voyage sélectionné
+     */
+    public function getChargementsDisponiblesProperty()
+    {
+        if (!$this->voyage_id || $this->type !== 'achat') {
+            return collect();
+        }
+
+        $voyage = Voyage::find($this->voyage_id);
+        if (!$voyage) {
+            return collect();
+        }
+
+        return $voyage->getChargementsDisponibles()
+            ->load(['depart', 'produit']);
+    }
+
+
+    /**
+     * Computed property pour les déchargements disponibles du voyage sélectionné
+     */
+    public function getDechargementsDisponiblesProperty()
+    {
+        if (!$this->voyage_id || $this->type !== 'vente') {
+            return collect();
+        }
+
+        $voyage = Voyage::find($this->voyage_id);
+        if (!$voyage) {
+            return collect();
+        }
+
+        return $voyage->getDechargementsDisponibles()
+            ->load(['lieuLivraison', 'chargement.produit']);
+    }
+
+
     // =====================================================
     // MÉTHODE DE RENDU PRINCIPALE
     // =====================================================
     public function render()
     {
         Log::info('Rendering FinanceIndex', ['activeTab' => $this->activeTab]);
+        
+        // Statistiques générales
         $totalEntrees = $this->totalEntrees;
         $totalSorties = $this->totalSorties;
         $beneficeNet = $this->beneficeNet;
         $transactionsEnAttente = $this->transactionsEnAttente;
         $revenusEnAttente = $this->revenusEnAttente;
+        
+        // Transactions principales
         $query = Transaction::with(['voyage'])
             ->when($this->searchTerm, function ($q) {
                 $q->where(function ($subQ) {
@@ -873,16 +1198,29 @@ class FinanceIndex extends Component
             })
             ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
             ->orderBy('date', 'desc');
+        
         $transactions = $query->paginate(15);
         $comptes = Compte::where('actif', true)->get();
-        $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();
-        $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])->select('id', 'reference', 'lieu_livraison_id', 'montant_total_mga', 'voyage_id', 'chargement_id')->latest()->limit(50)->get();
-        $chargements = Chargement::with(['depart', 'produit'])->select('id', 'reference', 'depart_id', 'poids_depart_kg', 'voyage_id', 'produit_id')->latest()->limit(50)->get();
+        
+        // ✅ UTILISATION DES NOUVELLES PROPRIÉTÉS COMPUTED
+        $voyagesDisponibles = $this->voyagesDisponibles;
+        $chargementsDisponibles = $this->chargementsDisponibles;
+        $dechargementsDisponibles = $this->dechargementsDisponibles;
+        
+        // ANCIEN CODE REMPLACÉ :
+        // $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();
+        // $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])...
+        // $chargements = Chargement::with(['depart', 'produit'])...
+        
         $users = collect();
+        
+        // Statistiques pour le dashboard
         $repartitionParType = $this->repartitionParType;
         $repartitionParStatut = $this->repartitionParStatut;
         $transactionsVoyage = $this->transactionsVoyage;
         $transactionsAutre = $this->transactionsAutre;
+        
+        // Revenus et dépenses
         $revenus = $this->revenus;
         $depenses = $this->depenses;
         $totalRevenus = $this->totalRevenus;
@@ -898,9 +1236,9 @@ class FinanceIndex extends Component
         return view('livewire.finance.finance-index', compact(
             'transactions',
             'comptes',
-            'voyages',
-            'dechargements',
-            'chargements',
+            'voyagesDisponibles',      // ✅ NOUVEAU
+            'chargementsDisponibles',  // ✅ NOUVEAU  
+            'dechargementsDisponibles', // ✅ NOUVEAU
             'users',
             'totalEntrees',
             'totalSorties',

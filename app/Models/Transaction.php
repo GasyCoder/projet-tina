@@ -31,15 +31,6 @@ class Transaction extends Model
         'quantite',
         'unite',
         'prix_unitaire_mga',
-        'reference',
-        'type',
-        'objet',
-        'montant_mga',
-        'statut',
-        'date',
-        'voyage_id',
-        'from_nom',
-        'to_nom',
         'reste_a_payer',
         'observation'
     ];
@@ -48,10 +39,9 @@ class Transaction extends Model
         'montant_mga' => 'decimal:2',
         'quantite' => 'decimal:2',
         'prix_unitaire_mga' => 'decimal:2',
-         'date' => 'datetime',
+        'date' => 'datetime',
         'reste_a_payer' => 'decimal:2',
     ];
-
 
     // Scopes utiles
     public function scopeRevenus($query)
@@ -111,7 +101,7 @@ class Transaction extends Model
         return number_format($this->montant_mga, 0, ',', ' ') . ' MGA';
     }
 
-    // ✅ SCOPES SELON VOS VRAIS TYPES
+    // SCOPES SELON VOS VRAIS TYPES
     public function scopeAchats($query)
     {
         return $query->where('type', 'achat');
@@ -157,7 +147,7 @@ class Transaction extends Model
         return $query->where('type', 'retrait');
     }
 
-    // ✅ SCOPES SELON VOS VRAIS STATUTS
+    // SCOPES SELON VOS VRAIS STATUTS
     public function scopeConfirme($query)
     {
         return $query->where('statut', 'confirme');
@@ -173,7 +163,17 @@ class Transaction extends Model
         return $query->where('statut', 'annule');
     }
 
-    // ✅ SCOPES UTILES
+    public function scopePayee($query)
+    {
+        return $query->where('statut', 'payee');
+    }
+
+    public function scopePartiellementPayee($query)
+    {
+        return $query->where('statut', 'partiellement_payee');
+    }
+
+    // SCOPES UTILES
     public function scopePeriode($query, $dateDebut, $dateFin)
     {
         return $query->whereBetween('date', [$dateDebut, $dateFin]);
@@ -197,7 +197,7 @@ class Transaction extends Model
         return $query->where('date', '>=', now()->subDays($jours));
     }
 
-    // ✅ LOGIQUE MÉTIER : ENTRÉES VS SORTIES
+    // LOGIQUE MÉTIER : ENTRÉES VS SORTIES
     public function scopeEntrees($query)
     {
         return $query->whereIn('type', ['vente', 'depot', 'transfert']); // Ce qui fait entrer de l'argent
@@ -208,4 +208,3 @@ class Transaction extends Model
         return $query->whereIn('type', ['achat', 'frais', 'commission', 'paiement', 'avance', 'retrait']); // Ce qui fait sortir de l'argent
     }
 }
-

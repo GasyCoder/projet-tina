@@ -7,6 +7,9 @@ use App\Models\User;
 use App\Models\Compte;
 use App\Models\Voyage;
 use App\Models\Produit;
+use App\Models\Dechargement;
+use App\Models\Chargement; // AJOUT
+use App\Models\Lieu;
 use Livewire\Component;
 use App\Models\Transaction;
 use Livewire\WithPagination;
@@ -35,7 +38,7 @@ class FinanceIndex extends Component
     // =====================================================
     // FILTRES AVANCÉS
     // =====================================================
-    public $typeSuivi = 'tous'; // tous, voyage, autre
+    public $typeSuivi = 'tous';
     public $periodeRevenus = 'mois';
     public $dateDebutRevenus = '';
     public $dateFinRevenus = '';
@@ -57,12 +60,14 @@ class FinanceIndex extends Component
     public $to_nom = '';
     public $to_compte = '';
     public $montant_mga = '';
-    public $objet = '';
     public $voyage_id = '';
+    public $chargement_ids = []; // MULTIPLE CHARGEMENTS
+    public $dechargement_ids = []; // MULTIPLE DECHARGEMENTS
     public $mode_paiement = 'especes';
     public $statut = 'confirme';
     public $observation = '';
     public $reste_a_payer = '';
+    public $lieux_display = ''; // AFFICHAGE DES LIEUX
 
     // =====================================================
     // FORMULAIRE COMPTE
@@ -80,21 +85,145 @@ class FinanceIndex extends Component
     // RÈGLES DE VALIDATION
     // =====================================================
     protected $rules = [
-        // Transaction rules
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
-        'objet' => 'required|string',
         'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
         'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
         'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
         'voyage_id' => 'nullable|exists:voyages,id',
         'reste_a_payer' => 'required_if:statut,partiellement_payee|numeric|min:0',
-        // Compte rules
         'type_compte' => 'required|in:principal,mobile_money,banque,credit',
         'nom_compte' => 'required|string|max:255',
         'solde_actuel_mga' => 'required|numeric',
     ];
+
+    // =====================================================
+    // LISTENERS POUR AUTO-COMPLETION
+    // =====================================================
+    public function updatedChargementIds()
+    {
+        Log::info('updatedChargementIds called', ['type' => $this->type, 'chargement_ids' => $this->chargement_ids]);
+        
+        if ($this->type === 'achat' && !empty($this->chargement_ids)) {
+            $chargements = Chargement::with(['depart', 'produit'])->whereIn('id', $this->chargement_ids)->get();
+            
+            Log::info('Chargements trouvés', ['count' => $chargements->count()]);
+            
+            // Calculer montant total basé sur le poids et prix fixe de 1500 MGA/kg
+            $prixParKg = 1500; // Prix fixe par kg
+            $poidsTotal = $chargements->sum('poids_depart_kg');
+            $this->montant_mga = $poidsTotal * $prixParKg;
+            
+            Log::info('Calcul montant', ['poids_total' => $poidsTotal, 'prix_par_kg' => $prixParKg, 'montant' => $this->montant_mga]);
+            
+            // Afficher lieux de chargement
+            $lieux = $chargements->pluck('depart.nom')->unique()->filter()->toArray();
+            $this->lieux_display = implode(' + ', $lieux);
+            $this->from_nom = $this->lieux_display;
+            
+            Log::info('Lieux calculés', ['lieux_display' => $this->lieux_display]);
+        } else {
+            // Reset si pas de chargements sélectionnés
+            if ($this->type === 'achat') {
+                $this->montant_mga = '';
+                $this->lieux_display = '';
+                $this->from_nom = '';
+            }
+        }
+    }
+
+    public function updatedDechargementIds()
+    {
+        Log::info('=== DEBUT updatedDechargementIds ===', ['type' => $this->type, 'dechargement_ids' => $this->dechargement_ids]);
+        
+        if ($this->type === 'vente' && !empty($this->dechargement_ids)) {
+            $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])->whereIn('id', $this->dechargement_ids)->get();
+            
+            Log::info('Dechargements trouvés', ['count' => $dechargements->count()]);
+            
+            // Calculer montant total
+            $this->montant_mga = $dechargements->sum('montant_total_mga');
+            
+            Log::info('Calcul montant vente', ['montant' => $this->montant_mga]);
+            
+            // AVANT la modification
+            Log::info('AVANT modification lieux_display', ['lieux_display' => $this->lieux_display]);
+            
+            // ✅ FORCER: Afficher VRAIMENT les lieux de livraison, PAS les produits
+            $lieux = [];
+            foreach($dechargements as $dechargement) {
+                $lieuNom = $dechargement->lieuLivraison->nom ?? 'LIEU_NULL';
+                $lieux[] = $lieuNom;
+            }
+            $lieux = array_unique(array_filter($lieux));
+            
+            $this->lieux_display = implode(', ', $lieux); // Virgule pour les destinations
+            $this->to_nom = $this->lieux_display;
+            
+            // APRES la modification
+            Log::info('APRES modification lieux_display', [
+                'lieux_display' => $this->lieux_display,
+                'lieux_array' => $lieux,
+                'to_nom' => $this->to_nom
+            ]);
+            
+            Log::info('Détails des déchargements', $dechargements->map(function($d) {
+                return [
+                    'id' => $d->id,
+                    'reference' => $d->reference,
+                    'lieu_livraison_id' => $d->lieu_livraison_id,
+                    'lieu_nom' => $d->lieuLivraison->nom ?? 'NULL',
+                    'produit_nom' => $d->chargement->produit->nom_complet ?? 'NULL'
+                ];
+            })->toArray());
+        } else {
+            // Reset si pas de déchargements sélectionnés
+            if ($this->type === 'vente') {
+                Log::info('RESET lieux_display pour vente');
+                $this->montant_mga = '';
+                $this->lieux_display = '';
+                $this->to_nom = '';
+            }
+        }
+        
+        Log::info('=== FIN updatedDechargementIds ===', ['final_lieux_display' => $this->lieux_display]);
+    }
+
+    public function updatedVoyageId()
+    {
+        // Reset des sélections quand voyage change
+        $this->chargement_ids = [];
+        $this->dechargement_ids = [];
+        $this->montant_mga = '';
+        $this->lieux_display = '';
+        $this->from_nom = '';
+        $this->to_nom = '';
+    }
+
+    public function updatedType()
+    {
+        // Reset quand type change - TOUJOURS reset voyage_id
+        $this->voyage_id = '';
+        $this->chargement_ids = [];
+        $this->dechargement_ids = [];
+        $this->montant_mga = '';
+        $this->lieux_display = '';
+        $this->from_nom = '';
+        $this->to_nom = '';
+        
+        Log::info('Type updated, FORCE reset ALL fields', ['new_type' => $this->type]);
+    }
+
+    // Méthode publique pour forcer le recalcul
+    public function recalculerMontant()
+    {
+        if ($this->type === 'achat') {
+            $this->updatedChargementIds();
+        } elseif ($this->type === 'vente') {
+            $this->updatedDechargementIds();
+        }
+    }
 
     // =====================================================
     // INITIALISATION ET GESTION DES ONGLETS
@@ -110,9 +239,8 @@ class FinanceIndex extends Component
         $this->dateFinRevenus = Carbon::now()->endOfMonth()->format('Y-m-d');
         $this->dateDebutDepenses = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFinDepenses = Carbon::now()->endOfMonth()->format('Y-m-d');
-        $this->dispatch('tab-changed', tab: $this->activeTab); // Use dispatch for Livewire 3
+        $this->dispatch('tab-changed', tab: $this->activeTab);
     }
-
 
     public function setActiveTab($tab)
     {
@@ -123,14 +251,13 @@ class FinanceIndex extends Component
         }
         $this->activeTab = $tab;
         $this->resetPage();
-        $this->dispatch('tab-changed', tab: $tab); // Use dispatch for Livewire 3
+        $this->dispatch('tab-changed', tab: $tab);
         $this->js("
             const url = new URL(window.location);
             url.searchParams.set('tab', '{$tab}');
             window.history.pushState({}, '', url);
         ");
     }
-
 
     // =====================================================
     // LISTENERS POUR MISE À JOUR AUTOMATIQUE
@@ -479,9 +606,8 @@ class FinanceIndex extends Component
         $this->reference = $this->generateTransactionReference();
         $this->date = Carbon::now()->format('Y-m-d');
         $this->showTransactionModal = true;
-        $this->dispatch('open-transaction-modal'); // Dispatch event to ensure modal opens
+        $this->dispatch('open-transaction-modal');
     }
-    
 
     public function editTransaction(Transaction $transaction)
     {
@@ -494,8 +620,9 @@ class FinanceIndex extends Component
         $this->to_nom = $transaction->to_nom;
         $this->to_compte = $transaction->to_compte;
         $this->montant_mga = $transaction->montant_mga;
-        $this->objet = $transaction->objet;
         $this->voyage_id = $transaction->voyage_id;
+        $this->chargement_ids = $transaction->chargement_id ? [$transaction->chargement_id] : [];
+        $this->dechargement_ids = $transaction->dechargement_id ? [$transaction->dechargement_id] : [];
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
         $this->reste_a_payer = $transaction->reste_a_payer;
@@ -510,7 +637,6 @@ class FinanceIndex extends Component
             'date' => 'required|date',
             'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
             'montant_mga' => 'required|numeric|min:0',
-            'objet' => 'required|string',
             'mode_paiement' => 'required|in:especes,mobile_money,banque,credit',
             'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
         ];
@@ -528,8 +654,10 @@ class FinanceIndex extends Component
             'to_nom' => $this->to_nom ?: null,
             'to_compte' => $this->to_compte ?: null,
             'montant_mga' => $this->montant_mga,
-            'objet' => $this->objet,
+            'objet' => 'Transaction ' . $this->type . ' - ' . ($this->lieux_display ?: 'N/A'),
             'voyage_id' => $this->voyage_id ?: null,
+            'chargement_id' => !empty($this->chargement_ids) ? $this->chargement_ids[0] : null,
+            'dechargement_id' => !empty($this->dechargement_ids) ? $this->dechargement_ids[0] : null,
             'mode_paiement' => $this->mode_paiement,
             'statut' => $this->statut,
             'reste_a_payer' => $this->statut === 'partiellement_payee' ? $this->reste_a_payer : null,
@@ -575,9 +703,8 @@ class FinanceIndex extends Component
         $this->resetCompteForm();
         $this->editingCompte = null;
         $this->showCompteModal = true;
-        $this->dispatch('open-compte-modal'); // Dispatch event to ensure modal opens
+        $this->dispatch('open-compte-modal');
     }
-
 
     public function editCompte(Compte $compte)
     {
@@ -637,7 +764,6 @@ class FinanceIndex extends Component
         $this->dispatch('close-transaction-modal');
     }
 
-
     public function closeCompteModal()
     {
         Log::info('closeCompteModal called');
@@ -657,8 +783,10 @@ class FinanceIndex extends Component
         $this->to_nom = '';
         $this->to_compte = '';
         $this->montant_mga = '';
-        $this->objet = '';
         $this->voyage_id = '';
+        $this->chargement_ids = [];
+        $this->dechargement_ids = [];
+        $this->lieux_display = '';
         $this->mode_paiement = 'especes';
         $this->statut = 'confirme';
         $this->reste_a_payer = '';
@@ -720,8 +848,6 @@ class FinanceIndex extends Component
     // =====================================================
     // MÉTHODE DE RENDU PRINCIPALE
     // =====================================================
-
-
     public function render()
     {
         Log::info('Rendering FinanceIndex', ['activeTab' => $this->activeTab]);
@@ -750,6 +876,8 @@ class FinanceIndex extends Component
         $transactions = $query->paginate(15);
         $comptes = Compte::where('actif', true)->get();
         $voyages = Voyage::select('id', 'reference')->latest()->limit(50)->get();
+        $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])->select('id', 'reference', 'lieu_livraison_id', 'montant_total_mga', 'voyage_id', 'chargement_id')->latest()->limit(50)->get();
+        $chargements = Chargement::with(['depart', 'produit'])->select('id', 'reference', 'depart_id', 'poids_depart_kg', 'voyage_id', 'produit_id')->latest()->limit(50)->get();
         $users = collect();
         $repartitionParType = $this->repartitionParType;
         $repartitionParStatut = $this->repartitionParStatut;
@@ -765,16 +893,18 @@ class FinanceIndex extends Component
         $depensesEnAttente = $this->depensesEnAttente;
         $nombreDepenses = $this->nombreDepenses;
         $repartitionDepenses = $this->repartitionDepenses;
-        $repartitionRevenus = $this->repartitionRevenus; // ← Cette ligne était manquante
+        $repartitionRevenus = $this->repartitionRevenus;
 
         return view('livewire.finance.finance-index', compact(
             'transactions',
             'comptes',
             'voyages',
+            'dechargements',
+            'chargements',
             'users',
             'totalEntrees',
             'totalSorties',
-            'beneficeNet',
+            'beneficeNet',  
             'transactionsEnAttente',
             'repartitionParType',
             'repartitionParStatut',
@@ -791,8 +921,7 @@ class FinanceIndex extends Component
             'depensesEnAttente',
             'nombreDepenses',
             'repartitionDepenses',
-            'repartitionRevenus' // ← Et cette ligne dans le compact() était aussi manquante
+            'repartitionRevenus'
         ));
     }
-
 }

@@ -2,27 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Transaction extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-
-   
-
-
-    // Scopes utiles
-    public function scopeRevenus($query)
-    {
-        return $query->whereIn('type', ['vente', 'depot', 'commission']);
-    }
-
-    public function scopeDepenses($query)
-    {
-        return $query->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait']);
-    }
     protected $fillable = [
         'reference',
         'date', 
@@ -64,6 +51,18 @@ class Transaction extends Model
          'date' => 'datetime',
         'reste_a_payer' => 'decimal:2',
     ];
+
+
+    // Scopes utiles
+    public function scopeRevenus($query)
+    {
+        return $query->whereIn('type', ['vente', 'depot', 'commission']);
+    }
+
+    public function scopeDepenses($query)
+    {
+        return $query->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait']);
+    }
 
     // Relations
     public function fromUser()

@@ -52,7 +52,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Finances - Routes existantes
 
     // Finances - Nouvelles routes pour les interfaces séparées
-    Route::get('/finance/suivi-transactions', SuiviTransactions::class)->name('finance.suivi-transactions');
     Route::get('/finance/revenus', Revenus::class)->name('finance.revenus');
     Route::get('/finance/depenses', Depenses::class)->name('finance.depenses');
 

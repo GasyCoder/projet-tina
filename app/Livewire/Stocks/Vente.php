@@ -3,14 +3,15 @@
 
 namespace App\Livewire\Stocks;
 
-use Livewire\Component;
-use Livewire\WithPagination;
-use App\Models\Dechargement;
-use App\Models\Voyage;
-use App\Models\Lieu;
-use App\Models\Produit;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\Lieu;
+use App\Models\Voyage;
+use App\Models\Produit;
+use Livewire\Component;
+use App\Models\Dechargement;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class Vente extends Component
 {
@@ -21,7 +22,7 @@ class Vente extends Component
     public $filterStatus = '';
     public $filterPeriod = '';
     public $perPage = 25;
-    public $sortField = 'date_dechargement';
+    public $sortField = 'date';
     public $sortDirection = 'desc';
 
     // Propriétés du modal de vente (hérite du système dynamique)
@@ -197,8 +198,8 @@ class Vente extends Component
                 'reste_mga' => $this->reste_mga ?: 0,
                 'statut_commercial' => $this->statut_commercial,
                 'observation' => $this->observation,
-                'date_dechargement' => now(),
-                'user_id' => auth()->id(),
+                'date' => now(),
+                'user_id' => Auth::id(),
             ];
 
             if ($this->editingDechargement) {
@@ -289,11 +290,11 @@ class Vente extends Component
         $thisMonth = Carbon::now()->startOfMonth();
 
         $this->ventesJour = Dechargement::where('type', 'vente')
-            ->whereDate('date_dechargement', $today)
+            ->whereDate('date', $today)
             ->count();
 
         $this->caJournalier = Dechargement::where('type', 'vente')
-            ->whereDate('date_dechargement', $today)
+            ->whereDate('date', $today)
             ->sum('montant_total_mga');
 
         $this->commandesAttente = Dechargement::where('type', 'vente')
@@ -301,7 +302,7 @@ class Vente extends Component
             ->count();
 
         $this->caMensuel = Dechargement::where('type', 'vente')
-            ->where('date_dechargement', '>=', $thisMonth)
+            ->where('date', '>=', $thisMonth)
             ->sum('montant_total_mga');
     }
 
@@ -348,17 +349,17 @@ class Vente extends Component
         if ($this->filterPeriod) {
             switch ($this->filterPeriod) {
                 case 'today':
-                    $query->whereDate('date_dechargement', Carbon::today());
+                    $query->whereDate('date', Carbon::today());
                     break;
                 case 'week':
-                    $query->whereBetween('date_dechargement', [
+                    $query->whereBetween('date', [
                         Carbon::now()->startOfWeek(),
                         Carbon::now()->endOfWeek()
                     ]);
                     break;
                 case 'month':
-                    $query->whereMonth('date_dechargement', Carbon::now()->month)
-                          ->whereYear('date_dechargement', Carbon::now()->year);
+                    $query->whereMonth('date', Carbon::now()->month)
+                          ->whereYear('date', Carbon::now()->year);
                     break;
             }
         }

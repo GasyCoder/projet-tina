@@ -53,6 +53,8 @@ return new class extends Migration
                 'banque',       // Virement, chèque
                 'credit'        // À crédit
             ])->default('especes');
+
+            $table->decimal('reste_a_payer', 15, 2)->default(0);
             
             $table->enum('statut', ['attente', 'confirme', 'annule'])->default('confirme');
             
@@ -63,6 +65,7 @@ return new class extends Migration
             
             $table->text('observation')->nullable(); // Français + Malagasy
             $table->timestamps();
+            $table->softDeletes();
             
             // Index pour performance
             $table->index(['date', 'type']);

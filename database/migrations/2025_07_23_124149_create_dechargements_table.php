@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('voyage_id')->constrained('voyages')->cascadeOnDelete();
             $table->foreignId('chargement_id')->constrained('chargements')->onDelete('cascade');
             $table->string('reference'); // OP001, OP002
+            $table->date('date');
             $table->enum('type', ['vente', 'retour', 'depot', 'transfert']);
             $table->string('pointeur_nom')->nullable();
             $table->string('pointeur_contact')->nullable();

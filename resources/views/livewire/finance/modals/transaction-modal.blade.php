@@ -28,7 +28,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-bold text-white">
-                                    {{ $editingTransaction ? '✏️ Modifier' : '➕ Nouvelle' }} Transaction
+                                    {{ $editingTransaction ? 'Modifier' : 'Nouvelle' }} Transaction
                                 </h3>
                                 <p class="text-blue-100 text-sm">
                                     {{ $editingTransaction ? 'Modifiez les détails de la transaction' : 'Créez une nouvelle transaction financière' }}
@@ -452,77 +452,124 @@
                                     </div>
                                 @endif
                             </div>
-
                             <!-- Colonne droite - Résumé et finalisation -->
                             <div class="space-y-6">
+                            <!-- MONTANT -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <!-- SECTION MONTANT CORRIGÉE dans le template Blade -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
+                                    <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                                            💰
+                                        </span>
+                                        Montant
+                                    </h4>
+                                </div>
                                 
-                                <!-- MONTANT -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                                💰
-                                            </span>
-                                            Montant
-                                        </h4>
-                                    </div>
+                                <div class="p-6">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                        <span class="flex items-center justify-between">
+                                            <span>Montant total (MGA) *</span>
+                                            @if(in_array($type, ['achat', 'vente']) && !$editingTransaction)
+                                                <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-calculé</span>
+                                            @elseif($editingTransaction)
+                                                <span class="text-xs text-orange-500 bg-orange-100 px-2 py-1 rounded-full">Éditable</span>
+                                            @endif
+                                        </span>
+                                    </label>
                                     
-                                    <div class="p-6">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-3">
-                                            <span class="flex items-center justify-between">
-                                                <span>Montant total (MGA) *</span>
-                                                @if(in_array($type, ['achat', 'vente']) && !$editingTransaction)
-                                                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-calculé</span>
-                                                @elseif($editingTransaction)
-                                                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-1 rounded-full">Éditable</span>
-                                                @endif
-                                            </span>
-                                        </label>
-                                        
-                                        <div class="relative">
-                                            <input wire:model.live="montant_mga" type="number" step="0.01" 
-                                                   @if(in_array($type, ['achat', 'vente']) && !$editingTransaction) readonly @endif
-                                                   class="w-full px-4 py-3 text-lg font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors
-                                                          @if(in_array($type, ['achat', 'vente']) && !$editingTransaction) bg-gray-50 text-green-700 @endif">
+                                    <div class="relative">
+                                        <!-- ✅ CORRECTION : Affichage conditionnel du montant -->
+                                        @if(in_array($type, ['achat', 'vente']) && !$editingTransaction)
+                                            <!-- Mode auto-calculé : affichage en lecture seule -->
+                                            <div class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg bg-gray-50 text-green-700 min-h-[50px] flex items-center justify-between">
+                                                <span>{{ $montant_mga ? number_format($montant_mga, 0, ',', ' ') : '0' }}</span>
+                                                <span class="text-green-600 text-sm font-medium">MGA</span>
+                                            </div>
+                                            <!-- Champ caché pour la soumission -->
+                                            <input type="hidden" wire:model="montant_mga">
+                                        @else
+                                            <!-- Mode éditable : champ input normal -->
+                                            <input wire:model.live="montant_mga" 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="0"
+                                                class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
                                             
                                             @if($montant_mga)
                                                 <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                                     <span class="text-green-600 text-sm font-medium">MGA</span>
                                                 </div>
                                             @endif
-                                        </div>
-                                        
-                                        @if(in_array($type, ['achat', 'vente']) && !$editingTransaction && $montant_mga)
-                                            <div class="mt-3 p-3 bg-gray-50 rounded-lg">
-                                                <div class="text-xs text-gray-600">
+                                        @endif
+                                    </div>
+                                    
+                                    <!-- ✅ AMÉLIORATION : Affichage conditionnel des informations de calcul -->
+                                    @if($montant_mga)
+                                        <div class="mt-4 p-4 rounded-lg border-l-4 border-green-400 bg-green-50">
+                                            @if(in_array($type, ['achat', 'vente']) && !$editingTransaction)
+                                                <div class="text-sm text-green-800">
                                                     @if($type === 'achat')
-                                                        <div class="font-medium">Formule: Poids total × 1,500 MGA/kg</div>
-                                                        <div class="mt-1">Calcul: {{ number_format($montant_mga / 1500, 0) }}kg × 1,500 = <span class="text-green-600 font-bold">{{ number_format($montant_mga, 0) }} MGA</span></div>
+                                                        <div class="font-semibold">📊 Formule: Poids total × 1,500 MGA/kg</div>
+                                                        <div class="mt-1">
+                                                            🧮 Calcul: {{ number_format($montant_mga / 1500, 0, ',', ' ') }} kg × 1,500 = 
+                                                            <span class="font-bold text-green-700">{{ number_format($montant_mga, 0, ',', ' ') }} MGA</span>
+                                                        </div>
                                                     @else
-                                                        <div class="font-medium">Formule: Somme des montants des déchargements</div>
-                                                        <div class="mt-1">Total: <span class="text-green-600 font-bold">{{ number_format($montant_mga, 0) }} MGA</span></div>
+                                                        <div class="font-semibold">📊 Formule: Somme des montants des déchargements</div>
+                                                        <div class="mt-1">
+                                                            💰 Total: <span class="font-bold text-green-700">{{ number_format($montant_mga, 0, ',', ' ') }} MGA</span>
+                                                        </div>
                                                     @endif
                                                 </div>
-                                            </div>
+                                            @else
+                                                <!-- Mode édition ou autre -->
+                                                <div class="text-sm text-green-800">
+                                                    <div class="font-semibold">💰 Montant saisi</div>
+                                                    <div class="mt-1">
+                                                        <span class="font-bold text-green-700">{{ number_format($montant_mga, 0, ',', ' ') }} MGA</span>
+                                                    </div>
+                                                </div>
+                                            @endif
                                             
                                             @if(in_array($type, ['achat', 'vente']))
                                                 <button type="button" wire:click="recalculerMontant" 
-                                                        class="mt-3 w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
-                                                    🔄 Recalculer le montant
+                                                        class="mt-3 w-full px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                    </svg>
+                                                    Recalculer le montant
                                                 </button>
                                             @endif
-                                        @endif
-                                        
-                                        @error('montant_mga') 
-                                            <div class="mt-2 flex items-center text-red-600 text-sm">
-                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                </svg>
-                                                {{ $message }}
+                                        </div>
+                                    @else
+                                        <!-- Message quand pas de montant -->
+                                        <div class="mt-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
+                                            <div class="text-sm text-gray-600 text-center">
+                                                @if(in_array($type, ['achat', 'vente']))
+                                                    @if($type === 'achat')
+                                                        🔄 Sélectionnez des chargements pour calculer automatiquement le montant
+                                                    @else
+                                                        🔄 Sélectionnez des déchargements pour calculer automatiquement le montant
+                                                    @endif
+                                                @else
+                                                    💰 Saisissez le montant de la transaction
+                                                @endif
                                             </div>
-                                        @enderror
-                                    </div>
+                                        </div>
+                                    @endif
+                                    
+                                    @error('montant_mga') 
+                                        <div class="mt-2 flex items-center text-red-600 text-sm bg-red-50 p-2 rounded">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                            </svg>
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
                                 </div>
+                            </div>
 
                                 <!-- PARTICIPANTS -->
                                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

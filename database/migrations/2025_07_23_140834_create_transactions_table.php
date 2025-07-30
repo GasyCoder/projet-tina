@@ -18,13 +18,7 @@ return new class extends Migration
             $table->enum('type', [
                 'achat',        // Achat de produits
                 'vente',        // Vente de produits  
-                'transfert',    // Transfert entre personnes (NAKA VOLA)
-                'frais',        // Frais de transport, péage, etc.
-                'commission',   // Commission pointeurs/intermédiaires
-                'paiement',     // Paiement de facture/dette
-                'avance',       // Avance d'argent
-                'depot',        // Dépôt d'argent
-                'retrait'       // Retrait d'argent
+                'autre'       // autre d'argent
             ]);
             
             // Qui donne l'argent - SAISIE LIBRE
@@ -49,9 +43,10 @@ return new class extends Migration
             // Détails techniques
             $table->enum('mode_paiement', [
                 'especes',
-                'mobile_money', // Airtel Money, Orange Money, MVola
+                'AirtelMoney', // AirtelMoney, 
+                'OrangeMoney', 
+                'MVola',
                 'banque',       // Virement, chèque
-                'credit'        // À crédit
             ])->default('especes');
 
             $table->decimal('reste_a_payer', 15, 2)->default(0);

@@ -373,102 +373,59 @@ class Vente extends Component
     {
         return Lieu::orderBy('nom')->get();
     }
-    
 
-    public function getVentesProperty()
-    {
-        $query = Dechargement::where('type', 'vente')
-            ->with(['chargement.produit', 'lieuLivraison']); // Correction ici
 
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('reference', 'like', '%' . $this->search . '%')
-                  ->orWhere('interlocuteur_nom', 'like', '%' . $this->search . '%')
-                  ->orWhereHas('chargement.produit', function ($subQ) {
-                      $subQ->where('nom', 'like', '%' . $this->search . '%');
-                  });
-            });
-        }
-
-        if ($this->filterStatus) {
-            $query->where('statut_commercial', $this->filterStatus);
-        }
-
-        if ($this->filterPeriod) {
-            switch ($this->filterPeriod) {
-                case 'today':
-                    $query->whereDate('date', Carbon::today());
-                    break;
-                case 'week':
-                    $query->whereBetween('date', [
-                        Carbon::now()->startOfWeek(),
-                        Carbon::now()->endOfWeek()
-                    ]);
-                    break;
-                case 'month':
-                    $query->whereMonth('date', Carbon::now()->month)
-                          ->whereYear('date', Carbon::now()->year);
-                    break;
-            }
-        }
-
-        $query->orderBy($this->sortField, $this->sortDirection);
-
-        return $query->paginate($this->perPage);
-    }
-
+    // Dans votre composant Livewire
     public function render()
     {
-
-        // Statistiques
-        $ventesJour = $this->getVentesJourCount();
-        $caJournalier = $this->getCaJournalier();
-        $caMensuel = $this->getCaMensuel();
-
-        // Pourcentage d'augmentation (exemple: comparé à hier)
-        $augmentation = $this->calculateAugmentation();
-
-         // Requête pour les ventes
-        $query = Dechargement::with(['lieuLivraison', 'produit'])
-            ->ventes()
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('reference', 'like', '%'.$this->search.'%')
-                      ->orWhere('interlocuteur_nom', 'like', '%'.$this->search.'%')
-                      ->orWhereHas('produit', function($q) {
-                          $q->where('nom', 'like', '%'.$this->search.'%');
-                      });
-                });
-            })
-             ->when($this->filterPeriod, function ($query) {
-                switch ($this->filterPeriod) {
-                    case 'today':
-                        $query->whereDate('date', today());
-                        break;
-                    case 'week':
-                        $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
-                        break;
-                    case 'month':
-                        $query->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]);
-                        break;
-                }
-            });
-
-
-        // Tri
-        $query->orderBy($this->sortField, $this->sortDirection);
-
-
-
         return view('livewire.stocks.vente', [
             'ventes' => $this->ventes,
             'destinations' => $this->destinations,
             'voyage' => $this->voyage,
-            'ventesJour' => $this->ventesJour,
-            'caJournalier' => $this->caJournalier,
-            'caMensuel' => $this->caMensuel,
-            'augmentation' => $this->augmentation,
+            'ventesJour' => $this->getVentesJourCount(),
+            'caJournalier' => $this->getCaJournalier(),
+            'caMensuel' => $this->getCaMensuel(),
+            'augmentation' => $this->calculateAugmentation(),
             'totalVentes' => $this->ventes->total(),
         ]);
+    }
+
+
+
+    public function getVentesProperty()
+    {
+        return Dechargement::where('type', 'vente')
+            ->with(['chargement.produit', 'lieuLivraison'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('reference', 'like', '%' . $this->search . '%')
+                        ->orWhere('interlocuteur_nom', 'like', '%' . $this->search . '%')
+                        ->orWhereHas('chargement.produit', function ($subQ) {
+                            $subQ->where('nom', 'like', '%' . $this->search . '%');
+                        });
+                });
+            })
+            ->when($this->filterStatus, function ($query) {
+                $query->where('statut_commercial', $this->filterStatus);
+            })
+            ->when($this->filterPeriod, function ($query) {
+                switch ($this->filterPeriod) {
+                    case 'today':
+                        $query->whereDate('date', Carbon::today());
+                        break;
+                    case 'week':
+                        $query->whereBetween('date', [
+                            Carbon::now()->startOfWeek(),
+                            Carbon::now()->endOfWeek()
+                        ]);
+                        break;
+                    case 'month':
+                        $query->whereMonth('date', Carbon::now()->month)
+                            ->whereYear('date', Carbon::now()->year);
+                        break;
+                }
+            })
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
     }
 }

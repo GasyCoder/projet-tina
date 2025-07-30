@@ -19,6 +19,7 @@ class Vente extends Component
 
     // Propriétés de filtrage et recherche
     public $search = '';
+    public $augmentation;
     public $filterStatus = '';
     public $filterPeriod = '';
     public $perPage = 25;
@@ -31,8 +32,10 @@ class Vente extends Component
     public $editingDechargement = null;
 
     // Formulaire de vente
+
     public $dechargement_reference = '';
     public $chargement_id = '';
+    public $nomPersonne = '';
     public $client_nom = '';
     public $client_contact = '';
     public $pointeur_nom = '';
@@ -52,7 +55,13 @@ class Vente extends Component
     public $caJournalier;
     public $commandesAttente;
     public $caMensuel;
-
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'filterPeriod' => ['except' => ''],
+        'perPage' => ['except' => 10],
+        'sortField' => ['except' => 'date'],
+        'sortDirection' => ['except' => 'desc'],
+    ];
     protected $listeners = [
         'dechargement-saved' => 'refreshData',
         'vente-deleted' => 'refreshData',
@@ -99,6 +108,44 @@ class Vente extends Component
         }
         $this->resetPage();
     }
+
+    protected function getVentesJourCount()
+    {
+        return Dechargement::ventes()
+            ->whereDate('date', today())
+            ->count();
+    }
+
+    protected function getCaJournalier()
+    {
+        return Dechargement::ventes()
+            ->whereDate('date', today())
+            ->sum('montant_total_mga');
+    }
+
+    protected function getCaMensuel()
+    {
+        return Dechargement::ventes()
+            ->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('montant_total_mga');
+    }
+
+
+      protected function calculateAugmentation()
+    {
+        // Exemple: comparer avec hier
+        $aujourdhui = $this->getCaJournalier();
+        $hier = Dechargement::ventes()
+            ->whereDate('date', today()->subDay())
+            ->sum('montant_total_mga');
+
+        if ($hier == 0) {
+            return $aujourdhui > 0 ? 100 : 0;
+        }
+
+        return round((($aujourdhui - $hier) / $hier) * 100);
+    }
+
 
     // Calculs automatiques financiers
     public function updatedPrixUnitaireMga()
@@ -326,6 +373,7 @@ class Vente extends Component
     {
         return Lieu::orderBy('nom')->get();
     }
+    
 
     public function getVentesProperty()
     {
@@ -371,10 +419,56 @@ class Vente extends Component
 
     public function render()
     {
+
+        // Statistiques
+        $ventesJour = $this->getVentesJourCount();
+        $caJournalier = $this->getCaJournalier();
+        $caMensuel = $this->getCaMensuel();
+
+        // Pourcentage d'augmentation (exemple: comparé à hier)
+        $augmentation = $this->calculateAugmentation();
+
+         // Requête pour les ventes
+        $query = Dechargement::with(['lieuLivraison', 'produit'])
+            ->ventes()
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('reference', 'like', '%'.$this->search.'%')
+                      ->orWhere('interlocuteur_nom', 'like', '%'.$this->search.'%')
+                      ->orWhereHas('produit', function($q) {
+                          $q->where('nom', 'like', '%'.$this->search.'%');
+                      });
+                });
+            })
+             ->when($this->filterPeriod, function ($query) {
+                switch ($this->filterPeriod) {
+                    case 'today':
+                        $query->whereDate('date', today());
+                        break;
+                    case 'week':
+                        $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]);
+                        break;
+                    case 'month':
+                        $query->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]);
+                        break;
+                }
+            });
+
+
+        // Tri
+        $query->orderBy($this->sortField, $this->sortDirection);
+
+
+
         return view('livewire.stocks.vente', [
             'ventes' => $this->ventes,
             'destinations' => $this->destinations,
             'voyage' => $this->voyage,
+            'ventesJour' => $this->ventesJour,
+            'caJournalier' => $this->caJournalier,
+            'caMensuel' => $this->caMensuel,
+            'augmentation' => $this->augmentation,
+            'totalVentes' => $this->ventes->total(),
         ]);
     }
 }

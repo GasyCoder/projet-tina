@@ -22,6 +22,7 @@ return new class extends Migration
                 'credit'        // Solde crédit/dette
             ]);
             $table->string('nom_compte'); // 'Espèces', 'Airtel Money', 'BOA 207142800027'
+            $table->string('nom')->nullable();
             $table->string('numero_compte')->nullable(); // Numéro de compte
             $table->decimal('solde_actuel_mga', 15, 2)->default(0); // Solde en MGA
             $table->foreignId('derniere_transaction_id')->nullable()->constrained('transactions');

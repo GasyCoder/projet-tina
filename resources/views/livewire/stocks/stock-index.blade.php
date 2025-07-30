@@ -4,13 +4,8 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Gestion de Stock</h1>
-                <p class="text-sm text-gray-500">Gérez vos ventes, retours, dépôts et transferts</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <button type="button" 
-                    class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
-                    ⬇️ Exporter
-                </button>
             </div>
         </div>
 

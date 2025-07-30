@@ -88,18 +88,27 @@ class Depenses extends Component
             ->count();
     }
 
-    
+
 
     public function getRepartitionDepensesProperty()
     {
-        return Transaction::depenses()
+        $depenses = Transaction::depenses()
             ->when($this->statutDepense, fn($query) => $query->where('statut', $this->statutDepense))
             ->whereBetween('date', [$this->dateDebutDepenses, $this->dateFinDepenses])
-            ->selectRaw('type, SUM(montant) as total')
-            ->groupBy('type')
-            ->pluck('total', 'type')
-            ->toArray();
+            ->get();
+
+        $result = [];
+
+        foreach ($depenses->groupBy('type') as $type => $group) {
+            $result[$type] = [
+                'count' => $group->count(),
+                'total' => $group->sum('montant'),
+            ];
+        }
+
+        return $result;
     }
+
     // ... tes autres propriétés
 
     public $showTransactionModal = false;

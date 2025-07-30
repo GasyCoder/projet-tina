@@ -5,6 +5,8 @@ namespace App\Livewire\Finance;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Transaction;
+
 
 class SuiviTransactions extends Component
 {
@@ -15,6 +17,28 @@ class SuiviTransactions extends Component
     public $dateFin;
     public $filterType = '';
     public $filterStatut = '';
+    public bool $showTransactionModal = false;
+    public bool $showCompteModal = false;
+    public function openCompteModal()
+    {
+        $this->showCompteModal = true;
+    }
+
+    public function closeCompteModal()
+    {
+        $this->showCompteModal = false;
+    }
+
+    public function openTransactionModal()
+    {
+        $this->showTransactionModal = true;
+    }
+
+    public function closeTransactionModal()
+    {
+        $this->showTransactionModal = false;
+    }
+
 
     protected $paginationTheme = 'bootstrap';
 
@@ -24,6 +48,17 @@ class SuiviTransactions extends Component
         $this->dateDebut = now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = now()->endOfMonth()->format('Y-m-d');
     }
+
+    public function getTransactions()
+    {
+        return Transaction::query()
+            ->when($this->filterType, fn($q) => $q->where('type', $this->filterType))
+            ->when($this->filterStatut, fn($q) => $q->where('statut', $this->filterStatut))
+            ->whereBetween('date', [$this->dateDebut, $this->dateFin])
+            ->latest()
+            ->paginate(10); // <- important pour la pagination
+    }
+
 
     public function render()
     {
@@ -72,13 +107,7 @@ class SuiviTransactions extends Component
         return []; // À implémenter
     }
 
-    // Méthodes privées
-    private function getTransactions()
-    {
-        // Logique pour récupérer les transactions avec filtres
-        // return Transaction::query()...
-        return collect(); // À implémenter
-    }
+ 
 
     private function getVoyages()
     {

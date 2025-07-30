@@ -9,6 +9,20 @@ class Transaction extends Model
 {
     use HasFactory;
 
+
+   
+
+
+    // Scopes utiles
+    public function scopeRevenus($query)
+    {
+        return $query->whereIn('type', ['vente', 'depot', 'commission']);
+    }
+
+    public function scopeDepenses($query)
+    {
+        return $query->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait']);
+    }
     protected $fillable = [
         'reference',
         'date', 
@@ -30,14 +44,25 @@ class Transaction extends Model
         'quantite',
         'unite',
         'prix_unitaire_mga',
+        'reference',
+        'type',
+        'objet',
+        'montant_mga',
+        'statut',
+        'date',
+        'voyage_id',
+        'from_nom',
+        'to_nom',
+        'reste_a_payer',
         'observation'
     ];
 
     protected $casts = [
-        'date' => 'date',
         'montant_mga' => 'decimal:2',
         'quantite' => 'decimal:2',
-        'prix_unitaire_mga' => 'decimal:2'
+        'prix_unitaire_mga' => 'decimal:2',
+         'date' => 'datetime',
+        'reste_a_payer' => 'decimal:2',
     ];
 
     // Relations

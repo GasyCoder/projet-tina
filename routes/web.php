@@ -14,6 +14,9 @@ use App\Livewire\Voyage\VoyageShow;
 use App\Livewire\Finance\FinanceIndex;
 use App\Livewire\Finance\SituationFinanciere;
 use App\Livewire\Finance\DashboardSituations;
+use App\Livewire\Finance\SuiviTransactions;
+use App\Livewire\Finance\Depenses;
+use App\Livewire\Finance\Revenus;
 use App\Livewire\Products\ProductIndex;
 use App\Livewire\Vehicules\VehiculeIndex;
 
@@ -46,6 +49,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/finance', FinanceIndex::class)->name('finance.index');
     Route::get('/finance/situations', SituationFinanciere::class)->name('finance.situations');
     Route::get('/finance/dashboard-situations', DashboardSituations::class)->name('finance.dashboard.situations');
+    // Finances - Routes existantes
+
+    // Finances - Nouvelles routes pour les interfaces séparées
+    Route::get('/finance/suivi-transactions', SuiviTransactions::class)->name('finance.suivi-transactions');
+    Route::get('/finance/revenus', Revenus::class)->name('finance.revenus');
+    Route::get('/finance/depenses', Depenses::class)->name('finance.depenses');
 
     // Gestion de profil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -57,3 +66,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/stocks', StockIndex::class)->name('stocks');
 });
+

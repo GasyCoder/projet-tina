@@ -558,13 +558,13 @@
                                                     <strong class="text-gray-700">Statut :</strong>
                                                     <span
                                                         class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                            {{ $transaction->statut === 'confirme'
-                                ? 'bg-green-100 text-green-800'
-                                : ($transaction->statut === 'annule'
-                                    ? 'bg-red-100 text-red-800'
-                                    : ($transaction->statut === 'partiellement_payee'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-gray-100 text-gray-800')) }}">
+                                                        {{ $transaction->statut === 'confirme'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : ($transaction->statut === 'annule'
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : ($transaction->statut === 'partiellement_payee'
+                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                    : 'bg-gray-100 text-gray-800')) }}">
                                                         @switch($transaction->statut)
                                                             @case('confirme')
                                                                 ✅ Confirmé

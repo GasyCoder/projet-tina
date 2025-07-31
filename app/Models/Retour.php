@@ -73,11 +73,22 @@ class Retour extends Model
         return $this->belongsTo(Chargement::class);
     }
 
+
+    public function lieuLivraison()
+    {
+        return $this->belongsTo(Lieu::class, 'lieu_livraison_id');
+    }
     public function produit()
     {
-        return $this->belongsTo(Produit::class);
+        return $this->hasOneThrough(
+            Produit::class,
+            Chargement::class,
+            'id', // Foreign key sur chargements
+            'id', // Foreign key sur produits
+            'chargement_id', // Local key sur ventes
+            'produit_id' // Local key sur chargements
+        );
     }
-
     public function lieuStockage()
     {
         return $this->belongsTo(Lieu::class, 'lieu_stockage_id');

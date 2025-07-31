@@ -70,15 +70,6 @@
                                 Date
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Quantité
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Poids (kg)
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Prix d'achat
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Montant
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -126,20 +117,8 @@
                                     @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">
                                     <div class="text-sm text-gray-900">{{ $transaction->created_at->format('d/m/Y') }}</div>
                                     <div class="text-sm text-gray-500">
-                                        {{ $transaction->created_at->locale('fr')->diffForHumans() }}
+                                        {{ $transaction->created_at->diffForHumans() }}
                                     </div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer" 
-                                    @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">
-                                    {{ $transaction->quantite ?? '-' }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer" 
-                                    @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">
-                                    {{ $transaction->poids ? number_format($transaction->poids, 2) . ' kg' : '-' }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer" 
-                                    @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">
-                                    {{ $transaction->prix_achat ? number_format($transaction->prix_achat, 0, ',', ' ') . ' Ar' : '-' }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
                                     @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">

@@ -230,17 +230,17 @@
                                 </div>
                             @else
                                 @include('livewire.finance.tabs.depenses', [
-            'depenses' => $depenses,
-            'periodeDepenses' => $periodeDepenses,
-            'dateDebutDepenses' => $dateDebutDepenses,
-            'dateFinDepenses' => $dateFinDepenses,
-            'totalDepenses' => $totalDepenses,
-            'depenseMoyenne' => $depenseMoyenne,
-            'depensesEnAttente' => $depensesEnAttente,
-            'nombreDepenses' => $nombreDepenses,
-            'repartitionDepenses' => $repartitionDepenses
-        ])
-                            @endif
+                            'depenses' => $depenses,
+                            'periodeDepenses' => $periodeDepenses,
+                            'dateDebutDepenses' => $dateDebutDepenses,
+                            'dateFinDepenses' => $dateFinDepenses,
+                            'totalDepenses' => $totalDepenses,
+                            'depenseMoyenne' => $depenseMoyenne,
+                            'depensesEnAttente' => $depensesEnAttente,
+                            'nombreDepenses' => $nombreDepenses,
+                            'repartitionDepenses' => $repartitionDepenses
+                        ])
+                        @endif
                         </div>
                     @elseif($activeTab === 'transactions')
                         <div wire:key="tab-transactions">
@@ -253,8 +253,8 @@
                                 </div>
                             @else
                                 @include('livewire.finance.tabs.transactions', [
-            'transactions' => $transactions
-        ])
+                                    'transactions' => $transactions
+                                ])
                             @endif
                         </div>
                     @elseif($activeTab === 'comptes')

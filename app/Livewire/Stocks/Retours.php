@@ -2,11 +2,12 @@
 
 namespace App\Livewire\Stocks;
 
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\Lieu;
 use App\Models\Retour;
 use App\Models\Produit;
-use App\Models\Lieu;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 
 class Retours extends Component
 {

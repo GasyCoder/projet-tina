@@ -1,58 +1,66 @@
 <!-- livewire.finance.tabs.suivi-globale -->
 <div class="space-y-4">
-    <!-- Filtres -->
-    <div class="bg-white rounded-lg shadow-sm p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Date Début</label>
-                <input 
-                    type="date" 
-                    wire:model.live="dateDebut" 
-                    class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
-                >
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Date Fin</label>
-                <input 
-                    type="date" 
-                    wire:model.live="dateFin" 
-                    class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
-                >
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Type</label>
-                <select 
-                    wire:model.live="filterType" 
-                    class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
-                >
-                    <option value="">Tous les types</option>
-                    <option value="vente">Vente</option>
-                    <option value="achat">Achat</option>
-                    <option value="depot">Dépôt</option>
-                    <option value="retrait">Retrait</option>
-                    <option value="transfert">Transfert</option>
-                    <option value="frais">Frais</option>
-                    <option value="commission">Commission</option>
-                    <option value="avance">Avance</option>
-                    <option value="paiement">Paiement</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">Statut</label>
-                <select 
-                    wire:model.live="filterStatut" 
-                    class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
-                >
-                    <option value="">Tous les statuts</option>
-                    <option value="payee">Payée</option>
-                    <option value="partiellement_payee">Partielle</option>
-                    <option value="attente">En attente</option>
-                    <option value="confirme">Confirmée</option>
-                    <option value="annule">Annulée</option>
-                </select>
-            </div>
+   <!-- Alpine.js requis -->
+<div x-data="{ open: false }" class="bg-white rounded-lg shadow-sm p-4">
+
+    <!-- Bouton toggle mobile -->
+    <div class="sm:hidden mb-4">
+        <button @click="open = !open"
+            class="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm text-gray-700 flex justify-between items-center">
+            <span>🗂️ Filtres</span>
+            <svg :class="{ 'rotate-180': open }" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor"
+                stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Bloc filtres -->
+    <div :class="{ 'block': open, 'hidden': !open }" class="sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-3" x-cloak>
+        <div class="mt-4 sm:mt-0">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Date Début</label>
+            <input 
+                type="date" 
+                wire:model.live="dateDebut" 
+                class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
+            >
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Date Fin</label>
+            <input 
+                type="date" 
+                wire:model.live="dateFin" 
+                class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
+            >
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Type</label>
+            <select 
+                wire:model.live="filterType" 
+                class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
+            >
+                <option value="">Tous les types</option>
+                <option value="vente">Vente</option>
+                <option value="achat">Achat</option>
+                <option value="autre">Autre</option>
+            </select>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <label class="block text-xs font-medium text-gray-700 mb-1">Statut</label>
+            <select 
+                wire:model.live="filterStatut" 
+                class="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-150"
+            >
+                <option value="">Tous les statuts</option>
+                <option value="payee">Payée</option>
+                <option value="partiellement_payee">Partielle</option>
+                <option value="attente">En attente</option>
+                <option value="confirme">Confirmée</option>
+                <option value="annule">Annulée</option>
+            </select>
         </div>
     </div>
+</div>
 
     <!-- Répartitions -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -1,48 +1,61 @@
 {{-- resources/views/livewire/finance/tabs/transactions.blade.php - CORRIGÉ --}}
 <div class="space-y-4">
-    <!-- Filtres avec VOS vrais types -->
-    <div class="bg-gray-50 p-4 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Recherche</label>
-                <input wire:model.live="searchTerm" type="text" placeholder="Référence, objet..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Type</label>
-                <select wire:model.live="filterType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-                    <option value="">Tous</option>
-                    <option value="achat">🛒 Achat</option>
-                    <option value="vente">💰 Vente</option>
-                    <option value="transfert">🔄 Transfert</option>
-                    <option value="frais">🧾 Frais</option>
-                    <option value="commission">💼 Commission</option>
-                    <option value="paiement">💳 Paiement</option>
-                    <option value="avance">💸 Avance</option>
-                    <option value="depot">📥 Dépôt</option>
-                    <option value="retrait">📤 Retrait</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Statut</label>
-                <select wire:model.live="filterStatut" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-                    <option value="">Tous</option>
-                    <option value="attente">⏳ En attente</option>
-                    <option value="confirme">✅ Confirmé</option>
-                    <option value="annule">❌ Annulé</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Personne</label>
-                <input wire:model.live="filterPersonne" type="text" placeholder="Nom..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
-            </div>
-            <div class="flex items-end">
-                <button wire:click="$set('searchTerm', ''); $set('filterType', ''); $set('filterStatut', ''); $set('filterPersonne', '')" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50">
-                    🔄 Reset
-                </button>
-            </div>
+ <!-- Alpine.js requis -->
+<div x-data="{ open: false }" class="bg-gray-50 p-4 rounded-lg">
+
+    <!-- Bouton toggle pour mobile -->
+    <div class="md:hidden mb-4">
+        <button @click="open = !open" class="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm text-gray-700 flex justify-between items-center">
+            <span>🎛️ Filtres</span>
+            <svg :class="{'rotate-180': open}" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Zone de filtres -->
+    <div :class="{'block': open, 'hidden': !open}" class="md:grid md:grid-cols-5 gap-4" x-cloak>
+        <div class="mt-4 md:mt-0">
+            <label class="block text-sm font-medium text-gray-700">Recherche</label>
+            <input wire:model.live="searchTerm" type="text" placeholder="Référence, objet..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+        </div>
+        <div class="mt-4 md:mt-0">
+            <label class="block text-sm font-medium text-gray-700">Type</label>
+            <select wire:model.live="filterType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                <option value="">Tous</option>
+                <option value="achat">🛒 Achat</option>
+                <option value="vente">💰 Vente</option>
+                <option value="transfert">🔄 Transfert</option>
+                <option value="frais">🧾 Frais</option>
+                <option value="commission">💼 Commission</option>
+                <option value="paiement">💳 Paiement</option>
+                <option value="avance">💸 Avance</option>
+                <option value="depot">📥 Dépôt</option>
+                <option value="retrait">📤 Retrait</option>
+            </select>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <label class="block text-sm font-medium text-gray-700">Statut</label>
+            <select wire:model.live="filterStatut" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                <option value="">Tous</option>
+                <option value="attente">⏳ En attente</option>
+                <option value="confirme">✅ Confirmé</option>
+                <option value="annule">❌ Annulé</option>
+            </select>
+        </div>
+        <div class="mt-4 md:mt-0">
+            <label class="block text-sm font-medium text-gray-700">Personne</label>
+            <input wire:model.live="filterPersonne" type="text" placeholder="Nom..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+        </div>
+        <div class="mt-4 md:mt-0 flex items-end">
+            <button wire:click="$set('searchTerm', ''); $set('filterType', ''); $set('filterStatut', ''); $set('filterPersonne', '')" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50">
+                🔄 Reset
+            </button>
         </div>
     </div>
+</div>
+
 
     <!-- Liste des transactions -->
     @if($transactions->count() > 0)

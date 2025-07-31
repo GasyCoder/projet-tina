@@ -124,8 +124,10 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap cursor-pointer" 
                                     @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">
-                                    <div class="text-sm text-gray-900">{{ $transaction->date->format('d/m/Y') }}</div>
-                                    <div class="text-sm text-gray-500">{{ $transaction->date->diffForHumans() }}</div>
+                                    <div class="text-sm text-gray-900">{{ $transaction->created_at->format('d/m/Y') }}</div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ $transaction->created_at->locale('fr')->diffForHumans() }}
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer" 
                                     @click="expandedRows[{{ $transaction->id }}] = !expandedRows[{{ $transaction->id }}]">

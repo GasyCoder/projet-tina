@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('nom'); // TSOROKO, BEB, LOJY MENA, Haricot, Maïs, etc.
             $table->string('variete')->nullable(); // Variété spécifique (Rouge, Blanc, Premium, etc.)
             $table->enum('unite', ['sacs', 'kg', 'tonnes', 'boites', 'cartons'])->default('sacs');
-            $table->decimal('poids_moyen_sac_kg', 8, 2)->default(120.00);
+            $table->decimal('poids_moyen_sac_kg_max', 8, 2)->default(120.00);
+            $table->decimal('qte_variable', 8, 2)->default(0);
             $table->decimal('prix_reference_mga', 12, 2)->nullable(); // Prix de référence en MGA
             $table->text('description')->nullable(); // Description détaillée
             $table->boolean('actif')->default(true);

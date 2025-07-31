@@ -7,7 +7,7 @@
                  wire:click="closeTransactionModal"></div>
             
             <!-- Modal Container avec animation moderne -->
-            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full border border-gray-200">
+            <div class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full border border-gray-200">
                 
                 <!-- Header avec gradient -->
                 <div class="bg-gradient-to-r from-blue-600 to-purple-700 px-6 py-4">
@@ -98,8 +98,8 @@
                                                 <select wire:model.live="type" 
                                                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
                                                     <option value="">🔹 Sélectionner le type</option>
-                                                    <option value="vente">💰 Vente de produits</option>
                                                     <option value="achat">🛒 Achat de produits</option>
+                                                    <option value="vente">💰 Vente de produits</option>
                                                     <option value="autre">✨ Autre</option>
                                                 </select>
                                                 @error('type') 
@@ -133,7 +133,7 @@
                                         </div>
 
                                         <!-- CHAMP OBJET - SEULEMENT POUR ACHAT ET AUTRE -->
-                                        @if(in_array($type, ['achat', 'autre']))
+                                        {{-- @if(in_array($type, ['achat', 'autre']))
                                             <div>
                                                 <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                     <span class="flex items-center">
@@ -153,7 +153,7 @@
                                                     </div>
                                                 @enderror
                                             </div>
-                                        @endif
+                                        @endif --}}
 
                                         <!-- Type-specific info -->
                                         @if($type)
@@ -200,7 +200,7 @@
                                                             <option value="{{ $produit->id }}">
                                                                 {{ $produit->nom_complet }} ({{ $produit->unite }})
                                                                 @if($type === 'vente')
-                                                                    - Stock: {{ number_format($produit->poids_moyen_sac_kg, 2) }} {{ $produit->unite }}
+                                                                    - Stock: {{ number_format($produit->poids_moyen_sac_kg_max, 2) }} {{ $produit->unite }}
                                                                 @endif
                                                             </option>
                                                         @empty
@@ -220,49 +220,92 @@
                                                 <!-- Dynamic Fields for Product Details -->
                                                 @if($produit_id && $produitSelectionne)
                                                     <!-- Informations de référence du produit -->
-                                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                                        <h5 class="text-sm font-semibold text-blue-900 mb-3">📊 Informations de référence</h5>
-                                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                                                            <div class="bg-white rounded-lg p-3 border border-blue-100">
-                                                                <div class="text-blue-600 font-medium">📦 Produit</div>
-                                                                <div class="text-blue-900 font-bold">{{ $produitSelectionne->nom_complet }}</div>
-                                                            </div>
-                                                            <div class="bg-white rounded-lg p-3 border border-blue-100">
-                                                                <div class="text-blue-600 font-medium">📏 Unité</div>
-                                                                <div class="text-blue-900 font-bold">{{ $produitSelectionne->unite }}</div>
-                                                            </div>
-                                                            <div class="bg-white rounded-lg p-3 border border-blue-100 
-                                                                    {{ $type === 'vente' ? 'border-green-200 bg-green-50' : '' }}">
-                                                                <div class="text-blue-600 font-medium {{ $type === 'vente' ? 'text-green-600' : '' }}">
-                                                                    {{ $type === 'vente' ? '📦 Stock actuel' : '⚖️ Stock disponible' }}
+                                                <div class="bg-blue-50 rounded-lg p-4">
+                                                    <h5 class="text-sm font-semibold text-blue-900 mb-3">📊 Informations de référence</h5>
+                                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                                        <div class="p-3 border border-blue-100">
+                                                            <div class="text-blue-600 font-medium">📦 Produit</div>
+                                                            <div class="text-blue-900 font-medium">{{ $produitSelectionne->nom_complet }}</div>
+                                                        </div>
+                                                        <div class="p-3 border border-blue-100">
+                                                            <div class="text-blue-600 font-medium">📏 Unité</div>
+                                                            <div class="text-blue-900 font-bold">{{ $produitSelectionne->unite }}</div>
+                                                        </div>
+                                                        
+                                                        @if($type === 'vente')
+                                                            <!-- Pour les ventes : afficher le stock disponible -->
+                                                            <div class="p-3 border border-green-200 bg-green-50">
+                                                                <div class="text-green-600 font-medium">📦 Stock disponible</div>
+                                                                <div class="text-green-900 font-bold text-lg">
+                                                                    {{ number_format($produitSelectionne->qte_variable, 2, ',', ' ') }} {{ $produitSelectionne->unite }}
                                                                 </div>
-                                                                <div class="text-blue-900 font-bold {{ $type === 'vente' ? 'text-green-900 text-lg' : '' }}">
-                                                                    {{ number_format($stock_actuel, 2, ',', ' ') }} {{ $produitSelectionne->unite }}
-                                                                </div>
-                                                                @if($type === 'vente')
-                                                                    <div class="text-xs text-green-600 mt-1">Disponible pour la vente</div>
-                                                                @endif
+                                                                <div class="text-xs text-green-600 mt-1">Quantité vendable</div>
                                                             </div>
-                                                            <div class="bg-white rounded-lg p-3 border border-blue-100">
-                                                                <div class="text-blue-600 font-medium">💰 Prix référence</div>
-                                                                <div class="text-blue-900 font-bold">{{ $produitSelectionne->prix_reference_mga_formatted }}</div>
+                                                            <div class="p-3 border border-blue-100">
+                                                                <div class="text-blue-600 font-medium">📈 Capacité max</div>
+                                                                <div class="text-blue-900 font-bold">
+                                                                    {{ number_format($produitSelectionne->poids_moyen_sac_kg_max, 2, ',', ' ') }} {{ $produitSelectionne->unite }}
+                                                                </div>
+                                                                <div class="text-xs text-blue-600 mt-1">
+                                                                    Utilisation: {{ $produitSelectionne->poids_moyen_sac_kg_max > 0 ? number_format(($produitSelectionne->qte_variable / $produitSelectionne->poids_moyen_sac_kg_max) * 100, 1) : 0 }}%
+                                                                </div>
+                                                            </div>
+                                                        @else
+                                                            <!-- Pour les achats : afficher la capacité disponible -->
+                                                            <div class="p-3 border border-blue-100">
+                                                                <div class="text-blue-600 font-medium">📦 Stock actuel</div>
+                                                                <div class="text-blue-900 font-bold">
+                                                                    {{ number_format($produitSelectionne->qte_variable, 2, ',', ' ') }} {{ $produitSelectionne->unite }}
+                                                                </div>
+                                                                <div class="text-xs text-blue-600 mt-1">En stock</div>
+                                                            </div>
+                                                            <div class="p-3 border border-orange-200 bg-orange-50">
+                                                                <div class="text-orange-600 font-medium">🏪 Qté Max</div>
+                                                                <div class="text-orange-900 font-bold text-sm">
+                                                                    {{ number_format(max(0, $produitSelectionne->poids_moyen_sac_kg_max - $produitSelectionne->qte_variable), 2, ',', ' ') }} {{ $produitSelectionne->unite }}
+                                                                </div>
+                                                                <div class="text-xs text-orange-600 mt-1">Peut encore acheter</div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    
+                                                    <!-- Barre de progression du stock -->
+                                                    @if($produitSelectionne->poids_moyen_sac_kg_max > 0)
+                                                        @php
+                                                            $pourcentageUtilisation = ($produitSelectionne->qte_variable / $produitSelectionne->poids_moyen_sac_kg_max) * 100;
+                                                        @endphp
+                                                        <div class="mt-4">
+                                                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                                                <span>Utilisation du stock</span>
+                                                                <span>{{ number_format($pourcentageUtilisation, 1) }}%</span>
+                                                            </div>
+                                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                                <div class="h-2 rounded-full {{ $pourcentageUtilisation > 80 ? 'bg-red-500' : ($pourcentageUtilisation > 50 ? 'bg-yellow-500' : 'bg-green-500') }}" 
+                                                                    style="width: {{ min(100, $pourcentageUtilisation) }}%"></div>
+                                                            </div>
+                                                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                                                <span>0 {{ $produitSelectionne->unite }}</span>
+                                                                <span>{{ number_format($produitSelectionne->poids_moyen_sac_kg_max, 0, ',', ' ') }} {{ $produitSelectionne->unite }}</span>
                                                             </div>
                                                         </div>
+                                                    @endif
+                                                    
+                                                    <!-- Informations supplémentaires -->
+                                                    <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+                                                        <div class="text-xs text-blue-800">
+                                                            💰 <strong>Prix de référence:</strong> {{ $produitSelectionne->prix_reference_mga_formatted }}/{{ $produitSelectionne->unite }}
+                                                        </div>
                                                     </div>
+                                                </div>
 
                                                     <!-- Saisie des détails -->
-                                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <!-- Quantité -->
                                                         <div>
                                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
                                                                 <span class="flex items-center">
                                                                     📏 Quantité {{ $type === 'achat' ? 'à acheter' : 'à vendre' }} *
                                                                     <span class="ml-1 text-red-500">*</span>
-                                                                    @if($type === 'vente')
-                                                                        <span class="ml-2 text-xs text-orange-600">
-                                                                            (Max: {{ number_format($stock_actuel, 2, ',', ' ') }} {{ $unite }})
-                                                                        </span>
-                                                                    @endif
                                                                 </span>
                                                             </label>
                                                             <div class="relative">
@@ -270,7 +313,11 @@
                                                                     type="number" 
                                                                     step="0.01" 
                                                                     placeholder="0"
-                                                                    @if($type === 'vente') max="{{ $stock_actuel }}" @endif
+                                                                    @if($type === 'vente' && $produitSelectionne) 
+                                                                        max="{{ $produitSelectionne->qte_variable }}" 
+                                                                    @elseif($type === 'achat' && $produitSelectionne)
+                                                                        max="{{ max(0, $produitSelectionne->poids_moyen_sac_kg_max - $produitSelectionne->qte_variable) }}"
+                                                                    @endif
                                                                     class="w-full px-4 py-3 pr-16 border 
                                                                             {{ $errors->has('quantite') ? 'border-red-300 bg-red-50' : 'border-gray-300' }} 
                                                                             rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
@@ -296,39 +343,55 @@
                                                                 </div>
                                                             @enderror
 
-                                                            <!-- Indicateur visuel pour les ventes -->
-                                                            @if($type === 'vente' && $quantite && $stock_actuel && !$errors->has('quantite'))
+                                                            <!-- Indicateur visuel selon le type de transaction -->
+                                                            @if($quantite && $produitSelectionne && !$errors->has('quantite'))
                                                                 @php
                                                                     $quantiteSaisie = floatval($quantite);
-                                                                    $stockDisponible = floatval($stock_actuel);
-                                                                    $pourcentageUtilise = $stockDisponible > 0 ? ($quantiteSaisie / $stockDisponible) * 100 : 0;
+                                                                    
+                                                                    if ($type === 'vente') {
+                                                                        $limiteMax = floatval($produitSelectionne->qte_variable);
+                                                                        $pourcentageUtilise = $limiteMax > 0 ? ($quantiteSaisie / $limiteMax) * 100 : 0;
+                                                                        $messageType = 'stock';
+                                                                        $restant = $limiteMax - $quantiteSaisie;
+                                                                    } else {
+                                                                        $capaciteDisponible = floatval($produitSelectionne->poids_moyen_sac_kg_max) - floatval($produitSelectionne->qte_variable);
+                                                                        $limiteMax = $capaciteDisponible;
+                                                                        $pourcentageUtilise = $capaciteDisponible > 0 ? ($quantiteSaisie / $capaciteDisponible) * 100 : 0;
+                                                                        $messageType = 'capacité';
+                                                                        $restant = $capaciteDisponible - $quantiteSaisie;
+                                                                    }
                                                                 @endphp
                                                                 
                                                                 <div class="mt-3 p-3 rounded-lg border-l-4 
-                                                                            {{ $quantiteSaisie > $stockDisponible ? 'bg-red-50 border-red-400' : 
+                                                                            {{ $quantiteSaisie > $limiteMax ? 'bg-red-50 border-red-400' : 
                                                                             ($pourcentageUtilise > 80 ? 'bg-yellow-50 border-yellow-400' : 'bg-green-50 border-green-400') }}">
                                                                     <div class="flex items-center justify-between">
                                                                         <div>
                                                                             <div class="text-sm font-medium 
-                                                                                        {{ $quantiteSaisie > $stockDisponible ? 'text-red-800' : 
+                                                                                        {{ $quantiteSaisie > $limiteMax ? 'text-red-800' : 
                                                                                         ($pourcentageUtilise > 80 ? 'text-yellow-800' : 'text-green-800') }}">
-                                                                                @if($quantiteSaisie > $stockDisponible)
-                                                                                    🚫 Quantité excessive
+                                                                                @if($quantiteSaisie > $limiteMax)
+                                                                                    🚫 {{ $type === 'vente' ? 'Stock insuffisant' : 'Capacité dépassée' }}
                                                                                 @elseif($pourcentageUtilise > 80)
-                                                                                    ⚠️ Stock bientôt épuisé
+                                                                                    ⚠️ {{ $type === 'vente' ? 'Stock bientôt épuisé' : 'Capacité bientôt atteinte' }}
                                                                                 @else
                                                                                     ✅ Quantité valide
                                                                                 @endif
                                                                             </div>
                                                                             <div class="text-xs mt-1 
-                                                                                        {{ $quantiteSaisie > $stockDisponible ? 'text-red-700' : 
-                                                                                        ($pourcentageUtilise > 80 ? 'text-yellow-700' : 'text-green-700') }}">
-                                                                                Utilisation: {{ number_format($pourcentageUtilise, 1) }}% du stock
-                                                                                ({{ number_format($stockDisponible - $quantiteSaisie, 2) }} {{ $unite }} restant)
+                                                                                {{ $quantiteSaisie > $limiteMax ? 'text-red-700' : 
+                                                                                ($pourcentageUtilise > 80 ? 'text-yellow-700' : 'text-green-700') }}">
+                                                                                @if($type === 'vente')
+                                                                                    Utilisation: {{ number_format($pourcentageUtilise, 1) }}% du stock disponible
+                                                                                    ({{ number_format($restant, 2) }} {{ $unite }} restant)
+                                                                                @else
+                                                                                    Utilisation: {{ number_format($pourcentageUtilise, 1) }}% de la capacité disponible
+                                                                                    ({{ number_format($restant, 2) }} {{ $unite }} de capacité restante)
+                                                                                @endif
                                                                             </div>
                                                                         </div>
                                                                         <div class="text-right">
-                                                                            @if($quantiteSaisie > $stockDisponible)
+                                                                            @if($quantiteSaisie > $limiteMax)
                                                                                 <span class="text-red-600 font-bold text-xl">❌</span>
                                                                             @elseif($pourcentageUtilise > 80)
                                                                                 <span class="text-yellow-600 font-bold text-xl">⚠️</span>
@@ -337,10 +400,29 @@
                                                                             @endif
                                                                         </div>
                                                                     </div>
+                                                                    
+                                                                    <!-- Détails supplémentaires pour les achats -->
+                                                                    @if($type === 'achat')
+                                                                        <div class="mt-2 pt-2 border-t border-gray-200 text-xs">
+                                                                            <div class="grid grid-cols-3 gap-2 text-center">
+                                                                                <div>
+                                                                                    <div class="text-gray-500">Stock actuel</div>
+                                                                                    <div class="font-medium">{{ number_format($produitSelectionne->qte_variable, 2) }} {{ $unite }}</div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <div class="text-blue-500">Après achat</div>
+                                                                                    <div class="font-medium text-blue-700">{{ number_format($produitSelectionne->qte_variable + $quantiteSaisie, 2) }} {{ $unite }}</div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <div class="text-gray-500">Capacité max</div>
+                                                                                    <div class="font-medium">{{ number_format($produitSelectionne->poids_moyen_sac_kg_max, 2) }} {{ $unite }}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    @endif
                                                                 </div>
                                                             @endif
                                                         </div>
-
                                                         <!-- Purchase/Sale Price -->
                                                         <div>
                                                             <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -573,22 +655,74 @@
                                         </div>
                                     </div>
                                 @endif
+
+
+
+
+                                <!-- PARTICIPANTS -->
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
+                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                            <span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+                                                👥
+                                            </span>
+                                            Participants
+                                        </h4>
+                                    </div>
+                                    
+                                    <div class="p-6 space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                <span class="flex items-center justify-between">
+                                                    <span>💸 Qui donne l'argent</span>
+                                                    @if($type === 'vente')
+                                                        <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-rempli</span>
+                                                    @else
+                                                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Saisie libre</span>
+                                                    @endif
+                                                </span>
+                                            </label>
+                                            
+                                            @if($type === 'vente')
+                                                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 min-h-[50px] flex items-center">
+                                                    <span class="font-medium">{{ $from_nom ?: 'En attente de sélection...' }}</span>
+                                                </div>
+                                                <input type="hidden" wire:model="from_nom">
+                                            @else
+                                                <input wire:model.live="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC..." 
+                                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                            @endif
+                                            
+                                            <p class="mt-2 text-xs text-gray-500">
+                                                @if($type === 'vente')
+                                                    Auto-rempli avec les interlocuteurs des déchargements
+                                                @else
+                                                    Saisie libre - peut être externe au système
+                                                @endif
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                💰 Qui reçoit l'argent
+                                            </label>
+                                            <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Votre entreprise..." 
+                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                            <p class="mt-2 text-xs text-gray-500">
+                                                Saisie libre - peut être externe au système
+                                            </p>
+                                        </div>
+
+                                    </div>
+                                </div>
+
                             </div>
                             
                             <!-- Colonne droite - Résumé et finalisation -->
                             <div class="space-y-6">
                                 <!-- MONTANT -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-green-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                                💰
-                                            </span>
-                                            Montant
-                                        </h4>
-                                    </div>
-                                    
-                                    <div class="p-6">
+                                <div class="overflow-hidden">
+                                    {{-- <div class="p-6">
                                         <label class="block text-sm font-semibold text-gray-700 mb-3">
                                             <span class="flex items-center justify-between">
                                                 <span>Montant total (MGA) *</span>
@@ -673,91 +807,11 @@
                                                 {{ $message }}
                                             </div>
                                         @enderror
-                                    </div>
-                                </div>
+                                    </div> --}}
 
-                                <!-- PARTICIPANTS -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 px-6 py-4 border-b border-yellow-100">
-                                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                            <span class="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
-                                                👥
-                                            </span>
-                                            Participants
-                                        </h4>
-                                    </div>
-                                    
-                                    <div class="p-6 space-y-4">
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                <span class="flex items-center justify-between">
-                                                    <span>💸 Qui donne l'argent</span>
-                                                    @if($type === 'vente')
-                                                        <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-rempli</span>
-                                                    @else
-                                                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Saisie libre</span>
-                                                    @endif
-                                                </span>
-                                            </label>
-                                            
-                                            @if($type === 'vente')
-                                                <div class="p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 min-h-[50px] flex items-center">
-                                                    <span class="font-medium">{{ $from_nom ?: 'En attente de sélection...' }}</span>
-                                                </div>
-                                                <input type="hidden" wire:model="from_nom">
-                                            @else
-                                                <input wire:model.live="from_nom" type="text" placeholder="Ex: Jean Dupont, Société ABC..." 
-                                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                            @endif
-                                            
-                                            <p class="mt-2 text-xs text-gray-500">
-                                                @if($type === 'vente')
-                                                    Auto-rempli avec les interlocuteurs des déchargements
-                                                @else
-                                                    Saisie libre - peut être externe au système
-                                                @endif
-                                            </p>
-                                        </div>
-
-                                        <div>
-                                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                💰 Qui reçoit l'argent
-                                            </label>
-                                            <input wire:model="to_nom" type="text" placeholder="Ex: Marie Martin, Votre entreprise..." 
-                                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                            <p class="mt-2 text-xs text-gray-500">
-                                                Saisie libre - peut être externe au système
-                                            </p>
-                                        </div>
-
-                                        <!-- COMPTE DE DESTINATION - SEULEMENT SI PAS ESPÈCES -->
-                                        @if($mode_paiement !== 'especes')
-                                            <div>
-                                                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                                    🏦 Compte de destination
-                                                </label>
-                                                <input wire:model="to_compte" type="text" placeholder="Ex: 034 12 345 67, nom du compte..." 
-                                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
-                                                <p class="mt-2 text-xs text-gray-500">
-                                                    @if($mode_paiement === 'banque')
-                                                        Numéro de compte bancaire ou nom de la banque
-                                                    @elseif($mode_paiement === 'AirtelMoney')
-                                                        Numéro AirtelMoney de destination
-                                                    @elseif($mode_paiement === 'MVola')
-                                                        Numéro MVola de destination
-                                                    @elseif($mode_paiement === 'OrangeMoney')
-                                                        Numéro OrangeMoney de destination
-                                                    @else
-                                                        Informations du compte de destination
-                                                    @endif
-                                                </p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
 
                                 <!-- MODALITÉS DE PAIEMENT -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="mb-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div class="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100">
                                         <h4 class="text-lg font-semibold text-gray-900 flex items-center">
                                             <span class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
@@ -788,6 +842,29 @@
                                             @enderror
                                         </div>
 
+                                        <!-- COMPTE DE DESTINATION - SEULEMENT SI PAS ESPÈCES -->
+                                        @if($mode_paiement !== 'especes')
+                                            <div>
+                                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                                    🏦 Compte de destination
+                                                </label>
+                                                <input wire:model="to_compte" type="text" placeholder="Ex: 034 12 345 67, nom du compte..." 
+                                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-colors">
+                                                <p class="mt-2 text-xs text-gray-500">
+                                                    @if($mode_paiement === 'banque')
+                                                        Numéro de compte bancaire ou nom de la banque
+                                                    @elseif($mode_paiement === 'AirtelMoney')
+                                                        Numéro AirtelMoney de destination
+                                                    @elseif($mode_paiement === 'MVola')
+                                                        Numéro MVola de destination
+                                                    @elseif($mode_paiement === 'OrangeMoney')
+                                                        Numéro OrangeMoney de destination
+                                                    @else
+                                                        Informations du compte de destination
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        @endif
                                         <div>
                                             <label class="block text-sm font-semibold text-gray-700 mb-2">Statut de la transaction *</label>
                                             <select wire:model.live="statut" 
@@ -828,7 +905,7 @@
                                 </div>
 
                                 <!-- OBSERVATIONS -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <div class="mb-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">
                                         <h4 class="text-lg font-semibold text-gray-900 flex items-center">
                                             <span class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
@@ -870,6 +947,7 @@
                         </div>
                     </div>
                 </form>
+
             </div>
         </div>
     </div>

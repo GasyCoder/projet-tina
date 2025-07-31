@@ -162,7 +162,7 @@ class FinanceIndex extends Component
 
         $produit = Produit::find($this->produit_id);
         if ($produit) {
-            $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
+            $this->stock_actuel = $produit->poids_moyen_sac_kg_max ?? 0;
             Log::info('Produit sélectionné', [
                 'produit_id' => $this->produit_id,
                 'nom' => $produit->nom_complet,
@@ -531,7 +531,7 @@ class FinanceIndex extends Component
         ]);
     }
 
-    public function updatedProduitId()
+public function updatedProduitId()
     {
         $this->resetErrorBag(['produit_id', 'quantite']);
         if (in_array($this->type, ['achat', 'vente']) && $this->produit_id) {
@@ -539,7 +539,13 @@ class FinanceIndex extends Component
             if ($produit) {
                 $this->unite = $produit->unite;
                 $this->prix_unitaire_mga = $produit->prix_reference_mga;
-                $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
+                
+                // Définir le stock selon le type de transaction
+                if ($this->type === 'vente') {
+                    $this->stock_actuel = $produit->qte_variable ?? 0; // Stock disponible pour vente
+                } else {
+                    $this->stock_actuel = $produit->poids_moyen_sac_kg_max ?? 0; // Capacité pour achat
+                }
                 
                 if (!$this->editingTransaction) {
                     $this->objet = ($this->type === 'achat' ? 'Achat - ' : 'Vente - ') . $produit->nom_complet;
@@ -550,7 +556,9 @@ class FinanceIndex extends Component
                     'nom' => $produit->nom_complet,
                     'prix_ref' => $produit->prix_reference_mga,
                     'unite' => $produit->unite,
-                    'stock_actuel' => $this->stock_actuel,
+                    'stock_actuel_vente' => $produit->qte_variable,
+                    'capacite_max_achat' => $produit->poids_moyen_sac_kg_max,
+                    'stock_utilise' => $this->stock_actuel,
                 ]);
             } else {
                 $this->stock_actuel = 0;
@@ -574,7 +582,9 @@ class FinanceIndex extends Component
         }
     }
 
-    public function updatedQuantite()
+
+
+        public function updatedQuantite()
     {
         Log::info('=== VALIDATION QUANTITE ===', [
             'type' => $this->type,
@@ -586,52 +596,79 @@ class FinanceIndex extends Component
         if (in_array($this->type, ['achat', 'vente']) && $this->produit_id && $this->quantite) {
             $produit = Produit::find($this->produit_id);
             if ($produit) {
-                $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
                 $quantiteSaisie = floatval($this->quantite);
-                $stockDisponible = floatval($this->stock_actuel);
                 
-                Log::info('Validation stock', [
-                    'type' => $this->type,
-                    'quantite_saisie' => $quantiteSaisie,
-                    'stock_disponible' => $stockDisponible,
-                    'produit_nom' => $produit->nom_complet
-                ]);
-
-                // VALIDATION POUR LES VENTES : ne pas vendre plus que le stock actuel
-                if ($this->type === 'vente' && $quantiteSaisie > $stockDisponible) {
-                    $message = 'La quantité à vendre (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser le stock actuel (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
-                    $this->addError('quantite', $message);
+                if ($this->type === 'vente') {
+                    // Pour les ventes : vérifier le stock disponible (qte_variable)
+                    $stockDisponible = floatval($produit->qte_variable);
+                    $this->stock_actuel = $stockDisponible;
                     
-                    Log::warning('Stock insuffisant pour vente', [
-                        'quantite_demandee' => $quantiteSaisie,
+                    Log::info('Validation stock pour vente', [
+                        'quantite_saisie' => $quantiteSaisie,
                         'stock_disponible' => $stockDisponible,
-                        'message' => $message
+                        'produit_nom' => $produit->nom_complet
                     ]);
-                } 
-                // VALIDATION POUR LES ACHATS : ne pas dépasser la capacité de stockage
-                elseif ($this->type === 'achat' && $quantiteSaisie > $stockDisponible) {
-                    $message = 'La quantité à acheter (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser la capacité de stockage disponible (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
-                    $this->addError('quantite', $message);
-                    
-                    Log::warning('Capacité de stockage dépassée pour achat', [
-                        'quantite_demandee' => $quantiteSaisie,
-                        'capacite_stockage' => $stockDisponible,
-                        'message' => $message
-                    ]);
-                } 
-                // VALIDATION OK : calcul du montant
-                else {
-                    $this->resetErrorBag('quantite');
-                    if ($this->prix_unitaire_mga) {
-                        $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
+
+                    if ($quantiteSaisie > $stockDisponible) {
+                        $message = 'La quantité à vendre (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser le stock disponible (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
+                        $this->addError('quantite', $message);
+                        
+                        Log::warning('Stock insuffisant pour vente', [
+                            'quantite_demandee' => $quantiteSaisie,
+                            'stock_disponible' => $stockDisponible,
+                            'message' => $message
+                        ]);
+                    } else {
+                        $this->resetErrorBag('quantite');
+                        if ($this->prix_unitaire_mga) {
+                            $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
+                        }
+                        
+                        Log::info('Validation stock OK pour vente', [
+                            'quantite_valide' => $quantiteSaisie,
+                            'stock_disponible' => $stockDisponible,
+                            'montant_calcule' => $this->montant_mga
+                        ]);
                     }
                     
-                    Log::info('Validation stock OK', [
-                        'type' => $this->type,
-                        'quantite_valide' => $quantiteSaisie,
-                        'stock_disponible' => $stockDisponible,
-                        'montant_calcule' => $this->montant_mga
+                } elseif ($this->type === 'achat') {
+                    // Pour les achats : vérifier la capacité de stockage disponible
+                    $capaciteMax = floatval($produit->poids_moyen_sac_kg_max);
+                    $stockActuel = floatval($produit->qte_variable);
+                    $capaciteDisponible = $capaciteMax - $stockActuel;
+                    $this->stock_actuel = $capaciteDisponible;
+                    
+                    Log::info('Validation capacité pour achat', [
+                        'quantite_saisie' => $quantiteSaisie,
+                        'capacite_max' => $capaciteMax,
+                        'stock_actuel' => $stockActuel,
+                        'capacite_disponible' => $capaciteDisponible,
+                        'produit_nom' => $produit->nom_complet
                     ]);
+
+                    if ($quantiteSaisie > $capaciteDisponible) {
+                        $message = 'La quantité à acheter (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') dépasse la capacité de stockage disponible (' . number_format($capaciteDisponible, 2, ',', ' ') . ' ' . $this->unite . '). Capacité max: ' . number_format($capaciteMax, 2, ',', ' ') . ' ' . $this->unite . ', Stock actuel: ' . number_format($stockActuel, 2, ',', ' ') . ' ' . $this->unite . '.';
+                        $this->addError('quantite', $message);
+                        
+                        Log::warning('Capacité de stockage dépassée pour achat', [
+                            'quantite_demandee' => $quantiteSaisie,
+                            'capacite_disponible' => $capaciteDisponible,
+                            'capacite_max' => $capaciteMax,
+                            'stock_actuel' => $stockActuel,
+                            'message' => $message
+                        ]);
+                    } else {
+                        $this->resetErrorBag('quantite');
+                        if ($this->prix_unitaire_mga) {
+                            $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
+                        }
+                        
+                        Log::info('Validation capacité OK pour achat', [
+                            'quantite_valide' => $quantiteSaisie,
+                            'capacite_disponible' => $capaciteDisponible,
+                            'montant_calcule' => $this->montant_mga
+                        ]);
+                    }
                 }
             }
         } elseif (in_array($this->type, ['achat', 'vente']) && $this->quantite && $this->prix_unitaire_mga) {
@@ -971,7 +1008,7 @@ class FinanceIndex extends Component
             'quantite' => $this->quantite ?: null,
             'unite' => $this->unite ?: null,
             'prix_unitaire_mga' => $this->prix_unitaire_mga ?: null,
-            'reste_a_payer' => $this->reste_a_payer ?: 0, // SUPPRIMÉ la condition partiellement_payee
+            'reste_a_payer' => $this->statut === 'partiellement_payee' ? ($this->reste_a_payer ?: 0) : 0,
             'observation' => $this->observation ?: null,
         ];
 

@@ -91,7 +91,7 @@ class Transaction extends Model
         return $this->prix_unitaire_mga ? number_format($this->prix_unitaire_mga, 0, ',', ' ') . ' MGA/' . ($this->unite ?? '') : 'N/A';
     }
 
-    // Model Events for Stock Updates
+    // Model Events for Stock Updates - Mise à jour pour utiliser qte_variable
     protected static function boot()
     {
         parent::boot();
@@ -100,31 +100,45 @@ class Transaction extends Model
             if ($transaction->type === 'achat' && $transaction->produit_id && $transaction->quantite) {
                 $produit = Produit::find($transaction->produit_id);
                 if ($produit) {
-                    $produit->increment('poids_moyen_sac_kg', $transaction->quantite);
-                    \Illuminate\Support\Facades\Log::info('Stock updated for purchase', [
-                        'transaction_id' => $transaction->id,
-                        'produit_id' => $transaction->produit_id,
-                        'quantite' => $transaction->quantite,
-                        'new_stock' => $produit->poids_moyen_sac_kg,
-                    ]);
+                    // Vérifier la capacité de stockage avant d'ajouter
+                    if ($produit->peutStockerQuantite($transaction->quantite)) {
+                        $produit->increment('qte_variable', $transaction->quantite);
+                        \Illuminate\Support\Facades\Log::info('Stock updated for purchase', [
+                            'transaction_id' => $transaction->id,
+                            'produit_id' => $transaction->produit_id,
+                            'quantite_ajoutee' => $transaction->quantite,
+                            'nouveau_stock' => $produit->fresh()->qte_variable,
+                            'capacite_max' => $produit->poids_moyen_sac_kg_max,
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::error('Capacité de stockage dépassée pour achat', [
+                            'transaction_id' => $transaction->id,
+                            'produit_id' => $transaction->produit_id,
+                            'quantite_demandee' => $transaction->quantite,
+                            'stock_actuel' => $produit->qte_variable,
+                            'capacite_max' => $produit->poids_moyen_sac_kg_max,
+                        ]);
+                        throw new \Exception('Capacité de stockage insuffisante pour cet achat.');
+                    }
                 }
             } elseif ($transaction->type === 'vente' && $transaction->produit_id && $transaction->quantite) {
                 $produit = Produit::find($transaction->produit_id);
                 if ($produit) {
-                    if ($produit->poids_moyen_sac_kg >= $transaction->quantite) {
-                        $produit->decrement('poids_moyen_sac_kg', $transaction->quantite);
+                    // Vérifier le stock disponible avant de décrémenter
+                    if ($produit->peutVendreQuantite($transaction->quantite)) {
+                        $produit->decrement('qte_variable', $transaction->quantite);
                         \Illuminate\Support\Facades\Log::info('Stock decreased for sale', [
                             'transaction_id' => $transaction->id,
                             'produit_id' => $transaction->produit_id,
-                            'quantite' => $transaction->quantite,
-                            'new_stock' => $produit->poids_moyen_sac_kg,
+                            'quantite_vendue' => $transaction->quantite,
+                            'nouveau_stock' => $produit->fresh()->qte_variable,
                         ]);
                     } else {
                         \Illuminate\Support\Facades\Log::error('Stock insuffisant pour vente', [
                             'transaction_id' => $transaction->id,
                             'produit_id' => $transaction->produit_id,
-                            'quantite' => $transaction->quantite,
-                            'stock_actuel' => $produit->poids_moyen_sac_kg,
+                            'quantite_demandee' => $transaction->quantite,
+                            'stock_actuel' => $produit->qte_variable,
                         ]);
                         throw new \Exception('Stock insuffisant pour la vente.');
                     }
@@ -139,14 +153,22 @@ class Transaction extends Model
                     $produit = Produit::find($transaction->produit_id);
                     if ($produit) {
                         $difference = $transaction->quantite - ($originalQuantite ?? 0);
-                        $produit->increment('poids_moyen_sac_kg', $difference);
+                        
+                        // Pour les achats : vérifier la capacité si on augmente
+                        if ($difference > 0) {
+                            if (!$produit->peutStockerQuantite($difference)) {
+                                throw new \Exception('Capacité de stockage insuffisante pour cette modification.');
+                            }
+                        }
+                        
+                        $produit->increment('qte_variable', $difference);
                         \Illuminate\Support\Facades\Log::info('Stock updated for purchase edit', [
                             'transaction_id' => $transaction->id,
                             'produit_id' => $transaction->produit_id,
                             'quantite_old' => $originalQuantite,
                             'quantite_new' => $transaction->quantite,
                             'difference' => $difference,
-                            'new_stock' => $produit->poids_moyen_sac_kg,
+                            'nouveau_stock' => $produit->fresh()->qte_variable,
                         ]);
                     }
                 }
@@ -158,26 +180,48 @@ class Transaction extends Model
                         $oldQuantite = $originalQuantite ?? 0;
                         $newQuantite = $transaction->quantite;
                         $difference = $newQuantite - $oldQuantite;
-                        if ($produit->poids_moyen_sac_kg >= $difference) {
-                            $produit->decrement('poids_moyen_sac_kg', $difference);
-                            \Illuminate\Support\Facades\Log::info('Stock updated for sale edit', [
-                                'transaction_id' => $transaction->id,
-                                'produit_id' => $transaction->produit_id,
-                                'quantite_old' => $originalQuantite,
-                                'quantite_new' => $transaction->quantite,
-                                'difference' => $difference,
-                                'new_stock' => $produit->poids_moyen_sac_kg,
-                            ]);
-                        } else {
-                            \Illuminate\Support\Facades\Log::error('Stock insuffisant pour modification de vente', [
-                                'transaction_id' => $transaction->id,
-                                'produit_id' => $transaction->produit_id,
-                                'quantite' => $transaction->quantite,
-                                'stock_actuel' => $produit->poids_moyen_sac_kg,
-                            ]);
-                            throw new \Exception('Stock insuffisant pour la modification de la vente.');
+                        
+                        // Pour les ventes : vérifier le stock si on augmente la vente
+                        if ($difference > 0) {
+                            if (!$produit->peutVendreQuantite($difference)) {
+                                throw new \Exception('Stock insuffisant pour cette modification de vente.');
+                            }
                         }
+                        
+                        $produit->decrement('qte_variable', $difference);
+                        \Illuminate\Support\Facades\Log::info('Stock updated for sale edit', [
+                            'transaction_id' => $transaction->id,
+                            'produit_id' => $transaction->produit_id,
+                            'quantite_old' => $originalQuantite,
+                            'quantite_new' => $transaction->quantite,
+                            'difference' => $difference,
+                            'nouveau_stock' => $produit->fresh()->qte_variable,
+                        ]);
                     }
+                }
+            }
+        });
+
+        static::deleting(function ($transaction) {
+            // Annuler les effets sur le stock lors de la suppression
+            if ($transaction->produit_id && $transaction->quantite) {
+                $produit = Produit::find($transaction->produit_id);
+                if ($produit) {
+                    if ($transaction->type === 'achat') {
+                        // Retirer du stock lors de la suppression d'un achat
+                        $produit->decrement('qte_variable', $transaction->quantite);
+                    } elseif ($transaction->type === 'vente') {
+                        // Remettre en stock lors de la suppression d'une vente
+                        $produit->increment('qte_variable', $transaction->quantite);
+                    }
+                    
+                    \Illuminate\Support\Facades\Log::info('Stock adjusted for transaction deletion', [
+                        'transaction_id' => $transaction->id,
+                        'type' => $transaction->type,
+                        'produit_id' => $transaction->produit_id,
+                        'quantite' => $transaction->quantite,
+                        'nouveau_stock' => $produit->fresh()->qte_variable,
+                    ]);
                 }
             }
         });
@@ -217,11 +261,6 @@ class Transaction extends Model
     public function scopeAttente($query)
     {
         return $query->where('statut', 'attente');
-    }
-
-    public function scopeAnnule($query)
-    {
-        return $query->where('statut', 'annule');
     }
 
     public function scopePartiellementPayee($query)

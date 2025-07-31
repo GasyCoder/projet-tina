@@ -45,7 +45,7 @@ return new class extends Migration
 
             $table->decimal('reste_a_payer', 15, 2)->default(0);
             
-            $table->enum('statut', ['attente', 'confirme', 'annule'])->default('confirme');
+            $table->enum('statut', ['attente', 'confirme', 'partiellement_payee'])->default('confirme');
             
             // Informations complémentaires
             $table->decimal('quantite', 10, 2)->nullable(); // Si lié à des produits

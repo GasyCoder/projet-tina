@@ -20,7 +20,7 @@ class ProductIndex extends Component
     public $nom = '';
     public $variete = '';
     public $unite = 'sacs';
-    public $poids_moyen_sac_kg = 120;
+    public $poids_moyen_sac_kg_max = 120;
     public $prix_reference_mga = '';
     public $description = '';
     public $actif = true;
@@ -29,7 +29,7 @@ class ProductIndex extends Component
         'nom' => 'required|string|max:255',
         'variete' => 'nullable|string|max:255',
         'unite' => 'required|in:sacs,kg,tonnes,boites,cartons',
-        'poids_moyen_sac_kg' => 'required|numeric|min:0',
+        'poids_moyen_sac_kg_max' => 'required|numeric|min:0',
         'prix_reference_mga' => 'nullable|numeric|min:0',
         'description' => 'nullable|string',
         'actif' => 'boolean'
@@ -63,7 +63,7 @@ class ProductIndex extends Component
         $this->nom = $produit->nom;
         $this->variete = $produit->variete;
         $this->unite = $produit->unite;
-        $this->poids_moyen_sac_kg = $produit->poids_moyen_sac_kg;
+        $this->poids_moyen_sac_kg_max = $produit->poids_moyen_sac_kg_max;
         $this->prix_reference_mga = $produit->prix_reference_mga;
         $this->description = $produit->description;
         $this->actif = $produit->actif;
@@ -79,7 +79,7 @@ class ProductIndex extends Component
                 'nom' => $this->nom,
                 'variete' => $this->variete,
                 'unite' => $this->unite,
-                'poids_moyen_sac_kg' => $this->poids_moyen_sac_kg,
+                'poids_moyen_sac_kg_max' => $this->poids_moyen_sac_kg_max,
                 'prix_reference_mga' => $this->prix_reference_mga,
                 'description' => $this->description,
                 'actif' => $this->actif,
@@ -90,7 +90,7 @@ class ProductIndex extends Component
                 'nom' => $this->nom,
                 'variete' => $this->variete,
                 'unite' => $this->unite,
-                'poids_moyen_sac_kg' => $this->poids_moyen_sac_kg,
+                'poids_moyen_sac_kg_max' => $this->poids_moyen_sac_kg_max,
                 'prix_reference_mga' => $this->prix_reference_mga,
                 'description' => $this->description,
                 'actif' => $this->actif,
@@ -125,7 +125,7 @@ class ProductIndex extends Component
         $this->nom = '';
         $this->variete = '';
         $this->unite = 'sacs';
-        $this->poids_moyen_sac_kg = 120;
+        $this->poids_moyen_sac_kg_max = 120;
         $this->prix_reference_mga = '';
         $this->description = '';
         $this->actif = true;

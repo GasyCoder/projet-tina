@@ -96,7 +96,7 @@
                                             @if($produit->variete) 
                                                 {{ $produit->variete }} • 
                                             @endif
-                                            {{ number_format($produit->poids_moyen_sac_kg, 1) }} kg
+                                            {{ number_format($produit->poids_moyen_sac_kg_max, 1) }} kg
                                         </div>
                                     </div>
                                 </td>
@@ -109,7 +109,7 @@
                                     </span>
                                 </td> --}}
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                                    {{ number_format($produit->poids_moyen_sac_kg, 1) }} {{ $produit->unite }}
+                                    {{ number_format($produit->poids_moyen_sac_kg_max, 1) }} {{ $produit->unite }}
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
                                     @if($produit->prix_reference_mga)
@@ -226,12 +226,12 @@
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700">Poids/sac (kg) *</label>
                                             <input 
-                                                wire:model="poids_moyen_sac_kg"
+                                                wire:model="poids_moyen_sac_kg_max"
                                                 type="number"
                                                 step="0.1"
                                                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                             >
-                                            @error('poids_moyen_sac_kg') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                                            @error('poids_moyen_sac_kg_max') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                                         </div>
                                     </div>
 

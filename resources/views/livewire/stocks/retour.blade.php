@@ -226,8 +226,8 @@
                             'perdu' => 'bg-red-100 text-red-800'
                         ];
                                                                         @endphp
-                                                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $statusClasses[$retour->statut_commercial] }}">
-                                                                            {{ ucfirst(str_replace('_', ' ', $retour->statut_commercial)) }}
+                                                                        <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $statusClasses[$retour->statut] }}">
+                                                                            {{ ucfirst(str_replace('_', ' ', $retour->statut)) }}
                                                                         </span>
                                                                     </td>
 

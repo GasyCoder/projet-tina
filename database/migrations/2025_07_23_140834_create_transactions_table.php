@@ -18,25 +18,19 @@ return new class extends Migration
             $table->enum('type', [
                 'achat',        // Achat de produits
                 'vente',        // Vente de produits  
-                'autre'       // autre d'argent
+                'autre'         // autre d'argent
             ]);
-            
             // Qui donne l'argent - SAISIE LIBRE
             $table->string('from_nom')->nullable(); // Nom libre (peut être externe)
-            $table->foreignId('from_user_id')->nullable()->constrained('users'); // Lien optionnel si dans système
-            $table->string('from_compte')->nullable(); // 'especes', 'airtel_money', 'boa_207142800027'
-            
             // Qui reçoit l'argent - SAISIE LIBRE
             $table->string('to_nom')->nullable(); // Nom libre (peut être externe)  
-            $table->foreignId('to_user_id')->nullable()->constrained('users'); // Lien optionnel si dans système
-            $table->string('to_compte')->nullable(); // 'especes', 'airtel_money', 'boa_207142800027'
+            $table->string('to_compte')->nullable(); // 'airtel_money, orange_money, mvola'
             
             $table->decimal('montant_mga', 15, 2); // Montant en MGA
-            $table->text('objet'); // Description transaction
+            $table->text('objet')->nullable(); // Description transaction
             
             // Liens optionnels avec système logistique
             $table->foreignId('voyage_id')->nullable()->constrained('voyages');
-            $table->foreignId('chargement_id')->nullable()->constrained('chargements');
             $table->foreignId('dechargement_id')->nullable()->constrained('dechargements');
             $table->foreignId('produit_id')->nullable()->constrained('produits');
             
@@ -64,7 +58,6 @@ return new class extends Migration
             
             // Index pour performance
             $table->index(['date', 'type']);
-            $table->index(['from_user_id', 'to_user_id']);
             $table->index(['from_nom', 'to_nom']); // Index sur noms libres
             $table->index('reference');
         });

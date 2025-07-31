@@ -36,11 +36,6 @@ class Produit extends Model
         return $this->hasMany(Dechargement::class);
     }
 
-    public function stockDepots()
-    {
-        return $this->hasMany(StockDepot::class);
-    }
-
     public function prixMarche()
     {
         return $this->hasMany(PrixMarche::class);
@@ -50,6 +45,11 @@ class Produit extends Model
     public function getPrixReferenceMgaFormattedAttribute()
     {
         return number_format($this->prix_reference_mga, 0, ',', ' ') . ' MGA';
+    }
+
+    public function getPoidsMoyenSacKgFormattedAttribute()
+    {
+        return number_format($this->poids_moyen_sac_kg, 2, ',', ' ') . ' ' . ($this->unite ?? '');
     }
 
     public function getNomCompletAttribute()

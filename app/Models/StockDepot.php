@@ -73,4 +73,6 @@ class StockDepot extends Model
     {
         return $query->where('proprietaire_id', $proprietaireId);
     }
+
+    
 }

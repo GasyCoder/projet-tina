@@ -8,7 +8,6 @@ use App\Models\Compte;
 use App\Models\Voyage;
 use App\Models\Produit;
 use App\Models\Dechargement;
-use App\Models\Chargement;
 use App\Models\Lieu;
 use Livewire\Component;
 use App\Models\Transaction;
@@ -24,6 +23,7 @@ class FinanceIndex extends Component
     // PROPRIÉTÉS DE L'INTERFACE
     // =====================================================
     public $activeTab = 'suivi';
+    public $stock_actuel = 0;
 
     // =====================================================
     // FILTRES DE BASE
@@ -56,17 +56,20 @@ class FinanceIndex extends Component
     public $date = '';
     public $type = '';
     public $from_nom = '';
-    public $from_compte = '';
     public $to_nom = '';
     public $to_compte = '';
     public $montant_mga = '';
+    public $objet = '';
     public $voyage_id = '';
-    public $chargement_ids = [];
     public $dechargement_ids = [];
+    public $produit_id = '';
     public $mode_paiement = 'especes';
     public $statut = 'confirme';
-    public $observation = '';
+    public $quantite = '';
+    public $unite = '';
+    public $prix_unitaire_mga = '';
     public $reste_a_payer = '';
+    public $observation = '';
     public $lieux_display = '';
 
     // =====================================================
@@ -76,7 +79,6 @@ class FinanceIndex extends Component
     public $editingCompte = null;
     public $nom_proprietaire = '';
     public $type_compte = 'principal';
-    public $nom_compte = '';
     public $numero_compte = '';
     public $solde_actuel_mga = 0;
     public $compte_actif = true;
@@ -88,13 +90,16 @@ class FinanceIndex extends Component
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
-        'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
-        'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
-        'type' => 'required|in:achat,vente,transfert,frais,commission,paiement,avance,depot,retrait,Autre',
+        'objet' => 'required|string|max:255',
+        'mode_paiement' => 'required|in:especes,AirtelMoney,MVola,OrangeMoney,banque',
+        'statut' => 'required|in:attente,confirme,annule', // SUPPRIMÉ partiellement_payee
+        'type' => 'required|in:achat,vente,autre',
         'voyage_id' => 'nullable|exists:voyages,id',
-        'reste_a_payer' => 'required_if:statut,partiellement_payee|numeric|min:0',
-        'type_compte' => 'required|in:principal,AirtelMoney,Mvola,OrangeMoney,banque',
-        'nom_compte' => 'required|string|max:255',
+        'produit_id' => 'required_if:type,achat,vente|nullable|exists:produits,id',
+        'quantite' => 'required_if:type,achat,vente|nullable|numeric|min:0',
+        'prix_unitaire_mga' => 'required_if:type,achat,vente|nullable|numeric|min:0',
+        'reste_a_payer' => 'nullable|numeric|min:0', // SUPPRIMÉ required_if:statut,partiellement_payee
+        'type_compte' => 'required|in:principal,AirtelMoney,MVola,OrangeMoney,banque',
         'solde_actuel_mga' => 'required|numeric',
     ];
 
@@ -103,9 +108,6 @@ class FinanceIndex extends Component
     // =====================================================
     public function hydrate()
     {
-        if (!is_array($this->chargement_ids)) {
-            $this->chargement_ids = [];
-        }
         if (!is_array($this->dechargement_ids)) {
             $this->dechargement_ids = [];
         }
@@ -113,9 +115,6 @@ class FinanceIndex extends Component
 
     public function dehydrate()
     {
-        if (!is_array($this->chargement_ids)) {
-            $this->chargement_ids = [];
-        }
         if (!is_array($this->dechargement_ids)) {
             $this->dechargement_ids = [];
         }
@@ -126,31 +125,15 @@ class FinanceIndex extends Component
     // =====================================================
     public function getVoyagesDisponiblesProperty()
     {
-        if (!$this->type) {
+        if ($this->type !== 'vente') {
             return collect();
         }
 
-        $query = Voyage::select('id', 'reference', 'date', 'statut')
-            ->with(['chargements', 'dechargements'])
-            ->latest();
-
-        if ($this->type === 'achat') {
-            $query->whereHas('chargements');
-        } elseif ($this->type === 'vente') {
-            $query->whereHas('dechargements');
-        }
-
-        return $query->limit(50)->get();
-    }
-
-    public function getChargementsDisponiblesProperty()
-    {
-        if (!$this->voyage_id || $this->type !== 'achat') {
-            return collect();
-        }
-
-        return Chargement::with(['depart', 'produit'])
-            ->where('voyage_id', $this->voyage_id)
+        return Voyage::select('id', 'reference', 'date', 'statut')
+            ->with(['dechargements'])
+            ->whereHas('dechargements')
+            ->latest()
+            ->limit(50)
             ->get();
     }
 
@@ -165,12 +148,40 @@ class FinanceIndex extends Component
             ->get();
     }
 
+    public function getProduitsDisponiblesProperty()
+    {
+        return Produit::actif()->get();
+    }
+
+    public function getProduitSelectionneProperty()
+    {
+        if (!$this->produit_id || !in_array($this->type, ['achat', 'vente'])) {
+            $this->stock_actuel = 0;
+            return null;
+        }
+
+        $produit = Produit::find($this->produit_id);
+        if ($produit) {
+            $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
+            Log::info('Produit sélectionné', [
+                'produit_id' => $this->produit_id,
+                'nom' => $produit->nom_complet,
+                'stock_actuel' => $this->stock_actuel,
+            ]);
+        } else {
+            $this->stock_actuel = 0;
+            Log::warning('Produit non trouvé', ['produit_id' => $this->produit_id]);
+        }
+
+        return $produit;
+    }
+
     // =====================================================
     // PROPRIÉTÉS CALCULÉES - STATISTIQUES GÉNÉRALES
     // =====================================================
     public function getTotalEntreesProperty()
     {
-        return Transaction::whereIn('type', ['vente', 'depot', 'commission'])
+        return Transaction::where('type', 'vente')
             ->where('statut', '!=', 'annule')
             ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->sum('montant_mga');
@@ -178,7 +189,7 @@ class FinanceIndex extends Component
 
     public function getTotalSortiesProperty()
     {
-        return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+        return Transaction::whereIn('type', ['achat', 'autre'])
             ->where('statut', '!=', 'annule')
             ->whereBetween('date', [$this->dateDebut, $this->dateFin])
             ->sum('montant_mga');
@@ -203,7 +214,7 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeRevenus();
         return Transaction::with(['voyage'])
-            ->whereIn('type', ['vente', 'depot', 'commission', 'transfert'])
+            ->where('type', 'vente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->orderBy('date', 'desc')
@@ -213,7 +224,7 @@ class FinanceIndex extends Component
     public function getTotalRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        return Transaction::whereIn('type', ['vente', 'depot', 'commission', 'transfert'])
+        return Transaction::where('type', 'vente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->sum('montant_mga');
@@ -228,7 +239,7 @@ class FinanceIndex extends Component
     public function getNombreRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        return Transaction::whereIn('type', ['vente', 'depot', 'commission', 'transfert'])
+        return Transaction::where('type', 'vente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->count();
@@ -237,7 +248,7 @@ class FinanceIndex extends Component
     public function getRevenusEnAttenteProperty()
     {
         $dates = $this->getDateRangeRevenus();
-        return Transaction::whereIn('type', ['vente', 'depot', 'commission', 'transfert'])
+        return Transaction::where('type', 'vente')
             ->where('statut', 'attente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->sum('montant_mga');
@@ -247,7 +258,7 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeRevenus();
         return Transaction::selectRaw('type, COUNT(*) as count, SUM(montant_mga) as total')
-            ->whereIn('type', ['vente', 'depot', 'commission', 'transfert'])
+            ->where('type', 'vente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->groupBy('type')
@@ -264,24 +275,28 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         $query = Transaction::with(['voyage'])
-            ->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
+        
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
+        
         return $query->orderBy('date', 'desc')->paginate(10);
     }
 
     public function getTotalDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+        $query = Transaction::whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
+        
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
+        
         return $query->sum('montant_mga');
     }
 
@@ -294,7 +309,7 @@ class FinanceIndex extends Component
     public function getDepensesEnAttenteProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        return Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+        return Transaction::whereIn('type', ['achat', 'autre'])
             ->where('statut', 'attente')
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->sum('montant_mga');
@@ -303,12 +318,14 @@ class FinanceIndex extends Component
     public function getNombreDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
-        $query = Transaction::whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+        $query = Transaction::whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
+        
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
+        
         return $query->count();
     }
 
@@ -316,7 +333,7 @@ class FinanceIndex extends Component
     {
         $dates = $this->getDateRangeDepenses();
         return Transaction::selectRaw('type, COUNT(*) as count, SUM(montant_mga) as total')
-            ->whereIn('type', ['achat', 'frais', 'avance', 'paiement', 'retrait', 'transfert'])
+            ->whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule')
             ->groupBy('type')
@@ -379,6 +396,7 @@ class FinanceIndex extends Component
                 'fin' => $this->dateFinRevenus
             ];
         }
+        
         switch ($this->periodeRevenus) {
             case 'semaine':
                 return [
@@ -411,6 +429,7 @@ class FinanceIndex extends Component
                 'fin' => $this->dateFinDepenses
             ];
         }
+        
         switch ($this->periodeDepenses) {
             case 'semaine':
                 return [
@@ -436,54 +455,8 @@ class FinanceIndex extends Component
     }
 
     // =====================================================
-    // LISTENERS POUR AUTO-COMPLETION
+    // LISTENERS POUR AUTO-COMPLETION - VENTE SEULEMENT
     // =====================================================
-    public function updatedChargementIds()
-    {
-        // Protection contre les types non-array
-        if (!is_array($this->chargement_ids)) {
-            if (is_numeric($this->chargement_ids)) {
-                $this->chargement_ids = [$this->chargement_ids];
-            } else {
-                $this->chargement_ids = [];
-            }
-        }
-        
-        // Nettoyer le tableau
-        $this->chargement_ids = array_values(array_filter($this->chargement_ids, 'is_numeric'));
-
-        Log::info('updatedChargementIds called', ['type' => $this->type, 'chargement_ids' => $this->chargement_ids]);
-        
-        if ($this->type === 'achat' && !empty($this->chargement_ids)) {
-            $chargements = Chargement::with(['depart', 'produit'])->whereIn('id', $this->chargement_ids)->get();
-            
-            Log::info('Chargements trouvés', ['count' => $chargements->count()]);
-            
-            $prixParKg = 1500;
-            $poidsTotal = $chargements->sum('poids_depart_kg');
-            $this->montant_mga = $poidsTotal * $prixParKg;
-            
-            Log::info('Calcul montant', ['poids_total' => $poidsTotal, 'prix_par_kg' => $prixParKg, 'montant' => $this->montant_mga]);
-            
-            $lieux = $chargements->pluck('depart.nom')->unique()->filter()->toArray();
-            $this->lieux_display = implode(' + ', $lieux);
-            
-            if (!$this->editingTransaction) {
-                $this->from_nom = $this->lieux_display;
-            }
-            
-            Log::info('Lieux calculés', ['lieux_display' => $this->lieux_display]);
-        } else {
-            if ($this->type === 'achat') {
-                $this->montant_mga = '';
-                $this->lieux_display = '';
-                if (!$this->editingTransaction) {
-                    $this->from_nom = '';
-                }
-            }
-        }
-    }
-
     public function updatedDechargementIds()
     {
         // Protection contre les types non-array
@@ -529,18 +502,21 @@ class FinanceIndex extends Component
             }
             $this->lieux_display = implode(', ', $lieux);
             
+            // Auto-remplir l'objet pour les ventes
+            $this->objet = 'Vente - ' . $this->lieux_display;
+            
             Log::info('CORRECTION appliquée', [
                 'from_nom' => $this->from_nom,
                 'lieux_display' => $this->lieux_display,
                 'to_nom' => $this->to_nom,
-                'interlocuteurs' => $interlocuteurs,
-                'lieux' => $lieux
+                'objet' => $this->objet
             ]);
         } else {
             if ($this->type === 'vente') {
                 Log::info('RESET lieux_display pour vente');
                 $this->montant_mga = '';
                 $this->lieux_display = '';
+                $this->objet = '';
                 if (!$this->editingTransaction) {
                     $this->from_nom = '';
                     $this->to_nom = '';
@@ -551,8 +527,127 @@ class FinanceIndex extends Component
         Log::info('=== FIN updatedDechargementIds ===', [
             'final_from_nom' => $this->from_nom,
             'final_lieux_display' => $this->lieux_display,
-            'final_to_nom' => $this->to_nom
+            'final_objet' => $this->objet
         ]);
+    }
+
+    public function updatedProduitId()
+    {
+        $this->resetErrorBag(['produit_id', 'quantite']);
+        if (in_array($this->type, ['achat', 'vente']) && $this->produit_id) {
+            $produit = Produit::find($this->produit_id);
+            if ($produit) {
+                $this->unite = $produit->unite;
+                $this->prix_unitaire_mga = $produit->prix_reference_mga;
+                $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
+                
+                if (!$this->editingTransaction) {
+                    $this->objet = ($this->type === 'achat' ? 'Achat - ' : 'Vente - ') . $produit->nom_complet;
+                }
+                
+                Log::info('Produit sélectionné pour ' . $this->type, [
+                    'produit_id' => $this->produit_id,
+                    'nom' => $produit->nom_complet,
+                    'prix_ref' => $produit->prix_reference_mga,
+                    'unite' => $produit->unite,
+                    'stock_actuel' => $this->stock_actuel,
+                ]);
+            } else {
+                $this->stock_actuel = 0;
+                $this->unite = '';
+                $this->prix_unitaire_mga = '';
+                $this->quantite = '';
+                if (!$this->editingTransaction) {
+                    $this->objet = '';
+                }
+            }
+        } else {
+            if (in_array($this->type, ['achat', 'vente'])) {
+                $this->unite = '';
+                $this->prix_unitaire_mga = '';
+                $this->quantite = '';
+                $this->stock_actuel = 0;
+                if (!$this->editingTransaction) {
+                    $this->objet = '';
+                }
+            }
+        }
+    }
+
+    public function updatedQuantite()
+    {
+        Log::info('=== VALIDATION QUANTITE ===', [
+            'type' => $this->type,
+            'produit_id' => $this->produit_id,
+            'quantite' => $this->quantite,
+            'stock_actuel' => $this->stock_actuel
+        ]);
+
+        if (in_array($this->type, ['achat', 'vente']) && $this->produit_id && $this->quantite) {
+            $produit = Produit::find($this->produit_id);
+            if ($produit) {
+                $this->stock_actuel = $produit->poids_moyen_sac_kg ?? 0;
+                $quantiteSaisie = floatval($this->quantite);
+                $stockDisponible = floatval($this->stock_actuel);
+                
+                Log::info('Validation stock', [
+                    'type' => $this->type,
+                    'quantite_saisie' => $quantiteSaisie,
+                    'stock_disponible' => $stockDisponible,
+                    'produit_nom' => $produit->nom_complet
+                ]);
+
+                // VALIDATION POUR LES VENTES : ne pas vendre plus que le stock actuel
+                if ($this->type === 'vente' && $quantiteSaisie > $stockDisponible) {
+                    $message = 'La quantité à vendre (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser le stock actuel (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
+                    $this->addError('quantite', $message);
+                    
+                    Log::warning('Stock insuffisant pour vente', [
+                        'quantite_demandee' => $quantiteSaisie,
+                        'stock_disponible' => $stockDisponible,
+                        'message' => $message
+                    ]);
+                } 
+                // VALIDATION POUR LES ACHATS : ne pas dépasser la capacité de stockage
+                elseif ($this->type === 'achat' && $quantiteSaisie > $stockDisponible) {
+                    $message = 'La quantité à acheter (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser la capacité de stockage disponible (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
+                    $this->addError('quantite', $message);
+                    
+                    Log::warning('Capacité de stockage dépassée pour achat', [
+                        'quantite_demandee' => $quantiteSaisie,
+                        'capacite_stockage' => $stockDisponible,
+                        'message' => $message
+                    ]);
+                } 
+                // VALIDATION OK : calcul du montant
+                else {
+                    $this->resetErrorBag('quantite');
+                    if ($this->prix_unitaire_mga) {
+                        $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
+                    }
+                    
+                    Log::info('Validation stock OK', [
+                        'type' => $this->type,
+                        'quantite_valide' => $quantiteSaisie,
+                        'stock_disponible' => $stockDisponible,
+                        'montant_calcule' => $this->montant_mga
+                    ]);
+                }
+            }
+        } elseif (in_array($this->type, ['achat', 'vente']) && $this->quantite && $this->prix_unitaire_mga) {
+            // Calcul du montant sans validation de stock (si pas de produit sélectionné)
+            $this->montant_mga = floatval($this->quantite) * floatval($this->prix_unitaire_mga);
+            $this->resetErrorBag('quantite');
+        }
+    }
+
+    
+
+    public function updatedPrixUnitaireMga()
+    {
+        if (in_array($this->type, ['achat', 'vente']) && $this->quantite && $this->prix_unitaire_mga) {
+            $this->montant_mga = $this->quantite * $this->prix_unitaire_mga;
+        }
     }
 
     public function updatedVoyageId()
@@ -562,25 +657,51 @@ class FinanceIndex extends Component
             return;
         }
 
-        $this->chargement_ids = [];
-        $this->dechargement_ids = [];
-        $this->montant_mga = '';
-        $this->lieux_display = '';
-        $this->from_nom = '';
-        $this->to_nom = '';
+        // Reset seulement pour les ventes
+        if ($this->type === 'vente') {
+            $this->dechargement_ids = [];
+            $this->montant_mga = '';
+            $this->lieux_display = '';
+            $this->objet = '';
+            $this->from_nom = '';
+            $this->to_nom = '';
+        }
     }
 
     public function updatedType()
     {
-        $this->voyage_id = '';
-        $this->chargement_ids = [];
-        $this->dechargement_ids = [];
+        // Reset différentiel selon le type
+        if ($this->type === 'vente') {
+            // Pour vente : garder la logique automatique
+            $this->voyage_id = '';
+            $this->dechargement_ids = [];
+            $this->lieux_display = '';
+            // produit_id reste pour la sélection de produit
+        } elseif ($this->type === 'achat') {
+            // Pour achat : reset voyage mais garder produit logic
+            $this->voyage_id = '';
+            $this->dechargement_ids = [];
+            $this->lieux_display = '';
+            // produit_id reste pour la sélection de produit
+        } else {
+            // Pour autre : tout en saisie libre
+            $this->voyage_id = '';
+            $this->dechargement_ids = [];
+            $this->lieux_display = '';
+            $this->produit_id = '';
+        }
+        
+        // Reset commun
         $this->montant_mga = '';
-        $this->lieux_display = '';
+        $this->objet = '';
         $this->from_nom = '';
         $this->to_nom = '';
+        $this->quantite = '';
+        $this->unite = '';
+        $this->prix_unitaire_mga = '';
+        $this->stock_actuel = 0;
         
-        Log::info('Type updated, FORCE reset ALL fields', ['new_type' => $this->type]);
+        Log::info('Type updated', ['new_type' => $this->type]);
     }
 
     // =====================================================
@@ -643,6 +764,7 @@ class FinanceIndex extends Component
                 $fin = $now->copy()->endOfMonth();
                 break;
         }
+        
         if ($type === 'revenus') {
             $this->dateDebutRevenus = $debut->format('Y-m-d');
             $this->dateFinRevenus = $fin->format('Y-m-d');
@@ -654,11 +776,10 @@ class FinanceIndex extends Component
 
     public function recalculerMontant()
     {
-        if ($this->type === 'achat') {
-            $this->updatedChargementIds();
-        } elseif ($this->type === 'vente') {
+        if ($this->type === 'vente') {
             $this->updatedDechargementIds();
         }
+        // Pour achat/autre : pas de recalcul automatique
     }
 
     // =====================================================
@@ -723,28 +844,17 @@ class FinanceIndex extends Component
         $this->date = $transaction->date->format('Y-m-d');
         $this->type = $transaction->type;
         $this->from_nom = $transaction->from_nom;
-        $this->from_compte = $transaction->from_compte;
         $this->to_nom = $transaction->to_nom;
         $this->to_compte = $transaction->to_compte;
         $this->montant_mga = $transaction->montant_mga;
+        $this->objet = $transaction->objet;
         $this->voyage_id = $transaction->voyage_id;
+        $this->produit_id = $transaction->produit_id;
         
-        // Initialiser comme arrays vides
-        $this->chargement_ids = [];
+        // Initialiser comme array vide
         $this->dechargement_ids = [];
         
-        if ($transaction->type === 'achat' && $transaction->voyage_id) {
-            $this->chargement_ids = $this->findAllMatchingChargements($transaction);
-            
-            if (!empty($this->chargement_ids)) {
-                $originalFromNom = $transaction->from_nom;
-                $this->updatedChargementIds();
-                if ($originalFromNom) {
-                    $this->from_nom = $originalFromNom;
-                }
-            }
-        }
-        
+        // Logique spéciale pour les ventes avec relations
         if ($transaction->type === 'vente' && $transaction->voyage_id) {
             $this->dechargement_ids = $this->findAllMatchingDechargements($transaction);
             
@@ -754,6 +864,7 @@ class FinanceIndex extends Component
                 
                 $this->updatedDechargementIds();
                 
+                // Restaurer les noms originaux
                 if ($originalFromNom) {
                     $this->from_nom = $originalFromNom;
                 }
@@ -765,73 +876,19 @@ class FinanceIndex extends Component
         
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
+        $this->quantite = $transaction->quantite;
+        $this->unite = $transaction->unite;
+        $this->prix_unitaire_mga = $transaction->prix_unitaire_mga;
         $this->reste_a_payer = $transaction->reste_a_payer;
         $this->observation = $transaction->observation;
         $this->showTransactionModal = true;
         
         Log::info('=== FIN ÉDITION TRANSACTION ===', [
-            'chargement_ids_final' => $this->chargement_ids,
             'dechargement_ids_final' => $this->dechargement_ids,
             'from_nom_final' => $this->from_nom,
             'to_nom_final' => $this->to_nom,
             'montant_final' => $this->montant_mga
         ]);
-    }
-
-    private function findAllMatchingChargements($transaction)
-    {
-        if (!$transaction->voyage_id) {
-            return [];
-        }
-        
-        $prixParKg = 1500;
-        $montantTarget = floatval($transaction->montant_mga);
-        $poidsTarget = $montantTarget / $prixParKg;
-        $tolerance = 2;
-        
-        $chargements = Chargement::where('voyage_id', $transaction->voyage_id)
-            ->orderBy('created_at')
-            ->get();
-        
-        $selected = [];
-        $poidsActuel = 0;
-        
-        foreach ($chargements as $chargement) {
-            $nouveauPoids = $poidsActuel + floatval($chargement->poids_depart_kg);
-            
-            if ($nouveauPoids <= $poidsTarget + $tolerance) {
-                $selected[] = intval($chargement->id);
-                $poidsActuel = $nouveauPoids;
-            }
-            
-            if (abs($poidsActuel - $poidsTarget) <= $tolerance) {
-                break;
-            }
-        }
-        
-        if (empty($selected) || abs($poidsActuel - $poidsTarget) > $tolerance) {
-            $chargementsDesc = $chargements->sortByDesc('poids_depart_kg');
-            $selected = [];
-            $poidsActuel = 0;
-            
-            foreach ($chargementsDesc as $chargement) {
-                if ($poidsActuel < $poidsTarget) {
-                    $selected[] = intval($chargement->id);
-                    $poidsActuel += floatval($chargement->poids_depart_kg);
-                }
-            }
-        }
-        
-        $selected = array_values(array_map('intval', array_filter($selected, 'is_numeric')));
-        
-        Log::info('Chargements trouvés pour édition', [
-            'selected_ids' => $selected,
-            'selected_count' => count($selected),
-            'poids_total' => $poidsActuel,
-            'correspondance' => abs($poidsActuel - $poidsTarget) <= $tolerance ? 'EXACTE' : 'APPROXIMATIVE'
-        ]);
-        
-        return $selected;
     }
 
     private function findAllMatchingDechargements($transaction)
@@ -895,37 +952,26 @@ class FinanceIndex extends Component
 
     public function saveTransaction()
     {
-        $rules = [
-            'reference' => 'required|string|max:255',
-            'date' => 'required|date',
-            'type' => 'required|in:achat,vente,Autre',
-            'montant_mga' => 'required|numeric|min:0',
-            'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
-            'statut' => 'required|in:attente,confirme,annule,payee,partiellement_payee',
-        ];
-        
-        if ($this->statut === 'partiellement_payee') {
-            $rules['reste_a_payer'] = 'required|numeric|min:0';
-        }
-        
-        $this->validate($rules);
+        $this->validate();
 
         $data = [
             'reference' => $this->reference,
             'date' => $this->date,
             'type' => $this->type,
             'from_nom' => $this->from_nom ?: null,
-            'from_compte' => $this->from_compte ?: null,
             'to_nom' => $this->to_nom ?: null,
             'to_compte' => $this->to_compte ?: null,
             'montant_mga' => $this->montant_mga,
-            'objet' => 'Transaction ' . $this->type . ' - ' . ($this->lieux_display ?: 'N/A'),
+            'objet' => $this->objet,
             'voyage_id' => $this->voyage_id ?: null,
-            'chargement_id' => !empty($this->chargement_ids) ? $this->chargement_ids[0] : null,
             'dechargement_id' => !empty($this->dechargement_ids) ? $this->dechargement_ids[0] : null,
+            'produit_id' => $this->produit_id ?: null,
             'mode_paiement' => $this->mode_paiement,
             'statut' => $this->statut,
-            'reste_a_payer' => $this->statut === 'partiellement_payee' ? $this->reste_a_payer : null,
+            'quantite' => $this->quantite ?: null,
+            'unite' => $this->unite ?: null,
+            'prix_unitaire_mga' => $this->prix_unitaire_mga ?: null,
+            'reste_a_payer' => $this->reste_a_payer ?: 0, // SUPPRIMÉ la condition partiellement_payee
             'observation' => $this->observation ?: null,
         ];
 
@@ -952,17 +998,9 @@ class FinanceIndex extends Component
         session()->flash('success', 'Transaction confirmée');
     }
 
-    public function marquerPayee($id)
-    {
-        $transaction = Transaction::findOrFail($id);
-        $transaction->update(['statut' => 'payee']);
-        session()->flash('success', 'Transaction marquée comme payée !');
-    }
-
     // =====================================================
     // GESTION DES COMPTES
     // =====================================================
-    
     public function createCompte()
     {
         Log::info('createCompte called', ['activeTab' => $this->activeTab]);
@@ -977,7 +1015,7 @@ class FinanceIndex extends Component
         $this->editingCompte = $compte;
         $this->nom_proprietaire = $compte->nom_proprietaire;
         $this->type_compte = $compte->type_compte;
-        $this->nom_compte = $compte->nom_compte ?: $compte->nom;
+        $this->to_compte = $compte->to_compte ?: $compte->nom;
         $this->numero_compte = $compte->numero_compte;
         $this->solde_actuel_mga = $compte->solde_actuel_mga;
         $this->compte_actif = $compte->actif;
@@ -987,16 +1025,16 @@ class FinanceIndex extends Component
     public function saveCompte()
     {
         $this->validate([
-            'type_compte' => 'required|in:principal,AirtelMoney,Mvola,OrangeMoney,banque',
-            'nom_compte' => 'required|string|max:255',
+            'type_compte' => 'required|in:principal,AirtelMoney,MVola,OrangeMoney,banque',
+            'to_compte' => 'nullable|string|max:255',
             'solde_actuel_mga' => 'required|numeric',
         ]);
 
         $data = [
-            'nom' => $this->nom_compte ?: 'NomInconnu',
+            'nom' => $this->to_compte ?: 'NomInconnu',
             'nom_proprietaire' => $this->nom_proprietaire ?: null,
             'type_compte' => $this->type_compte,
-            'nom_compte' => $this->nom_compte,
+            'to_compte' => $this->to_compte,
             'numero_compte' => $this->numero_compte ?: null,
             'solde_actuel_mga' => $this->solde_actuel_mga,
             'actif' => $this->compte_actif,
@@ -1045,18 +1083,22 @@ class FinanceIndex extends Component
         $this->date = '';
         $this->type = '';
         $this->from_nom = '';
-        $this->from_compte = '';
         $this->to_nom = '';
         $this->to_compte = '';
         $this->montant_mga = '';
+        $this->objet = '';
         $this->voyage_id = '';
-        $this->chargement_ids = [];
         $this->dechargement_ids = [];
+        $this->produit_id = '';
         $this->lieux_display = '';
         $this->mode_paiement = 'especes';
         $this->statut = 'confirme';
+        $this->quantite = '';
+        $this->unite = '';
+        $this->prix_unitaire_mga = '';
         $this->reste_a_payer = '';
         $this->observation = '';
+        $this->stock_actuel = 0;
         $this->resetErrorBag();
     }
 
@@ -1064,7 +1106,6 @@ class FinanceIndex extends Component
     {
         $this->nom_proprietaire = '';
         $this->type_compte = 'principal';
-        $this->nom_compte = '';
         $this->numero_compte = '';
         $this->solde_actuel_mga = 0;
         $this->compte_actif = true;
@@ -1160,10 +1201,13 @@ class FinanceIndex extends Component
         $transactions = $query->paginate(15);
         $comptes = Compte::where('actif', true)->get();
         
-        // Voyages et éléments disponibles
+        // Voyages et éléments disponibles (seulement pour ventes)
         $voyagesDisponibles = $this->voyagesDisponibles;
-        $chargementsDisponibles = $this->chargementsDisponibles;
         $dechargementsDisponibles = $this->dechargementsDisponibles;
+        
+        // Produits disponibles (seulement pour achats)
+        $produitsDisponibles = $this->produitsDisponibles;
+        $produitSelectionne = $this->produitSelectionne;
         
         $users = collect();
         
@@ -1190,8 +1234,9 @@ class FinanceIndex extends Component
             'transactions',
             'comptes',
             'voyagesDisponibles',
-            'chargementsDisponibles',
             'dechargementsDisponibles',
+            'produitsDisponibles',
+            'produitSelectionne',
             'users',
             'totalEntrees',
             'totalSorties',

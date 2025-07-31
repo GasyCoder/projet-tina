@@ -52,7 +52,7 @@
 
                 <!-- Onglet Retours -->
                 <div x-show="activeTab === 'retours'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
-                    @livewire('stocks.retour')
+                    @livewire('stocks.retours')
                 </div>
 
                 <!-- Onglet Dépôt -->

@@ -200,7 +200,6 @@
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Voyage</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -264,22 +263,7 @@
                                     @endswitch
                                 </span>
                             </td>
-                            <td class="px-4 py-2 whitespace-nowrap text-xs font-medium">
-                                <div class="flex space-x-2">
-                                    <button wire:click="editTransaction({{ $transaction->id }})" class="text-indigo-600 hover:text-indigo-800 transition-all duration-150">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                        </svg>
-                                    </button>
-                                    @if($transaction->statut === 'attente')
-                                        <button wire:click="marquerPayee({{ $transaction->id }})" class="text-green-600 hover:text-green-800 transition-all duration-150">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </button>
-                                    @endif
-                                </div>
-                            </td>
+                            
                         </tr>
                     @empty
                         <tr>

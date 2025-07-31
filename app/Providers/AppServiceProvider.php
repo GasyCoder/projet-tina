@@ -21,5 +21,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
       Blade::component('lucide::icon', 'lucide-icon');
+      // Dechargement::observe(DechargementObserver::class);
     }
 }

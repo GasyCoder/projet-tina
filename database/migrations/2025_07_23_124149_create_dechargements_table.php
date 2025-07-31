@@ -18,30 +18,34 @@ return new class extends Migration
             $table->string('reference'); // OP001, OP002
             $table->date('date');
             $table->enum('type', ['vente', 'retour', 'depot', 'transfert']);
+            $table->string('statut')->default('en_stock'); // 👈 déplacé ici
+
             $table->string('pointeur_nom')->nullable();
             $table->string('pointeur_contact')->nullable();
             $table->string('interlocuteur_nom')->nullable();
             $table->string('interlocuteur_contact')->nullable();
             $table->foreignId('lieu_livraison_id')->nullable()->constrained('lieux');
-            
-            // Quantités arrivée (nullable car parfois non pesé)
+
+            // Quantités arrivée
             $table->integer('sacs_pleins_arrivee')->nullable();
             $table->integer('sacs_demi_arrivee')->default(0);
             $table->decimal('poids_arrivee_kg', 10, 2)->nullable();
-            
+
             // Informations commerciales
-            $table->decimal('prix_unitaire_mga', 12, 2)->nullable(); // Prix en MGA
+            $table->decimal('prix_unitaire_mga', 12, 2)->nullable();
             $table->decimal('montant_total_mga', 15, 2)->nullable();
             $table->decimal('paiement_mga', 15, 2)->nullable();
             $table->decimal('reste_mga', 15, 2)->nullable();
-            
+
             $table->enum('statut_commercial', ['en_attente', 'vendu', 'retourne', 'transfere'])->default('en_attente');
-            $table->text('observation')->nullable(); // Français + Malagasy
+            $table->text('observation')->nullable();
+
             $table->timestamps();
             $table->softDeletes();
 
             $table->unique(['reference', 'deleted_at'], 'dechargements_reference_deleted_at_unique');
         });
+
     }
 
     /**

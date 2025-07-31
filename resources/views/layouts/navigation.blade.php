@@ -31,7 +31,7 @@
                     </x-nav-link>
 
                     @php
-                        $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 'vehicules.*');
+$isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', 'voyages.*');
                     @endphp
 
                     <div x-data="{ openGestions: false }" class="relative group">
@@ -51,27 +51,27 @@
 
                         <div x-show="openGestions" x-transition
                             class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-10">
-                            <x-nav-link :href="route('voyages.index')" :active="request()->routeIs('voyages.*')"
+                            <x-nav-link :href="route('lieux.index')" :active="request()->routeIs('lieux.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                                Voyages
+                                Lieux
                             </x-nav-link>
                             <x-nav-link :href="route('produits.index')" :active="request()->routeIs('produits.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
                                 Produits
                             </x-nav-link>
-                            <x-nav-link :href="route('lieux.index')" :active="request()->routeIs('lieux.*')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                                Lieux
-                            </x-nav-link>
                             <x-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
                                 Véhicules
+                            </x-nav-link>
+                            <x-nav-link :href="route('voyages.index')" :active="request()->routeIs('voyages.*')"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                Voyages
                             </x-nav-link>
                         </div>
                     </div>
 
                     @php
-                        $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'finance.dashboard.situations');
+$isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'finance.dashboard.situations');
                     @endphp
 
                     <div x-data="{ openFinance: false }" class="relative group">
@@ -181,7 +181,7 @@
 
             <!-- Gestions (mobile) -->
             @php
-                $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 'vehicules.*');
+$isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 'vehicules.*');
             @endphp
             <div x-data="{ openGestionsMobile: false }" class="px-4 py-2">
                 <button @click="openGestionsMobile = !openGestionsMobile"
@@ -218,7 +218,7 @@
 
             <!-- Finance (mobile) -->
             @php
-                $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'finance.dashboard.situations');
+$isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'finance.dashboard.situations');
             @endphp
             <div x-data="{ openFinanceMobile: false }" class="px-4 py-2">
                 <button @click="openFinanceMobile = !openFinanceMobile"

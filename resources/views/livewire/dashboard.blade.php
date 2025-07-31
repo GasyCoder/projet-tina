@@ -20,6 +20,119 @@
             </p>
         </div>
 
+        <!-- Carte Guide d'utilisation -->
+        <div x-data="{ openGuide: true }"
+            class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+            <div class="p-4 sm:p-6 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <div class="p-1 sm:p-2 bg-orange-100 rounded-lg sm:rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 text-orange-600"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-900">Guide d'utilisation rapide</h3>
+                    </div>
+                    <button @click="openGuide = !openGuide" class="text-gray-500 hover:text-orange-600">
+                        <svg x-show="!openGuide" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        <svg x-show="openGuide" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div x-show="openGuide" x-transition class="divide-y divide-gray-100">
+                <div class="p-4 sm:p-5">
+                    <div class="prose prose-sm max-w-none">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Colonne Gestions -->
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <h4 class="font-medium text-blue-800 flex items-center gap-2 mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    </svg>
+                                    Gestions
+                                </h4>
+                                <ul class="text-xs text-gray-700 space-y-1.5">
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">›</span>
+                                        <span><strong>Lieux</strong> : Gestion des emplacements</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">›</span>
+                                        <span><strong>Produits</strong> : Articles logistiques</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">›</span>
+                                        <span><strong>Véhicules</strong> : Gestion de flotte</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-blue-600">›</span>
+                                        <span><strong>Voyages</strong> : Planification des trajets</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Colonne Finance -->
+                            <div class="bg-green-50 p-3 rounded-lg">
+                                <h4 class="font-medium text-green-800 flex items-center gap-2 mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Finance
+                                </h4>
+                                <ul class="text-xs text-gray-700 space-y-1.5">
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-green-600">›</span>
+                                        <span><strong>Transactions</strong> : Suivi des opérations</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-green-600">›</span>
+                                        <span><strong>Bilans</strong> : Situations financières</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- Colonne Stocks -->
+                            <div class="bg-purple-50 p-3 rounded-lg">
+                                <h4 class="font-medium text-purple-800 flex items-center gap-2 mb-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M20 7l-8-4-8 4m16 0v6l-8 4m0-10l-8 4m8 4V3m0 10l-8-4m8 4l8-4V7" />
+                                    </svg>
+                                    Stocks (Admin)
+                                </h4>
+                                <ul class="text-xs text-gray-700 space-y-1.5">
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-purple-600">›</span>
+                                        <span>Gestion des inventaires</span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="text-purple-600">›</span>
+                                        <span>Suivi des niveaux de stock</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-xs text-gray-500 italic">
+                            Astuce : Cliquez sur les en-têtes des cartes pour déployer les options disponibles.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Contenu principal : Cartes pour chaque menu -->
         <div class="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <!-- Carte Gestions (avec sous-menu déroulant sur clic) -->
@@ -50,25 +163,25 @@
                     </div>
                 </div>
                 <div x-show="openGestions" x-transition class="divide-y divide-gray-100">
-                    <a href="{{ route('voyages.index') }}"
+                    <a href="{{ route('lieux.index') }}"
                         class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors duration-200">
-                        <p class="text-sm font-medium text-gray-900">Voyages</p>
-                        <p class="text-xs text-gray-600">Gérer les itinéraires et trajets.</p>
+                        <p class="text-sm font-medium text-gray-900">Lieux</p>
+                        <p class="text-xs text-gray-600">Gérer les emplacements et destinations.</p>
                     </a>
                     <a href="{{ route('produits.index') }}"
                         class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors duration-200">
                         <p class="text-sm font-medium text-gray-900">Produits</p>
                         <p class="text-xs text-gray-600">Gérer les produits logistiques.</p>
                     </a>
-                    <a href="{{ route('lieux.index') }}"
-                        class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors duration-200">
-                        <p class="text-sm font-medium text-gray-900">Lieux</p>
-                        <p class="text-xs text-gray-600">Gérer les emplacements et destinations.</p>
-                    </a>
                     <a href="{{ route('vehicules.index') }}"
                         class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors duration-200">
                         <p class="text-sm font-medium text-gray-900">Véhicules</p>
                         <p class="text-xs text-gray-600">Gérer la flotte de véhicules.</p>
+                    </a>
+                    <a href="{{ route('voyages.index') }}"
+                        class="block p-3 sm:p-4 hover:bg-gray-50 transition-colors duration-200">
+                        <p class="text-sm font-medium text-gray-900">Voyages</p>
+                        <p class="text-xs text-gray-600">Gérer les itinéraires et trajets.</p>
                     </a>
                 </div>
             </div>

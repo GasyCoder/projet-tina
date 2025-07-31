@@ -1,4 +1,4 @@
-{{-- resources/views/livewire/stocks/retour.blade.php --}}
+:q{{-- resources/views/livewire/stocks/retour.blade.php --}}
 <div>
     <!-- Statistiques du stock de retour -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -201,6 +201,7 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($retours as $retour)
+<<<<<<< HEAD
                         <tr class="hover:bg-orange-50 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
                                 {{ $retour->reference }}
@@ -242,6 +243,48 @@
                             </td>
 
                         </tr>
+=======
+                    <tr class="hover:bg-orange-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
+                            {{ $retour->reference }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                            {{ $retour->produit?->nom ?? 'Produit inconnu' }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ number_format($retour->prix_unitaire_mga, 0, ',', ' ') }} Ar/kg
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $retour->lieuLivraison->nom ?? 'N/A' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ number_format($retour->poids_arrivee_kg, 0, ',', ' ') }} kg
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ $retour->sacs_pleins_arrivee }} Sac + {{ $retour->sacs_demi_arrivee }}½ Sac
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ number_format($retour->montant_total_mga, 0, ',', ' ') }} Ar
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @php
+                                $statusClasses = [
+                                'en_stock' => 'bg-blue-100 text-blue-800',
+                                'vendu' => 'bg-green-100 text-green-800',
+                                'perdu' => 'bg-red-100 text-red-800'
+                                ];
+                            @endphp
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full {{ $statusClasses[$retour->statut] }}">
+                                {{ ucfirst(str_replace('_', ' ', $retour->statut)) }}
+                            </span>
+                        </td>
+
+                    </tr>
+>>>>>>> f5797af (update _ide_helper.php, Dechargement.php, Retour.php and retour.blade.php)
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-12 text-center">

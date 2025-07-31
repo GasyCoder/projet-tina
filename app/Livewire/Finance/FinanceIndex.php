@@ -92,13 +92,13 @@ class FinanceIndex extends Component
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'nullable|string|max:255',
         'mode_paiement' => 'required|in:especes,AirtelMoney,MVola,OrangeMoney,banque',
-        'statut' => 'required|in:attente,confirme,annule', // SUPPRIMÉ partiellement_payee
+        'statut' => 'required|in:attente,confirme,partiellement_payee', 
         'type' => 'required|in:achat,vente,autre',
         'voyage_id' => 'nullable|exists:voyages,id',
         'produit_id' => 'required_if:type,achat|nullable|exists:produits,id',
         'quantite' => 'required_if:type,achat|nullable|numeric|min:0',
         'prix_unitaire_mga' => 'required_if:type,achat|nullable|numeric|min:0',
-        'reste_a_payer' => 'nullable|numeric|min:0', // SUPPRIMÉ required_if:statut,partiellement_payee
+        'reste_a_payer' => 'required_if:statut,partiellement_payee', 
         'type_compte' => 'required|in:principal,AirtelMoney,MVola,OrangeMoney,banque',
         'solde_actuel_mga' => 'nullable|numeric',
     ];

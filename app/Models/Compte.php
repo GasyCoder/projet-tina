@@ -14,7 +14,6 @@ class Compte extends Model
         'nom',
         'nom_proprietaire',
         'type_compte',
-        'nom_compte',       
         'numero_compte',
         'solde_actuel_mga',
         'derniere_transaction_id',
@@ -48,7 +47,7 @@ class Compte extends Model
         return number_format($this->solde_actuel_mga, 0, ',', ' ') . ' MGA';
     }
 
-    // ✅ SCOPES SELON VOS VRAIS TYPES DE COMPTES
+    // SCOPES
     public function scopePrincipal($query)
     {
         return $query->where('type_compte', 'principal');
@@ -56,17 +55,12 @@ class Compte extends Model
 
     public function scopeMobileMoney($query)
     {
-        return $query->where('type_compte', 'mobile_money');
+        return $query->whereIn('type_compte', ['AirtelMoney', 'Mvola', 'OrangeMoney']);
     }
 
     public function scopeBanque($query)
     {
         return $query->where('type_compte', 'banque');
-    }
-
-    public function scopeCredit($query)
-    {
-        return $query->where('type_compte', 'credit');
     }
 
     public function scopeActif($query)

@@ -133,10 +133,19 @@ class VoyageShow extends Component
     {
         $this->voyage = $voyage;
         $this->date = now()->format('Y-m-d');
+        
+        // Set default tab to 'chargements' unless a valid tab is provided
         $validTabs = ['chargements', 'dechargements', 'synthese'];
-        $this->activeTab = in_array(request()->query('tab', 'chargements'), $validTabs) 
-            ? request()->query('tab') 
-            : 'chargements';
+        $requestedTab = request()->query('tab');
+        $this->activeTab = in_array($requestedTab, $validTabs) ? $requestedTab : 'chargements';
+
+        // Update URL to reflect the active tab
+        $this->js("
+            const url = new URL(window.location);
+            url.searchParams.set('tab', '{$this->activeTab}');
+            window.history.pushState({}, '', url);
+        ");
+
         $this->selected_voyage_id = $voyage->id;
         $this->selected_voyage = $voyage;
         $this->loadAvailableChargements();
@@ -1503,7 +1512,7 @@ class VoyageShow extends Component
         $this->resetErrorBag(['sacs_pleins_depart', 'sacs_demi_depart', 'poids_depart_kg']);
     }
 
-    
+
     /**
      * Validation du stock pour le chargement
      */

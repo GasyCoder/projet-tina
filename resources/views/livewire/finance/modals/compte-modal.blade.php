@@ -63,7 +63,7 @@
                                 class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm">
                             <option value="principal">💰 Principal (Espèces/Caisse)</option>
                             <option value="AirtelMoney">📱AirtelMoney</option>
-                            <option value="Mvola">📱MVola</option>
+                            <option value="Mvola">📱Mvola</option>
                             <option value="OrangeMoney">📱OrangeMoney</option>
                             <option value="banque">🏦 Compte Bancaire</option>
                         </select>

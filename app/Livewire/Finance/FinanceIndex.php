@@ -162,11 +162,21 @@ class FinanceIndex extends Component
 
         $produit = Produit::find($this->produit_id);
         if ($produit) {
-            $this->stock_actuel = $produit->poids_moyen_sac_kg_max ?? 0;
+            // Définir le stock selon le type de transaction
+            if ($this->type === 'vente') {
+                $this->stock_actuel = $produit->qte_variable; // Stock disponible pour vente
+            } else {
+                // Pour les achats : calculer la capacité disponible
+                $this->stock_actuel = max(0, $produit->poids_moyen_sac_kg_max - $produit->qte_variable);
+            }
+            
             Log::info('Produit sélectionné', [
                 'produit_id' => $this->produit_id,
                 'nom' => $produit->nom_complet,
-                'stock_actuel' => $this->stock_actuel,
+                'type_transaction' => $this->type,
+                'stock_reel' => $produit->qte_variable,
+                'capacite_max' => $produit->poids_moyen_sac_kg_max,
+                'stock_actuel_affiche' => $this->stock_actuel,
             ]);
         } else {
             $this->stock_actuel = 0;

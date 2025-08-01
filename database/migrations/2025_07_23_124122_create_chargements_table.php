@@ -22,9 +22,9 @@ return new class extends Migration
             $table->string('proprietaire_nom')->nullable();
             $table->string('proprietaire_contact')->nullable();
             $table->foreignId('produit_id')->constrained('produits');
-            $table->integer('sacs_pleins_depart');
+            $table->integer('sacs_pleins_depart')->nullable();
             $table->integer('sacs_demi_depart')->default(0);
-            $table->decimal('poids_depart_kg', 10, 2);
+            $table->decimal('poids_depart_kg', 10, 2)->nullable();
             $table->text('observation')->nullable(); // Français + Malagasy
             $table->timestamps();
             $table->softDeletes();

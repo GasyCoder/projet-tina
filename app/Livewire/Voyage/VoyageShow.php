@@ -89,6 +89,7 @@ class VoyageShow extends Component
     public $product_prix_reference = 0;
     public $quantite_vendue = 0; // Quantité dans l'unité du produit
 
+    
     // ==============================================
     // RÈGLES DE VALIDATION
     // ==============================================
@@ -170,6 +171,165 @@ class VoyageShow extends Component
         
         return floatval($value);
     }
+
+
+    /**
+     * Validation simple des sacs pleins en temps réel
+     */
+    public function updatedSacsPleinsDepart()
+    {
+        $this->resetErrorBag(['sacs_pleins_depart']);
+        $this->validateStockSimple();
+    }
+
+    /**
+     * Validation simple des sacs demi en temps réel
+     */
+    public function updatedSacsDemiDepart()
+    {
+        $this->resetErrorBag(['sacs_demi_depart']);
+        $this->validateStockSimple();
+    }
+
+
+    /**
+     * ✅ Validation immédiate et précise du stock pour les sacs
+     */
+    private function validateStockSimple()
+    {
+        if (!$this->produit_id) return;
+
+        $produit = Produit::find($this->produit_id);
+        if (!$produit || $produit->qte_variable <= 0) {
+            $this->addError('sacs_pleins_depart', "❌ Stock épuisé pour ce produit !");
+            return;
+        }
+
+        $sacsPleinsSaisis = floatval($this->sacs_pleins_depart ?: 0);
+        $sacsDemiSaisis = floatval($this->sacs_demi_depart ?: 0);
+        $totalSacs = $sacsPleinsSaisis + ($sacsDemiSaisis * 0.5);
+        
+        if ($totalSacs <= 0) return; // Pas de validation si rien de saisi
+
+        $stockDisponible = floatval($produit->qte_variable);
+        $depassement = false;
+
+        // ✅ LOGIQUE SIMPLE selon l'unité
+        if ($produit->unite === 'kg') {
+            // Si unité = kg → comparer le poids calculé avec le stock
+            $poidsMoyenSac = $produit->poids_moyen_sac_kg_max ?: 120;
+            $poidsCalcule = $totalSacs * $poidsMoyenSac;
+            
+            if ($poidsCalcule > $stockDisponible) {
+                $limiteSacs = $stockDisponible / $poidsMoyenSac;
+                $this->addError('sacs_pleins_depart', 
+                    "❌ Dépassement de stock !\n" .
+                    "• Demandé : " . number_format($totalSacs, 1) . " sacs ≈ " . number_format($poidsCalcule, 2) . " kg\n" .
+                    "• Disponible : " . number_format($stockDisponible, 2) . " kg\n" .
+                    "• Maximum : " . number_format($limiteSacs, 1) . " sacs"
+                );
+            }
+        } 
+        elseif ($produit->unite === 'sacs') {
+            // Si unité = sacs → comparer directement les sacs
+            if ($totalSacs > $stockDisponible) {
+                $this->addError('sacs_pleins_depart', 
+                    "❌ Dépassement de stock !\n" .
+                    "• Demandé : " . number_format($totalSacs, 1) . " sacs\n" .
+                    "• Disponible : " . number_format($stockDisponible, 1) . " sacs\n" .
+                    "• Maximum : " . number_format($stockDisponible, 1) . " sacs"
+                );
+            }
+        }
+        else {
+            // Autres unités (tonnes, etc.) → traiter comme kg
+            $poidsMoyenSac = $produit->poids_moyen_sac_kg_max ?: 120;
+            $poidsCalcule = $totalSacs * $poidsMoyenSac;
+            $stockEnKg = $produit->unite === 'tonnes' ? $stockDisponible * 1000 : $stockDisponible;
+            
+            if ($poidsCalcule > $stockEnKg) {
+                $limiteSacs = $stockEnKg / $poidsMoyenSac;
+                $this->addError('sacs_pleins_depart', 
+                    "❌ Dépassement de stock !\n" .
+                    "• Demandé : " . number_format($totalSacs, 1) . " sacs\n" .
+                    "• Disponible : " . number_format($stockDisponible, 2) . " " . $produit->unite . "\n" .
+                    "• Maximum : " . number_format($limiteSacs, 1) . " sacs"
+                );
+            }
+        }
+    }
+
+
+
+    /**
+     * Calculer les limites de sacs selon le stock disponible
+    */
+    public function getLimiteSacsAttribute()
+    {
+        if (!$this->produit_id) {
+            return null;
+        }
+
+        $produit = Produit::find($this->produit_id);
+        if (!$produit) {
+            return null;
+        }
+
+        $stockDisponible = floatval($produit->qte_variable);
+        
+        // Si pas de stock, retourner des limites à zéro
+        if ($stockDisponible <= 0) {
+            return [
+                'max_sacs' => 0,
+                'max_sacs_pleins' => 0,
+                'max_sacs_demi' => 0,
+                'unite_affichage' => 'stock épuisé',
+                'stock_formate' => '0 ' . ($produit->unite ?: 'kg') . ' (épuisé)',
+                'poids_moyen_sac' => $produit->poids_moyen_sac_kg_max ?: 120,
+                'stock_disponible' => 0
+            ];
+        }
+
+        $poidsMoyenSac = ($produit->poids_moyen_sac_kg_max > 0) ? $produit->poids_moyen_sac_kg_max : 120;
+        
+        switch ($produit->unite) {
+            case 'sacs':
+                $maxSacs = $stockDisponible;
+                $uniteAffichage = 'sacs';
+                $stockFormate = number_format($stockDisponible, 1) . ' sacs';
+                break;
+                
+            case 'kg':
+                $maxSacs = $stockDisponible / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 2) . ' kg)';
+                break;
+                
+            case 'tonnes':
+                $maxSacs = ($stockDisponible * 1000) / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 3) . ' tonnes)';
+                break;
+                
+            default:
+                $maxSacs = $stockDisponible / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 2) . ' ' . $produit->unite . ')';
+                break;
+        }
+
+        return [
+            'max_sacs' => $maxSacs,
+            'max_sacs_pleins' => floor($maxSacs), // Sacs pleins possibles
+            'max_sacs_demi' => ($maxSacs - floor($maxSacs)) >= 0.5 ? 1 : 0, // Sac demi possible
+            'unite_affichage' => $uniteAffichage,
+            'stock_formate' => $stockFormate,
+            'poids_moyen_sac' => $poidsMoyenSac,
+            'stock_disponible' => $stockDisponible,
+            'produit_unite' => $produit->unite
+        ];
+    }
+
 
     /**
      * Analyse le type d'écart et retourne les informations appropriées
@@ -453,6 +613,8 @@ class VoyageShow extends Component
         $this->showChargementModal = true;
     }
 
+
+
     public function saveChargement()
     {
         $this->validate([
@@ -465,6 +627,33 @@ class VoyageShow extends Component
             'sacs_pleins_depart' => 'required|integer|min:0',
             'poids_depart_kg' => 'required|numeric|min:0',
         ]);
+
+        // Validation finale du stock
+        $produit = Produit::find($this->produit_id);
+        if (!$produit) {
+            $this->addError('produit_id', 'Produit introuvable.');
+            return;
+        }
+
+        $poidsACharger = floatval($this->poids_depart_kg);
+        $stockDisponible = floatval($produit->qte_variable);
+
+        // Conversion selon l'unité du produit
+        $quantiteACharger = $poidsACharger;
+        
+        if ($produit->unite === 'sacs') {
+            $poidsMoyenSac = $produit->poids_moyen_sac_kg_max > 0 ? $produit->poids_moyen_sac_kg_max : 120;
+            $quantiteACharger = $poidsACharger / $poidsMoyenSac;
+        } elseif ($produit->unite === 'tonnes') {
+            $quantiteACharger = $poidsACharger / 1000;
+        }
+
+        // Vérification finale du stock (sauf en édition d'un chargement existant)
+        if (!$this->editingChargement && $quantiteACharger > $stockDisponible) {
+            session()->flash('error', 'Stock insuffisant pour ce chargement. Stock disponible: ' . 
+                number_format($stockDisponible, 2, ',', ' ') . ' ' . $produit->unite);
+            return;
+        }
 
         try {
             $data = [
@@ -484,20 +673,82 @@ class VoyageShow extends Component
             ];
 
             if ($this->editingChargement) {
+                // Pour la modification, calculer la différence de stock
+                $ancienPoids = floatval($this->editingChargement->poids_depart_kg);
+                $ancienProduitId = $this->editingChargement->produit_id;
+                
+                // Remettre l'ancien stock si le produit a changé
+                if ($ancienProduitId != $this->produit_id) {
+                    $ancienProduit = Produit::find($ancienProduitId);
+                    if ($ancienProduit) {
+                        $ancienneQuantite = $ancienPoids;
+                        if ($ancienProduit->unite === 'sacs') {
+                            $ancienneQuantite = $ancienPoids / ($ancienProduit->poids_moyen_sac_kg_max ?: 120);
+                        } elseif ($ancienProduit->unite === 'tonnes') {
+                            $ancienneQuantite = $ancienPoids / 1000;
+                        }
+                        $ancienProduit->qte_variable = $ancienProduit->qte_variable + $ancienneQuantite;
+                        $ancienProduit->save();
+                    }
+                } else {
+                    // Même produit, ajuster seulement la différence
+                    $ancienneQuantiteChargee = $ancienPoids;
+                    if ($produit->unite === 'sacs') {
+                        $ancienneQuantiteChargee = $ancienPoids / ($produit->poids_moyen_sac_kg_max ?: 120);
+                    } elseif ($produit->unite === 'tonnes') {
+                        $ancienneQuantiteChargee = $ancienPoids / 1000;
+                    }
+                    
+                    // Remettre l'ancienne quantité en stock avant de décrémenter la nouvelle
+                    $produit->qte_variable = $produit->qte_variable + $ancienneQuantiteChargee;
+                }
+
                 $this->editingChargement->update($data);
                 session()->flash('success', 'Chargement modifié avec succès');
+                
+                Log::info('Chargement modifié', [
+                    'chargement_id' => $this->editingChargement->id,
+                    'ancien_produit' => $ancienProduitId,
+                    'nouveau_produit' => $this->produit_id,
+                    'ancien_poids' => $ancienPoids,
+                    'nouveau_poids' => $this->poids_depart_kg
+                ]);
             } else {
-                Chargement::create($data);
+                $chargement = Chargement::create($data);
                 session()->flash('success', 'Chargement ajouté avec succès');
+                
+                Log::info('Chargement créé', [
+                    'chargement_id' => $chargement->id,
+                    'produit_id' => $this->produit_id,
+                    'poids' => $this->poids_depart_kg
+                ]);
             }
+
+            // ✅ DÉCRÉMENTER LE STOCK après création/modification réussie
+            $produit->qte_variable = $produit->qte_variable - $quantiteACharger;
+            $produit->save();
+            
+            Log::info('Stock décrémenté pour chargement', [
+                'produit_id' => $produit->id,
+                'quantite_deduite' => $quantiteACharger,
+                'nouveau_stock' => $produit->qte_variable,
+                'unite' => $produit->unite
+            ]);
 
             $this->closeChargementModal();
             $this->voyage->refresh();
             
         } catch (\Exception $e) {
+            Log::error('Erreur lors de la sauvegarde du chargement', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             session()->flash('error', 'Erreur lors de la sauvegarde: ' . $e->getMessage());
         }
     }
+
+
 
     public function deleteChargement(Chargement $chargement)
     {
@@ -508,11 +759,43 @@ class VoyageShow extends Component
                 return;
             }
             
+            // ✅ RESTAURER LE STOCK avant suppression
+            $produit = $chargement->produit;
+            if ($produit) {
+                $poidsCharge = floatval($chargement->poids_depart_kg);
+                
+                // Convertir selon l'unité du produit
+                $quantiteARestaurer = $poidsCharge;
+                
+                if ($produit->unite === 'sacs') {
+                    $poidsMoyenSac = $produit->poids_moyen_sac_kg_max > 0 ? $produit->poids_moyen_sac_kg_max : 120;
+                    $quantiteARestaurer = $poidsCharge / $poidsMoyenSac;
+                } elseif ($produit->unite === 'tonnes') {
+                    $quantiteARestaurer = $poidsCharge / 1000;
+                }
+                
+                // Remettre en stock
+                $produit->qte_variable = $produit->qte_variable + $quantiteARestaurer;
+                $produit->save();
+                
+                Log::info('Stock restauré lors de la suppression du chargement', [
+                    'chargement_id' => $chargement->id,
+                    'produit_id' => $produit->id,
+                    'quantite_restauree' => $quantiteARestaurer,
+                    'nouveau_stock' => $produit->qte_variable,
+                    'unite' => $produit->unite
+                ]);
+            }
+            
             $chargement->delete();
-            session()->flash('success', 'Chargement supprimé avec succès');
+            session()->flash('success', 'Chargement supprimé avec succès et stock restauré');
             $this->voyage->refresh();
             
         } catch (\Exception $e) {
+            Log::error('Erreur lors de la suppression du chargement', [
+                'message' => $e->getMessage(),
+                'chargement_id' => $chargement->id ?? 'N/A'
+            ]);
             session()->flash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
         }
     }
@@ -1062,11 +1345,151 @@ class VoyageShow extends Component
         return 'OP' . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
+
+        /**
+     * Récupère seulement les produits qui ont du stock disponible pour le chargement
+     */
+    public function getProduitsDisponiblesProperty()
+    {
+        return Produit::where('actif', true)
+            ->where('qte_variable', '>', 0) // Seulement les produits avec du stock
+            ->with(['transactions' => function($query) {
+                $query->where('type', 'achat')
+                      ->where('statut', '!=', 'annule');
+            }])
+            ->orderBy('nom')
+            ->get()
+            ->map(function($produit) {
+                // Ajouter des informations utiles sur le stock
+                $produit->stock_disponible = $produit->qte_variable;
+                $produit->stock_formate = number_format($produit->qte_variable, 2, ',', ' ') . ' ' . $produit->unite;
+                return $produit;
+            });
+    }
+
+    /**
+     * Récupère le produit sélectionné avec ses informations de stock
+     */
+    public function getProduitSelectionneProperty()
+    {
+        if (!$this->produit_id) {
+            return null;
+        }
+
+        $produit = Produit::find($this->produit_id);
+        if ($produit) {
+            // Vérifier que le produit a bien du stock
+            if ($produit->qte_variable <= 0) {
+                $this->addError('produit_id', 'Ce produit n\'a plus de stock disponible.');
+                return null;
+            }
+            
+            $produit->stock_disponible = $produit->qte_variable;
+            $produit->stock_formate = number_format($produit->qte_variable, 2, ',', ' ') . ' ' . $produit->unite;
+        }
+
+        return $produit;
+    }
+
+
+    /**
+     * Validation du stock disponible lors de la sélection du produit
+     */
+    public function updatedProduitId()
+    {
+        $this->resetErrorBag(['produit_id', 'poids_depart_kg']);
+        
+        if ($this->produit_id) {
+            $produit = Produit::find($this->produit_id);
+            
+            if (!$produit) {
+                $this->addError('produit_id', 'Produit introuvable.');
+                return;
+            }
+            
+            if ($produit->qte_variable <= 0) {
+                $this->addError('produit_id', 'Ce produit n\'a plus de stock disponible pour le chargement.');
+                $this->produit_id = '';
+                return;
+            }
+            
+            Log::info('Produit sélectionné pour chargement', [
+                'produit_id' => $this->produit_id,
+                'nom' => $produit->nom_complet,
+                'stock_disponible' => $produit->qte_variable,
+                'unite' => $produit->unite
+            ]);
+        }
+    }
+
+
+        /**
+     * Validation du poids/quantité à charger
+     */
+    public function updatedPoidsDepartKg()
+    {
+        $this->validateStockForChargement();
+    }
+
+    /**
+     * Validation du stock pour le chargement
+     */
+    private function validateStockForChargement()
+    {
+        if (!$this->produit_id || !$this->poids_depart_kg) {
+            return;
+        }
+
+        $produit = Produit::find($this->produit_id);
+        if (!$produit) {
+            return;
+        }
+
+        $poidsACharger = floatval($this->poids_depart_kg);
+        $stockDisponible = floatval($produit->qte_variable);
+
+        // Conversion selon l'unité du produit
+        $quantiteACharger = $poidsACharger; // Par défaut en kg
+        
+        if ($produit->unite === 'sacs') {
+            // Si le produit est géré en sacs, convertir le poids en sacs équivalents
+            $poidsMoyenSac = $produit->poids_moyen_sac_kg_max > 0 ? $produit->poids_moyen_sac_kg_max : 120;
+            $quantiteACharger = $poidsACharger / $poidsMoyenSac;
+        } elseif ($produit->unite === 'tonnes') {
+            // Si le produit est géré en tonnes, convertir
+            $quantiteACharger = $poidsACharger / 1000;
+        }
+
+        Log::info('Validation stock pour chargement', [
+            'produit_unite' => $produit->unite,
+            'poids_a_charger' => $poidsACharger,
+            'quantite_equivalent' => $quantiteACharger,
+            'stock_disponible' => $stockDisponible
+        ]);
+
+        if ($quantiteACharger > $stockDisponible) {
+            $message = 'Stock insuffisant. ';
+            $message .= 'Disponible: ' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $produit->unite . ', ';
+            $message .= 'Demandé: ' . number_format($quantiteACharger, 2, ',', ' ') . ' ' . $produit->unite . ' équivalent';
+            
+            $this->addError('poids_depart_kg', $message);
+        } else {
+            $this->resetErrorBag('poids_depart_kg');
+            
+            // Calculer le stock restant après chargement (informatif)
+            $stockRestant = $stockDisponible - $quantiteACharger;
+            Log::info('Stock après chargement', [
+                'stock_restant' => $stockRestant,
+                'produit' => $produit->nom_complet
+            ]);
+        }
+    }
+
     // ==============================================
     // RENDU DE LA VUE
     // ==============================================
     
-    public function render()
+public function render()
     {
         // Charger le voyage avec toutes ses relations
         $voyage = $this->voyage->load([
@@ -1077,8 +1500,9 @@ class VoyageShow extends Component
             'dechargements.lieuLivraison'
         ]);
 
-        // Données pour les sélecteurs
-        $produits = Produit::where('actif', true)->orderBy('nom')->get();
+        // ✅ CORRECTION : Récupérer les produits disponibles avec stock
+        $produits = $this->produitsDisponibles;
+        
         $departs = Lieu::where('type', 'depart')->where('actif', true)->orderBy('nom')->get();
         $destinations = Lieu::whereIn('type', ['destination', 'depot'])->where('actif', true)->orderBy('nom')->get();
 
@@ -1138,7 +1562,7 @@ class VoyageShow extends Component
         return view('livewire.voyage.voyage-show', compact(
             'voyage', 
             'departs',
-            'produits', 
+            'produits', // ✅ CORRECTION : Repasser $produits pour les modals
             'destinations',
             
             // Statistiques principales
@@ -1164,4 +1588,5 @@ class VoyageShow extends Component
             'analyseParProduit'
         ));
     }
+    
 }

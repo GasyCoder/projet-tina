@@ -52,7 +52,7 @@
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                     </svg>
-                                    Nouveau Compte
+                                   Recharger compte
                                 </span>
                             </button>
                         @endif
@@ -148,7 +148,7 @@
                                 </span>
                             </button>
 
-                            <!-- Rapports -->
+                            {{-- <!-- Rapports -->
                             <button wire:click="setActiveTab('rapports')"
                                     class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'rapports' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
                                 <span class="flex items-center whitespace-nowrap">
@@ -157,7 +157,7 @@
                                     </svg>
                                     Rapports
                                 </span>
-                            </button>
+                            </button> --}}
                         </nav>
                     </div>
                 </div>
@@ -262,7 +262,7 @@
                                 <livewire:finance.compte-manager :key="'compte-manager-'.now()" />
                             </div>
                     @elseif($activeTab === 'rapports')
-                        <div wire:key="tab-rapports">
+                        {{-- <div wire:key="tab-rapports">
                             @include('livewire.finance.tabs.rapports', [
                                 'dateDebut' => $dateDebut,
                                 'dateFin' => $dateFin,
@@ -270,7 +270,7 @@
                                 'totalSorties' => $totalSorties,
                                 'beneficeNet' => $beneficeNet
                             ])
-                        </div>
+                        </div> --}}
                     @endif
                 </div>
             </div>

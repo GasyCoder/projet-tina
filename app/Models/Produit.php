@@ -110,4 +110,32 @@ class Produit extends Model
     {
         return $query->where('qte_variable', '<=', $seuil);
     }
+
+
+    public function getCapaciteDisponibleAttribute()
+    {
+        return max(0, $this->poids_moyen_sac_kg_max - $this->qte_variable);
+    }
+
+    public function getPourcentageUtilisationAttribute()
+    {
+        if ($this->poids_moyen_sac_kg_max <= 0) {
+            return 0;
+        }
+        
+        return ($this->qte_variable / $this->poids_moyen_sac_kg_max) * 100;
+    }
+
+    public function getStatutStockAttribute()
+    {
+        if ($this->qte_variable == 0) {
+            return 'vide';
+        } elseif ($this->qte_variable <= $this->poids_moyen_sac_kg_max * 0.2) {
+            return 'faible';
+        } elseif ($this->qte_variable <= $this->poids_moyen_sac_kg_max * 0.8) {
+            return 'normal';
+        } else {
+            return 'plein';
+        }
+    }
 }

@@ -348,99 +348,84 @@
                             </div>
                         </div>
 
-<!-- Section 4: Quantités AMÉLIORÉE -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-                            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-5 py-4 border-b border-green-100">
-                                <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                                    <span class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                                        ⚖️
-                                    </span>
+                        <!-- Section 4: Quantités -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                            <!-- Header -->
+                            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                                <h4 class="text-base font-semibold text-gray-800 flex items-center">
+                                    <span class="mr-2">⚖️</span>
                                     Quantités et poids
                                     @if($this->produitSelectionne && $this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
                                         <button wire:click="suggestOptimalQuantity" 
-                                                class="ml-auto px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-medium rounded-lg transition-colors">
-                                            💡 Suggérer optimal
+                                                class="ml-auto px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-md transition-colors">
+                                            Suggérer optimal
                                         </button>
                                     @endif
                                 </h4>
                             </div>
-                            
-                            <div class="p-6">
-                                <!-- ✅ NOUVEAU : Alerte stock épuisé -->
+
+                            <!-- Content -->
+                            <div class="p-5">
+                                <!-- Stock épuisé alert -->
                                 @if($this->produitSelectionne && $this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)
-                                    <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <div class="mb-5 p-3 bg-red-50 border border-red-200 rounded-md">
                                         <div class="flex items-center">
-                                            <div class="flex-shrink-0">
-                                                <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                                </svg>
-                                            </div>
-                                            <div class="ml-3">
-                                                <h3 class="text-sm font-medium text-red-800">❌ Stock épuisé</h3>
-                                                <p class="text-sm text-red-700 mt-1">
-                                                    Ce produit n'a plus de stock disponible pour le chargement.
-                                                    Veuillez sélectionner un autre produit ou approvisionner le stock.
-                                                </p>
-                                            </div>
+                                            <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <p class="text-sm text-red-700">
+                                                Stock épuisé. Sélectionnez un autre produit ou approvisionnez le stock.
+                                            </p>
                                         </div>
                                     </div>
                                 @endif
 
-                                <!-- ✅ AMÉLIORÉ : Limite de stock avec plus de détails -->
+                                <!-- Limite de stock -->
                                 @if($this->produitSelectionne && $this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
-                                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex-1">
-                                                <h5 class="text-sm font-semibold text-blue-900 flex items-center">
-                                                    📊 Limite de chargement pour {{ $this->produitSelectionne->nom_complet }}
-                                                </div>
-                                                <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                                    <div class="text-center p-2 bg-white rounded border border-blue-200">
-                                                        <div class="font-bold text-blue-800">{{ number_format($this->limiteSacs['stock_disponible'], 2) }}</div>
-                                                        <div class="text-blue-600 text-xs">{{ $this->limiteSacs['produit_unite'] ?: 'kg' }} en stock</div>
-                                                    </div>
-                                                    <div class="text-center p-2 bg-white rounded border border-blue-200">
-                                                        <div class="font-bold text-blue-800">{{ number_format($this->limiteSacs['max_sacs'], 1) }}</div>
-                                                        <div class="text-blue-600 text-xs">sacs maximum</div>
-                                                    </div>
-                                                    <div class="text-center p-2 bg-white rounded border border-blue-200">
-                                                        <div class="font-bold text-blue-800">{{ $this->limiteSacs['poids_moyen_sac'] }} kg</div>
-                                                        <div class="text-blue-600 text-xs">poids/sac</div>
-                                                    </div>
-                                                </div>
+                                    <div class="mb-5 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                        <h5 class="text-sm font-semibold text-blue-800">
+                                            Limite pour {{ $this->produitSelectionne->nom_complet }}
+                                        </h5>
+                                        <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                                            <div class="text-center p-2 bg-white rounded border border-blue-100">
+                                                <div class="font-semibold text-blue-700">{{ number_format($this->limiteSacs['stock_disponible'], 2) }}</div>
+                                                <div class="text-blue-600 text-xs">{{ $this->limiteSacs['produit_unite'] ?: 'kg' }} en stock</div>
+                                            </div>
+                                            <div class="text-center p-2 bg-white rounded border border-blue-100">
+                                                <div class="font-semibold text-blue-700">{{ number_format($this->limiteSacs['max_sacs'], 1) }}</div>
+                                                <div class="text-blue-600 text-xs">Sacs max</div>
+                                            </div>
+                                            <div class="text-center p-2 bg-white rounded border border-blue-100">
+                                                <div class="font-semibold text-blue-700">{{ $this->limiteSacs['poids_moyen_sac'] }} kg</div>
+                                                <div class="text-blue-600 text-xs">Poids/sac</div>
                                             </div>
                                         </div>
                                     </div>
                                 @endif
 
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <!-- ✅ AMÉLIORÉ : Sacs pleins avec validation en temps réel -->
-                                    <div class="space-y-2">
-                                        <label class="block text-sm font-semibold text-gray-700">
-                                            📦 Sacs pleins *
+                                <!-- Input fields -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <!-- Sacs pleins -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Sacs pleins *
                                             @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
-                                                <span class="text-xs text-gray-500 ml-1">
-                                                    (Max: {{ number_format($this->limiteSacs['max_sacs'], 1) }})
-                                                </span>
+                                                <span class="text-xs text-gray-500">(Max: {{ number_format($this->limiteSacs['max_sacs'], 1) }})</span>
                                             @endif
                                         </label>
                                         <div class="relative">
                                             <input wire:model.live="sacs_pleins_depart" 
-                                                   type="number" 
-                                                   min="0"
-                                                   @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0) 
-                                                       max="{{ floor($this->limiteSacs['max_sacs']) }}" 
-                                                   @else
-                                                       disabled
-                                                   @endif
-                                                   step="1"
-                                                   placeholder="0"
-                                                   class="w-full px-4 py-3 border 
-                                                          {{ $errors->has('sacs_pleins_depart') ? 'border-red-300 bg-red-50' : 'border-gray-300' }} 
-                                                          @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) opacity-50 cursor-not-allowed @endif
-                                                          rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors">
-                                            
-                                            <!-- ✅ AMÉLIORÉ : Indicateur visuel plus précis -->
+                                                type="number" 
+                                                min="0"
+                                                @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
+                                                    max="{{ floor($this->limiteSacs['max_sacs']) }}"
+                                                @else
+                                                    disabled
+                                                @endif
+                                                step="1"
+                                                placeholder="0"
+                                                class="w-full px-3 py-2 border {{ $errors->has('sacs_pleins_depart') ? 'border-red-300 bg-red-50' : 'border-gray-300' }} rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                aria-describedby="sacs-pleins-error">
                                             @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $sacs_pleins_depart)
                                                 @php
                                                     $totalSacsSaisis = floatval($sacs_pleins_depart ?: 0) + (floatval($sacs_demi_depart ?: 0) * 0.5);
@@ -448,218 +433,155 @@
                                                 @endphp
                                                 <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                                     @if($pourcentageUtilise > 100)
-                                                        <span class="text-red-500 text-xl animate-pulse" title="Dépassement !">🚫</span>
+                                                        <span class="text-red-500" title="Dépassement">🚫</span>
                                                     @elseif($pourcentageUtilise > 90)
-                                                        <span class="text-red-500 text-xl" title="Attention, proche de la limite">⚠️</span>
-                                                    @elseif($pourcentageUtilise > 70)
-                                                        <span class="text-yellow-500 text-xl" title="Utilisation élevée">⚡</span>
+                                                        <span class="text-yellow-500" title="Proche de la limite">⚠️</span>
                                                     @else
-                                                        <span class="text-green-500 text-xl" title="Dans les limites">✅</span>
+                                                        <span class="text-green-500" title="Dans les limites">✅</span>
                                                     @endif
                                                 </div>
                                             @endif
                                         </div>
-                                        
-                                        <!-- ✅ AMÉLIORÉ : Messages d'erreur plus détaillés -->
-                                        @error('sacs_pleins_depart') 
-                                            <div class="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                                <div class="flex items-start">
-                                                    <svg class="w-5 h-5 text-red-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                    <div class="flex-1">
-                                                        <div class="text-red-800 font-medium text-sm">🚫 Problème de stock</div>
-                                                        <div class="text-red-700 text-sm mt-1 whitespace-pre-line">{{ $message }}</div>
-                                                    </div>
-                                                </div>
+                                        @error('sacs_pleins_depart')
+                                            <div class="mt-1 text-sm text-red-600 flex items-center" id="sacs-pleins-error">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                {{ $message }}
                                             </div>
                                         @enderror
-
-                                        <!-- ✅ NOUVEAU : Message de suggestion automatique -->
-                                        @error('stock_suggestion')
-                                            <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                <div class="flex items-start">
-                                                    <svg class="w-5 h-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                    <div class="flex-1">
-                                                        <div class="text-blue-800 font-medium text-sm whitespace-pre-line">{{ $message }}</div>
-                                                        <button wire:click="suggestOptimalQuantity" 
-                                                                class="mt-2 px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs rounded transition-colors">
-                                                            Appliquer cette suggestion
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @enderror
-
-                                        <!-- ✅ AMÉLIORÉ : Indicateur de progression avec plus de détails -->
-                                        @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $sacs_pleins_depart && !$errors->has('sacs_pleins_depart'))
-                                            @php
-                                                $totalSacsSaisis = floatval($sacs_pleins_depart ?: 0) + (floatval($sacs_demi_depart ?: 0) * 0.5);
-                                                $pourcentageUtilise = $this->limiteSacs['max_sacs'] > 0 ? ($totalSacsSaisis / $this->limiteSacs['max_sacs']) * 100 : 0;
-                                                $sacRestants = $this->limiteSacs['max_sacs'] - $totalSacsSaisis;
-                                            @endphp
-                                            <div class="mt-2 p-3 rounded-lg 
-                                                        {{ $pourcentageUtilise > 90 ? 'bg-red-50 border border-red-200' : 
-                                                        ($pourcentageUtilise > 70 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200') }}">
-                                                <div class="flex items-center justify-between text-xs mb-2">
-                                                    <span class="{{ $pourcentageUtilise > 90 ? 'text-red-700' : ($pourcentageUtilise > 70 ? 'text-yellow-700' : 'text-green-700') }}">
-                                                        📊 Utilisation: {{ number_format($pourcentageUtilise, 1) }}%
-                                                    </span>
-                                                    <span class="{{ $pourcentageUtilise > 90 ? 'text-red-600' : ($pourcentageUtilise > 70 ? 'text-yellow-600' : 'text-green-600') }}">
-                                                        📦 Reste: {{ number_format($sacRestants, 1) }} sacs
-                                                    </span>
-                                                </div>
-                                                
-                                                <!-- Barre de progression -->
-                                                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                                    <div class="h-2 rounded-full transition-all duration-300
-                                                                {{ $pourcentageUtilise > 90 ? 'bg-red-500' : ($pourcentageUtilise > 70 ? 'bg-yellow-500' : 'bg-green-500') }}" 
-                                                         style="width: {{ min(100, $pourcentageUtilise) }}%"></div>
-                                                </div>
-                                                
-                                                <!-- Détails de conversion -->
-                                                @if($this->limiteSacs['produit_unite'] !== 'sacs')
-                                                    <div class="text-xs {{ $pourcentageUtilise > 90 ? 'text-red-600' : ($pourcentageUtilise > 70 ? 'text-yellow-600' : 'text-green-600') }}">
-                                                        ≈ {{ number_format($totalSacsSaisis * $this->limiteSacs['poids_moyen_sac'], 2) }} kg 
-                                                        sur {{ number_format($this->limiteSacs['stock_disponible'], 2) }} {{ $this->limiteSacs['produit_unite'] }}
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endif
                                     </div>
 
-                                    <!-- Sacs demi (inchangé mais avec désactivation si pas de stock) -->
-                                    <div class="space-y-2">
-                                        <label class="block text-sm font-semibold text-gray-700">
-                                            📦 Sacs demi
+                                    <!-- Sacs demi -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Sacs demi
                                         </label>
                                         <input wire:model.live="sacs_demi_depart" 
-                                               type="number" 
-                                               min="0"
-                                               max="1"
-                                               step="1"
-                                               placeholder="0"
-                                               @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) disabled @endif
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors
-                                                      @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) opacity-50 cursor-not-allowed @endif">
-                                        @error('sacs_demi_depart') 
-                                            <p class="mt-1 text-sm text-red-600 flex items-center">
-                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            type="number" 
+                                            min="0"
+                                            max="1"
+                                            step="1"
+                                            placeholder="0"
+                                            @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) disabled @endif
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            aria-describedby="sacs-demi-error">
+                                        @error('sacs_demi_depart')
+                                            <div class="mt-1 text-sm text-red-600 flex items-center" id="sacs-demi-error">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                                 </svg>
                                                 {{ $message }}
-                                            </p>
+                                            </div>
                                         @enderror
                                     </div>
 
-                                    <!-- Poids total (inchangé mais avec désactivation si pas de stock) -->
-                                    <div class="space-y-2">
-                                        <label class="block text-sm font-semibold text-gray-700">
-                                            ⚖️ Poids total (kg) *
+                                    <!-- Poids total -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                                            Poids total (kg) *
                                         </label>
                                         <input wire:model.live="poids_depart_kg" 
-                                               type="number" 
-                                               step="0.01" 
-                                               min="0"
-                                               placeholder="0.00"
-                                               @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) disabled @endif
-                                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors
-                                                      @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) opacity-50 cursor-not-allowed @endif">
-                                        @error('poids_depart_kg') 
-                                            <p class="mt-1 text-sm text-red-600 flex items-center">
-                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            type="number" 
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="0.00"
+                                            @if(!$this->produitSelectionne || ($this->limiteSacs && $this->limiteSacs['stock_disponible'] <= 0)) disabled @endif
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            aria-describedby="poids-depart-error">
+                                        @error('poids_depart_kg')
+                                            <div class="mt-1 text-sm text-red-600 flex items-center" id="poids-depart-error">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                                 </svg>
                                                 {{ $message }}
-                                            </p>
+                                            </div>
                                         @enderror
                                     </div>
                                 </div>
 
-                                <!-- ✅ AMÉLIORÉ : Résumé des quantités avec plus de détails -->
-                                @if(($sacs_pleins_depart || $sacs_demi_depart || $poids_depart_kg) && $this->produitSelectionne)
+                                <!-- Progression indicator -->
+                                @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $sacs_pleins_depart && !$errors->has('sacs_pleins_depart'))
                                     @php
-                                        $totalSacs = floatval($sacs_pleins_depart ?: 0) + (floatval($sacs_demi_depart ?: 0) * 0.5);
+                                        $totalSacsSaisis = floatval($sacs_pleins_depart ?: 0) + (floatval($sacs_demi_depart ?: 0) * 0.5);
+                                        $pourcentageUtilise = $this->limiteSacs['max_sacs'] > 0 ? ($totalSacsSaisis / $this->limiteSacs['max_sacs']) * 100 : 0;
+                                        $sacRestants = $this->limiteSacs['max_sacs'] - $totalSacsSaisis;
                                     @endphp
-                                    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                                        <h5 class="text-sm font-semibold text-green-900 mb-3 flex items-center justify-between">
-                                            <span class="flex items-center">
-                                                📊 Résumé du chargement
-                                                @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $totalSacs <= $this->limiteSacs['max_sacs'])
-                                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                        ✅ Conforme
-                                                    </span>
-                                                @elseif($this->limiteSacs && $totalSacs > $this->limiteSacs['max_sacs'])
-                                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                        ❌ Dépassement
-                                                    </span>
-                                                @endif
-                                            </span>
-                                            
-                                            @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
-                                                <span class="text-xs text-green-600">
-                                                    Impact stock: -{{ number_format(($totalSacs * $this->limiteSacs['poids_moyen_sac']), 2) }} 
-                                                    {{ $this->limiteSacs['produit_unite'] ?: 'kg' }}
-                                                </span>
-                                            @endif
-                                        </h5>
-                                        
-                                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                                            <div class="text-center p-3 bg-white rounded-lg border border-green-200">
-                                                <div class="text-2xl font-bold text-green-800">{{ $sacs_pleins_depart ?: 0 }}</div>
-                                                <div class="text-green-600">Sacs pleins</div>
-                                            </div>
-                                            <div class="text-center p-3 bg-white rounded-lg border border-green-200">
-                                                <div class="text-2xl font-bold text-green-800">{{ $sacs_demi_depart ?: 0 }}</div>
-                                                <div class="text-green-600">Sacs demi</div>
-                                            </div>
-                                            <div class="text-center p-3 bg-white rounded-lg border border-green-200">
-                                                <div class="text-2xl font-bold text-green-800">{{ number_format($totalSacs, 1) }}</div>
-                                                <div class="text-green-600">Total sacs</div>
-                                            </div>
-                                            <div class="text-center p-3 bg-white rounded-lg border border-green-200">
-                                                <div class="text-2xl font-bold text-green-800">{{ $poids_depart_kg ? number_format($poids_depart_kg, 2) : '0.00' }}</div>
-                                                <div class="text-green-600">Kg total</div>
-                                            </div>
+                                    <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                                        <div class="flex items-center justify-between text-sm mb-2">
+                                            <span class="text-gray-600">Utilisation: {{ number_format($pourcentageUtilise, 1) }}%</span>
+                                            <span class="text-gray-600">Reste: {{ number_format($sacRestants, 1) }} sacs</span>
                                         </div>
-                                        
-                                        <!-- ✅ NOUVEAU : Alerte de dépassement avec suggestion -->
-                                        @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $totalSacs > $this->limiteSacs['max_sacs'])
-                                            <div class="mt-3 p-3 bg-red-100 border border-red-200 rounded-lg">
-                                                <div class="flex items-start justify-between">
-                                                    <div class="flex items-center flex-1">
-                                                        <svg class="w-5 h-5 text-red-500 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                        </svg>
-                                                        <div class="text-red-800 text-sm">
-                                                            <div class="font-medium">⚠️ Dépassement de {{ number_format($totalSacs - $this->limiteSacs['max_sacs'], 1) }} sacs</div>
-                                                            <div class="mt-1">Stock insuffisant pour cette quantité</div>
-                                                        </div>
-                                                    </div>
-                                                    <button wire:click="suggestOptimalQuantity" 
-                                                            class="ml-3 px-3 py-1.5 bg-red-200 hover:bg-red-300 text-red-800 text-xs font-medium rounded transition-colors">
-                                                        Corriger automatiquement
-                                                    </button>
-                                                </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="h-2 rounded-full {{ $pourcentageUtilise > 90 ? 'bg-red-500' : ($pourcentageUtilise > 70 ? 'bg-yellow-500' : 'bg-blue-500') }}" 
+                                                style="width: {{ min(100, $pourcentageUtilise) }}%"></div>
+                                        </div>
+                                        @if($this->limiteSacs['produit_unite'] !== 'sacs')
+                                            <div class="mt-1 text-xs text-gray-600">
+                                                ≈ {{ number_format($totalSacsSaisis * $this->limiteSacs['poids_moyen_sac'], 2) }} kg / {{ number_format($this->limiteSacs['stock_disponible'], 2) }} {{ $this->limiteSacs['produit_unite'] }}
                                             </div>
                                         @endif
                                     </div>
                                 @endif
 
-                                <!-- ✅ AMÉLIORÉ : Message informatif plus engageant -->
-                                @if(!$this->produitSelectionne)
-                                    <div class="mt-4 p-6 bg-gradient-to-r from-gray-50 to-blue-50 border border-gray-200 rounded-lg text-center">
-                                        <div class="text-gray-600">
-                                            <div class="text-3xl mb-2">🎯</div>
-                                            <div class="font-medium mb-1">Prêt pour la saisie des quantités</div>
-                                            <div class="text-sm">Sélectionnez d'abord un produit ci-dessus pour voir les limites de chargement et commencer la saisie</div>
+                                <!-- Résumé du chargement -->
+                                @if(($sacs_pleins_depart || $sacs_demi_depart || $poids_depart_kg) && $this->produitSelectionne)
+                                    @php
+                                        $totalSacs = floatval($sacs_pleins_depart ?: 0) + (floatval($sacs_demi_depart ?: 0) * 0.5);
+                                    @endphp
+                                    <div class="mt-5 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                                        <h5 class="text-sm font-semibold text-gray-800 mb-3 flex items-center justify-between">
+                                            Résumé du chargement
+                                            @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0)
+                                                <span class="text-xs {{ $totalSacs <= $this->limiteSacs['max_sacs'] ? 'text-green-600' : 'text-red-600' }}">
+                                                    Impact stock: -{{ number_format(($totalSacs * $this->limiteSacs['poids_moyen_sac']), 2) }} {{ $this->limiteSacs['produit_unite'] ?: 'kg' }}
+                                                </span>
+                                            @endif
+                                        </h5>
+                                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+                                            <div class="text-center p-2 bg-white rounded border border-gray-100">
+                                                <div class="font-semibold text-gray-700">{{ $sacs_pleins_depart ?: 0 }}</div>
+                                                <div class="text-gray-600 text-xs">Sacs pleins</div>
+                                            </div>
+                                            <div class="text-center p-2 bg-white rounded border border-gray-100">
+                                                <div class="font-semibold text-gray-700">{{ $sacs_demi_depart ?: 0 }}</div>
+                                                <div class="text-gray-600 text-xs">Sacs demi</div>
+                                            </div>
+                                            <div class="text-center p-2 bg-white rounded border border-gray-100">
+                                                <div class="font-semibold text-gray-700">{{ number_format($totalSacs, 1) }}</div>
+                                                <div class="text-gray-600 text-xs">Total sacs</div>
+                                            </div>
+                                            <div class="text-center p-2 bg-white rounded border border-gray-100">
+                                                <div class="font-semibold text-gray-700">{{ $poids_depart_kg ? number_format($poids_depart_kg, 2) : '0.00' }}</div>
+                                                <div class="text-gray-600 text-xs">Kg total</div>
+                                            </div>
                                         </div>
+                                        @if($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0 && $totalSacs > $this->limiteSacs['max_sacs'])
+                                            <div class="mt-3 p-2 bg-red-50 border border-red-200 rounded-md flex items-center justify-between">
+                                                <div class="text-sm text-red-700">
+                                                    Dépassement de {{ number_format($totalSacs - $this->limiteSacs['max_sacs'], 1) }} sacs
+                                                </div>
+                                                <button wire:click="suggestOptimalQuantity" 
+                                                        class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-md">
+                                                    Corriger
+                                                </button>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                <!-- Message when no product is selected -->
+                                @if(!$this->produitSelectionne)
+                                    <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-md text-center">
+                                        <p class="text-sm text-gray-600">
+                                            Sélectionnez un produit pour voir les limites de chargement et saisir les quantités.
+                                        </p>
                                     </div>
                                 @endif
                             </div>
                         </div>
+
+
                         <!-- Section 5: Observations -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                             <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-5 py-4 border-b border-gray-100">

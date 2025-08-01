@@ -8,8 +8,10 @@ use App\Models\Voyage;
 use Livewire\Component;
 use App\Models\Vehicule;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule; // AJOUT IMPORTANT
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class VoyageIndex extends Component
 {
@@ -190,31 +192,78 @@ class VoyageIndex extends Component
         $this->showModal = true;
     }
 
-    public function save()
-    {
-        // UTILISATION DES RÈGLES DYNAMIQUES
-        $this->validate($this->getRules(), $this->messages);
+public function save()
+{
+    $maxRetries = 5;
+    $retryCount = 0;
+    $success = false;
 
-        $data = [
-            'reference' => $this->reference,
-            'date' => $this->date,
-            'vehicule_id' => $this->vehicule_id,
-            'chauffeur_nom' => $this->chauffeur_nom,
-            'chauffeur_phone' => $this->chauffeur_phone,
-            'statut' => $this->statut,
-            'observation' => $this->observation,
-        ];
+    while (!$success && $retryCount < $maxRetries) {
+        try {
+            DB::beginTransaction();
 
-        if ($this->editingVoyage) {
-            $this->editingVoyage->update($data);
-            session()->flash('success', 'Voyage modifié avec succès');
-        } else {
-            Voyage::create($data);
-            session()->flash('success', 'Voyage créé avec succès');
+            $this->validate($this->getRules(), $this->messages);
+
+            $data = [
+                'reference' => $this->reference,
+                'date' => $this->date,
+                'vehicule_id' => $this->vehicule_id,
+                'chauffeur_nom' => $this->chauffeur_nom,
+                'chauffeur_phone' => $this->chauffeur_phone,
+                'statut' => $this->statut,
+                'observation' => $this->observation,
+            ];
+
+            if ($this->editingVoyage) {
+                // Edition normale
+                $this->editingVoyage->update($data);
+                session()->flash('success', 'Voyage modifié avec succès');
+                $success = true;
+            } else {
+                // NOUVEAU : On cherche la référence, même supprimée
+                $voyage = Voyage::withTrashed()
+                    ->where('reference', $this->reference)
+                    ->first();
+
+                if ($voyage && $voyage->trashed()) {
+                    // Si existe mais soft deleted : on restaure et MAJ les champs
+                    $voyage->restore();
+                    $voyage->update($data);
+                    session()->flash('success', 'Voyage restauré et mis à jour avec succès');
+                    $success = true;
+                } else if (!$voyage) {
+                    // Si aucune référence, on crée
+                    Voyage::create($data);
+                    session()->flash('success', 'Voyage créé avec succès');
+                    $success = true;
+                } else {
+                    // La référence existe déjà et est active => régénère
+                    $this->reference = $this->generateReference();
+                    $retryCount++;
+                    usleep(100000);
+                }
+            }
+
+            DB::commit();
+            $this->closeModal();
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+            $this->addError('general', 'Erreur SQL : ' . $e->getMessage());
+            break;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->addError('general', 'Erreur : ' . $e->getMessage());
+            break;
         }
-
-        $this->closeModal();
     }
+
+    if (!$success && !$this->editingVoyage) {
+        $this->addError('reference', 'La référence générée existe déjà. Veuillez réessayer.');
+        $this->showModal = true;
+    }
+}
+
+
 
     public function changeStatut(Voyage $voyage, $nouveauStatut)
     {
@@ -273,11 +322,32 @@ class VoyageIndex extends Component
     private function generateReference()
     {
         $year = date('y');
-        // IMPORTANT : Compter seulement les voyages NON supprimés
-        $count = Voyage::withoutTrashed()->whereYear('created_at', date('Y'))->count() + 1;
-        return 'V' . str_pad($count, 3, '0', STR_PAD_LEFT) . '/' . $year;
+        $maxRetries = 5;
+        $retryCount = 0;
+
+        while ($retryCount < $maxRetries) {
+            $count = Voyage::withoutTrashed()
+                ->whereYear('created_at', date('Y'))
+                ->count() + 1;
+
+            $reference = 'V' . str_pad($count, 3, '0', STR_PAD_LEFT) . '/' . $year;
+
+            $exists = Voyage::withoutTrashed()
+                ->where('reference', $reference)
+                ->exists();
+
+            if (!$exists) {
+                return $reference;
+            }
+
+            $retryCount++;
+            usleep(100000); // Petite pause avant de réessayer
+        }
+
+        throw new \Exception('Impossible de générer une référence unique après ' . $maxRetries . ' tentatives.');
     }
 
+    
     // MÉTHODES D'EXPORT/ACTIONS EN MASSE
     public function exportSelected($voyageIds)
     {
@@ -317,22 +387,21 @@ class VoyageIndex extends Component
         session()->flash('success', $count . ' voyages supprimés avec succès');
     }
 
-    // MÉTHODE POUR RESTAURER UN VOYAGE SUPPRIMÉ (BONUS)
     public function restore($voyageId)
     {
-        $voyage = Voyage::withTrashed()->find($voyageId);
-        
-        if ($voyage && $voyage->trashed()) {
-            // Vérifier si la référence est maintenant disponible
+        $voyage = Voyage::withTrashed()->findOrFail($voyageId);
+
+        if ($voyage->trashed()) {
+            // Check if the reference is already used by an active voyage
             $existingVoyage = Voyage::withoutTrashed()
                 ->where('reference', $voyage->reference)
                 ->first();
-                
+
             if ($existingVoyage) {
                 session()->flash('error', 'Impossible de restaurer : la référence "' . $voyage->reference . '" est déjà utilisée.');
                 return;
             }
-            
+
             $voyage->restore();
             session()->flash('success', 'Voyage restauré avec succès');
         }

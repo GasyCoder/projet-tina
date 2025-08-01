@@ -88,6 +88,7 @@ class VoyageShow extends Component
     public $product_poids_moyen_sac = 120;
     public $product_prix_reference = 0;
     public $quantite_vendue = 0; // Quantité dans l'unité du produit
+    public $limiteSacs = null;
 
     
     // ==============================================
@@ -132,16 +133,14 @@ class VoyageShow extends Component
     {
         $this->voyage = $voyage;
         $this->date = now()->format('Y-m-d');
-        
-        // ✅ NOUVEAU : Lire le tab depuis l'URL avec validation
         $validTabs = ['chargements', 'dechargements', 'synthese'];
-        $requestedTab = request()->query('tab', 'chargements');
-        $this->activeTab = in_array($requestedTab, $validTabs) ? $requestedTab : 'chargements';
-        
-        // Pré-configuration pour le déchargement
+        $this->activeTab = in_array(request()->query('tab', 'chargements'), $validTabs) 
+            ? request()->query('tab') 
+            : 'chargements';
         $this->selected_voyage_id = $voyage->id;
         $this->selected_voyage = $voyage;
         $this->loadAvailableChargements();
+        $this->updateLimiteSacs(); // Compute limiteSacs on mount
     }
 
     // ==============================================
@@ -214,9 +213,17 @@ class VoyageShow extends Component
         $stockDisponible = floatval($produit->qte_variable);
         $depassement = false;
 
-        // ✅ LOGIQUE SIMPLE selon l'unité
-        if ($produit->unite === 'kg') {
-            // Si unité = kg → comparer le poids calculé avec le stock
+        if ($this->limiteSacs && $this->limiteSacs['stock_disponible'] > 0) {
+            if ($totalSacs > $this->limiteSacs['max_sacs']) {
+                $this->addError('sacs_pleins_depart', 
+                    "❌ Dépassement de stock !\n" .
+                    "• Demandé : " . number_format($totalSacs, 1) . " sacs\n" .
+                    "• Disponible : " . $this->limiteSacs['stock_formate'] . "\n" .
+                    "• Maximum : " . number_format($this->limiteSacs['max_sacs'], 1) . " sacs"
+                );
+            }
+        } else {
+            // Fallback si limiteSacs n'est pas défini
             $poidsMoyenSac = $produit->poids_moyen_sac_kg_max ?: 120;
             $poidsCalcule = $totalSacs * $poidsMoyenSac;
             
@@ -226,33 +233,6 @@ class VoyageShow extends Component
                     "❌ Dépassement de stock !\n" .
                     "• Demandé : " . number_format($totalSacs, 1) . " sacs ≈ " . number_format($poidsCalcule, 2) . " kg\n" .
                     "• Disponible : " . number_format($stockDisponible, 2) . " kg\n" .
-                    "• Maximum : " . number_format($limiteSacs, 1) . " sacs"
-                );
-            }
-        } 
-        elseif ($produit->unite === 'sacs') {
-            // Si unité = sacs → comparer directement les sacs
-            if ($totalSacs > $stockDisponible) {
-                $this->addError('sacs_pleins_depart', 
-                    "❌ Dépassement de stock !\n" .
-                    "• Demandé : " . number_format($totalSacs, 1) . " sacs\n" .
-                    "• Disponible : " . number_format($stockDisponible, 1) . " sacs\n" .
-                    "• Maximum : " . number_format($stockDisponible, 1) . " sacs"
-                );
-            }
-        }
-        else {
-            // Autres unités (tonnes, etc.) → traiter comme kg
-            $poidsMoyenSac = $produit->poids_moyen_sac_kg_max ?: 120;
-            $poidsCalcule = $totalSacs * $poidsMoyenSac;
-            $stockEnKg = $produit->unite === 'tonnes' ? $stockDisponible * 1000 : $stockDisponible;
-            
-            if ($poidsCalcule > $stockEnKg) {
-                $limiteSacs = $stockEnKg / $poidsMoyenSac;
-                $this->addError('sacs_pleins_depart', 
-                    "❌ Dépassement de stock !\n" .
-                    "• Demandé : " . number_format($totalSacs, 1) . " sacs\n" .
-                    "• Disponible : " . number_format($stockDisponible, 2) . " " . $produit->unite . "\n" .
                     "• Maximum : " . number_format($limiteSacs, 1) . " sacs"
                 );
             }
@@ -277,7 +257,6 @@ class VoyageShow extends Component
 
         $stockDisponible = floatval($produit->qte_variable);
         
-        // Si pas de stock, retourner des limites à zéro
         if ($stockDisponible <= 0) {
             return [
                 'max_sacs' => 0,
@@ -298,19 +277,16 @@ class VoyageShow extends Component
                 $uniteAffichage = 'sacs';
                 $stockFormate = number_format($stockDisponible, 1) . ' sacs';
                 break;
-                
             case 'kg':
                 $maxSacs = $stockDisponible / $poidsMoyenSac;
                 $uniteAffichage = 'sacs équivalents';
                 $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 2) . ' kg)';
                 break;
-                
             case 'tonnes':
                 $maxSacs = ($stockDisponible * 1000) / $poidsMoyenSac;
                 $uniteAffichage = 'sacs équivalents';
                 $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 3) . ' tonnes)';
                 break;
-                
             default:
                 $maxSacs = $stockDisponible / $poidsMoyenSac;
                 $uniteAffichage = 'sacs équivalents';
@@ -320,8 +296,8 @@ class VoyageShow extends Component
 
         return [
             'max_sacs' => $maxSacs,
-            'max_sacs_pleins' => floor($maxSacs), // Sacs pleins possibles
-            'max_sacs_demi' => ($maxSacs - floor($maxSacs)) >= 0.5 ? 1 : 0, // Sac demi possible
+            'max_sacs_pleins' => floor($maxSacs),
+            'max_sacs_demi' => ($maxSacs - floor($maxSacs)) >= 0.5 ? 1 : 0,
             'unite_affichage' => $uniteAffichage,
             'stock_formate' => $stockFormate,
             'poids_moyen_sac' => $poidsMoyenSac,
@@ -329,7 +305,6 @@ class VoyageShow extends Component
             'produit_unite' => $produit->unite
         ];
     }
-
 
     /**
      * Analyse le type d'écart et retourne les informations appropriées
@@ -1398,32 +1373,99 @@ class VoyageShow extends Component
     public function updatedProduitId()
     {
         $this->resetErrorBag(['produit_id', 'poids_depart_kg']);
-        
         if ($this->produit_id) {
             $produit = Produit::find($this->produit_id);
-            
             if (!$produit) {
                 $this->addError('produit_id', 'Produit introuvable.');
+                $this->limiteSacs = null;
                 return;
             }
-            
             if ($produit->qte_variable <= 0) {
                 $this->addError('produit_id', 'Ce produit n\'a plus de stock disponible pour le chargement.');
                 $this->produit_id = '';
+                $this->limiteSacs = null;
                 return;
             }
-            
             Log::info('Produit sélectionné pour chargement', [
                 'produit_id' => $this->produit_id,
                 'nom' => $produit->nom_complet,
                 'stock_disponible' => $produit->qte_variable,
                 'unite' => $produit->unite
             ]);
+            $this->updateLimiteSacs(); // Update limiteSacs when produit_id changes
+        } else {
+            $this->limiteSacs = null;
         }
     }
 
+    
+    private function updateLimiteSacs()
+    {
+        if (!$this->produit_id) {
+            $this->limiteSacs = null;
+            return;
+        }
 
-        /**
+        $produit = Produit::find($this->produit_id);
+        if (!$produit) {
+            $this->limiteSacs = null;
+            return;
+        }
+
+        $stockDisponible = floatval($produit->qte_variable);
+        
+        if ($stockDisponible <= 0) {
+            $this->limiteSacs = [
+                'max_sacs' => 0,
+                'max_sacs_pleins' => 0,
+                'max_sacs_demi' => 0,
+                'unite_affichage' => 'stock épuisé',
+                'stock_formate' => '0 ' . ($produit->unite ?: 'kg') . ' (épuisé)',
+                'poids_moyen_sac' => $produit->poids_moyen_sac_kg_max ?: 120,
+                'stock_disponible' => 0,
+                'produit_unite' => $produit->unite
+            ];
+            return;
+        }
+
+        $poidsMoyenSac = ($produit->poids_moyen_sac_kg_max > 0) ? $produit->poids_moyen_sac_kg_max : 120;
+        
+        switch ($produit->unite) {
+            case 'sacs':
+                $maxSacs = $stockDisponible;
+                $uniteAffichage = 'sacs';
+                $stockFormate = number_format($stockDisponible, 1) . ' sacs';
+                break;
+            case 'kg':
+                $maxSacs = $stockDisponible / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 2) . ' kg)';
+                break;
+            case 'tonnes':
+                $maxSacs = ($stockDisponible * 1000) / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 3) . ' tonnes)';
+                break;
+            default:
+                $maxSacs = $stockDisponible / $poidsMoyenSac;
+                $uniteAffichage = 'sacs équivalents';
+                $stockFormate = number_format($maxSacs, 1) . ' sacs max (' . number_format($stockDisponible, 2) . ' ' . $produit->unite . ')';
+                break;
+        }
+
+        $this->limiteSacs = [
+            'max_sacs' => $maxSacs,
+            'max_sacs_pleins' => floor($maxSacs),
+            'max_sacs_demi' => ($maxSacs - floor($maxSacs)) >= 0.5 ? 1 : 0,
+            'unite_affichage' => $uniteAffichage,
+            'stock_formate' => $stockFormate,
+            'poids_moyen_sac' => $poidsMoyenSac,
+            'stock_disponible' => $stockDisponible,
+            'produit_unite' => $produit->unite
+        ];
+    }
+
+    /**
      * Validation du poids/quantité à charger
      */
     public function updatedPoidsDepartKg()

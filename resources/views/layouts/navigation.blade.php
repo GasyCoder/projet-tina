@@ -1,6 +1,26 @@
-<!-- NAVBAR FIXE EN HAUT -->
-<nav x-data="{ open: false, openGestions: false }"
-    class="fixed top-0 inset-x-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+<!-- NAVBAR FIXE EN HAUT AVEC MODE SOMBRE -->
+<nav x-data="{ 
+        open: false, 
+        openGestions: false,
+        darkMode: localStorage.getItem('darkMode') === 'true' || (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+        toggleDarkMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('darkMode', this.darkMode);
+            if (this.darkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    }"
+    x-init="
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    "
+    class="fixed top-0 inset-x-0 z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
             <!-- Logo + liens -->
@@ -8,8 +28,8 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}"
-                        class="flex items-center space-x-2 text-xl font-bold text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none"
+                        class="flex items-center space-x-2 text-xl font-bold text-gray-800 dark:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
@@ -21,7 +41,7 @@
                 <!-- Liens de navigation (grands écrans) -->
                 <div class="hidden sm:flex sm:items-center sm:ms-10 sm:space-x-6">
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')"
-                        class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition">
+                        class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -31,12 +51,12 @@
                     </x-nav-link>
 
                     @php
-$isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', 'voyages.*');
+                    $isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', 'voyages.*');
                     @endphp
 
                     <div x-data="{ openGestions: false }" class="relative group">
                         <button @click="openGestions = !openGestions" @click.away="openGestions = false" class="flex items-center px-3 py-2 text-sm font-medium transition
-            {{ $isGestionsActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">
+            {{ $isGestionsActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -50,21 +70,21 @@ $isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', '
                         </button>
 
                         <div x-show="openGestions" x-transition
-                            class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                            class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-600 z-10">
                             <x-nav-link :href="route('lieux.index')" :active="request()->routeIs('lieux.*')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Lieux
                             </x-nav-link>
                             <x-nav-link :href="route('produits.index')" :active="request()->routeIs('produits.*')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Produits
                             </x-nav-link>
                             <x-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Véhicules
                             </x-nav-link>
                             <x-nav-link :href="route('voyages.index')" :active="request()->routeIs('voyages.*')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Voyages
                             </x-nav-link>
                         </div>
@@ -76,7 +96,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
 
                     <div x-data="{ openFinance: false }" class="relative group">
                         <button @click="openFinance = !openFinance" @click.away="openFinance = false" class="flex items-center px-3 py-2 text-sm font-medium transition
-                {{ $isFinanceActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">
+                {{ $isFinanceActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400' }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -90,28 +110,22 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                         </button>
 
                         <div x-show="openFinance" x-transition
-                            class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                            class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-600 z-10">
                             <x-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.index')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Gestion Financière
                             </x-nav-link>
                             <x-nav-link :href="route('finance.situations')"
                                 :active="request()->routeIs('finance.situations')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Situations financières
                             </x-nav-link>
-                            <!-- <x-nav-link :href="route('finance.dashboard.situations')"
-                                :active="request()->routeIs('finance.dashboard.situations')"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition">
-                                Dashboard financier
-                            </x-nav-link> -->
                         </div>
                     </div>
 
-
                     @if(Auth::user()->isAdmin())
                         <x-nav-link :href="route('admin.stocks')" :active="request()->routeIs('admin.stocks')"
-                            class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition">
+                            class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -123,16 +137,32 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                 </div>
             </div>
 
-            <!-- Bouton hamburger (mobile) -->
-            <div class="flex items-center sm:hidden">
-                <button @click="open = !open"
-                    class="p-2 rounded-md text-gray-500 hover:text-blue-600 hover:bg-blue-50 focus:outline-none transition">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path x-show="!open" stroke-linecap="round" stroke-linejoin="round"
-                            d="M4 6h16M4 12h16m-7 6h7" />
-                        <path x-show="open" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            <!-- Bouton toggle mode sombre + hamburger -->
+            <div class="flex items-center space-x-2">
+                <!-- Bouton toggle mode sombre -->
+                <button @click="toggleDarkMode()" 
+                    class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none transition">
+                    <!-- Icône soleil (mode clair) -->
+                    <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <!-- Icône lune (mode sombre) -->
+                    <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                     </svg>
                 </button>
+
+                <!-- Bouton hamburger (mobile) -->
+                <div class="sm:hidden">
+                    <button @click="open = !open"
+                        class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none transition">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path x-show="!open" stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 6h16M4 12h16m-7 6h7" />
+                            <path x-show="open" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <!-- Dropdown utilisateur (desktop) -->
@@ -140,7 +170,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button
-                            class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 rounded-md transition">
+                            class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition">
                             <span>{{ Auth::user()->name }}</span>
                             <svg class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                                 stroke-width="2">
@@ -167,10 +197,10 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
     </div>
 
     <!-- Menu responsive (mobile) -->
-    <div x-show="open" x-transition class="sm:hidden bg-white border-t border-gray-200">
+    <div x-show="open" x-transition class="sm:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')"
-                class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -185,7 +215,7 @@ $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 've
             @endphp
             <div x-data="{ openGestionsMobile: false }" class="px-4 py-2">
                 <button @click="openGestionsMobile = !openGestionsMobile"
-                    class="flex items-center w-full text-left {{ $isGestionsActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">
+                    class="flex items-center w-full text-left {{ $isGestionsActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400' }}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -198,19 +228,19 @@ $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 've
                 </button>
                 <div x-show="openGestionsMobile" x-transition class="pl-8 space-y-1">
                     <x-responsive-nav-link :href="route('voyages.index')" :active="request()->routeIs('voyages.*')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Voyages
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('produits.index')" :active="request()->routeIs('produits.*')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Produits
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('lieux.index')" :active="request()->routeIs('lieux.*')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Lieux
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Véhicules
                     </x-responsive-nav-link>
                 </div>
@@ -222,7 +252,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
             @endphp
             <div x-data="{ openFinanceMobile: false }" class="px-4 py-2">
                 <button @click="openFinanceMobile = !openFinanceMobile"
-                    class="flex items-center w-full text-left {{ $isFinanceActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600' }}">
+                    class="flex items-center w-full text-left {{ $isFinanceActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400' }}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -235,25 +265,20 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                 </button>
                 <div x-show="openFinanceMobile" x-transition class="pl-8 space-y-1">
                     <x-responsive-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.index')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Gestion Financière
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('finance.situations')"
                         :active="request()->routeIs('finance.situations')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Situations financières
                     </x-responsive-nav-link>
-                    <!-- <x-responsive-nav-link :href="route('finance.dashboard.situations')"
-                        :active="request()->routeIs('finance.dashboard.situations')"
-                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                        Dashboard financier
-                    </x-responsive-nav-link> -->
                 </div>
             </div>
 
             @if(Auth::user()->isAdmin())
                 <x-responsive-nav-link :href="route('admin.stocks')" :active="request()->routeIs('admin.stocks')"
-                    class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -265,14 +290,14 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
         </div>
 
         <!-- Compte utilisateur (mobile) -->
-        <div class="pt-4 pb-3 border-t border-gray-200">
+        <div class="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
             <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="text-sm text-gray-500">{{ Auth::user()->email }}</div>
+                <div class="font-medium text-base text-gray-800 dark:text-white">{{ Auth::user()->name }}</div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
             </div>
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')"
-                    class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                    class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -282,7 +307,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                 </x-responsive-nav-link>
                 @if(Auth::user()->isAdmin())
                     <x-responsive-nav-link :href="route('users.index')"
-                        class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -295,7 +320,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
                     @csrf
                     <x-responsive-nav-link :href="route('logout')"
                         onclick="event.preventDefault(); this.closest('form').submit();"
-                        class="flex items-center px-4 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                        class="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round"

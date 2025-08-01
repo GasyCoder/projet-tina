@@ -3,8 +3,6 @@
 namespace App\Livewire\Finance;
 
 use Carbon\Carbon;
-use App\Models\Lieu;
-use App\Models\User;
 use App\Models\Compte;
 use App\Models\Voyage;
 use App\Models\Produit;

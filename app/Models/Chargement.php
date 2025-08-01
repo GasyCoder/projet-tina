@@ -109,4 +109,99 @@ class Chargement extends Model
         return $this->hasMany(Transaction::class, 'chargement_id');
     }
 
+
+    // ✅ NOUVEAU : Events pour gérer automatiquement le stock
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($chargement) {
+            // Le stock est déjà géré dans VoyageShow::saveChargement()
+            // Mais on peut ajouter des logs supplémentaires ici
+            \Illuminate\Support\Facades\Log::info('Chargement created event', [
+                'chargement_id' => $chargement->id,
+                'produit_id' => $chargement->produit_id,
+                'poids' => $chargement->poids_depart_kg
+            ]);
+        });
+
+        static::updated(function ($chargement) {
+            // Le stock est déjà géré dans VoyageShow::saveChargement()
+            \Illuminate\Support\Facades\Log::info('Chargement updated event', [
+                'chargement_id' => $chargement->id,
+                'produit_id' => $chargement->produit_id,
+                'poids' => $chargement->poids_depart_kg
+            ]);
+        });
+
+        static::deleting(function ($chargement) {
+            // Le stock est déjà géré dans VoyageShow::deleteChargement()
+            \Illuminate\Support\Facades\Log::info('Chargement deleting event', [
+                'chargement_id' => $chargement->id,
+                'produit_id' => $chargement->produit_id,
+                'poids' => $chargement->poids_depart_kg
+            ]);
+        });
+    }
+
+    // ✅ NOUVEAU : Méthodes utilitaires pour la gestion du stock
+    
+    /**
+     * Calcule la quantité équivalente selon l'unité du produit
+     */
+    public function getQuantiteEquivalenteAttribute()
+    {
+        if (!$this->produit) {
+            return $this->poids_depart_kg;
+        }
+
+        $poids = floatval($this->poids_depart_kg);
+        
+        switch ($this->produit->unite) {
+            case 'sacs':
+                $poidsMoyenSac = $this->produit->poids_moyen_sac_kg_max > 0 ? $this->produit->poids_moyen_sac_kg_max : 120;
+                return $poids / $poidsMoyenSac;
+                
+            case 'tonnes':
+                return $poids / 1000;
+                
+            default:
+                return $poids;
+        }
+    }
+
+    /**
+     * Vérifie si le chargement peut être créé avec le stock disponible
+     */
+    public function peutEtreCharge()
+    {
+        if (!$this->produit) {
+            return false;
+        }
+
+        $quantiteNecessaire = $this->quantite_equivalente;
+        $stockDisponible = floatval($this->produit->qte_variable);
+
+        return $stockDisponible >= $quantiteNecessaire;
+    }
+
+    /**
+     * Obtient les informations de stock pour ce chargement
+     */
+    public function getInfoStockAttribute()
+    {
+        if (!$this->produit) {
+            return null;
+        }
+
+        return [
+            'produit_nom' => $this->produit->nom_complet,
+            'produit_unite' => $this->produit->unite,
+            'poids_charge' => $this->poids_depart_kg,
+            'quantite_equivalente' => $this->quantite_equivalente,
+            'stock_produit_avant' => $this->produit->qte_variable,
+            'stock_produit_apres' => $this->produit->qte_variable - $this->quantite_equivalente,
+        ];
+    }
+
 }

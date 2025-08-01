@@ -33,11 +33,7 @@ class Lieu extends Model
         return $this->hasMany(Dechargement::class, 'lieu_livraison_id');
     }
 
-    public function stockDepots()
-    {
-        return $this->hasMany(StockDepot::class, 'depot_id');
-    }
-
+ 
     public function transfertsDepart()
     {
         return $this->hasMany(TransfertStock::class, 'depot_depart_id');

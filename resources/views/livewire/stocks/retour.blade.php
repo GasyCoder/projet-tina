@@ -1,4 +1,4 @@
-:q{{-- resources/views/livewire/stocks/retour.blade.php --}}
+{{-- resources/views/livewire/stocks/retour.blade.php --}}
 <div>
     <!-- Statistiques du stock de retour -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -196,12 +196,11 @@
                                 @if($sortDirection === 'asc') ↑ @else ↓ @endif
                             @endif
                         </th>
-
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($retours as $retour)
-<<<<<<< HEAD
+
                         <tr class="hover:bg-orange-50 transition-colors duration-150">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
                                 {{ $retour->reference }}
@@ -243,7 +242,7 @@
                             </td>
 
                         </tr>
-=======
+                        
                     <tr class="hover:bg-orange-50 transition-colors duration-150">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-orange-600">
                             {{ $retour->reference }}
@@ -282,9 +281,7 @@
                                 {{ ucfirst(str_replace('_', ' ', $retour->statut)) }}
                             </span>
                         </td>
-
                     </tr>
->>>>>>> f5797af (update _ide_helper.php, Dechargement.php, Retour.php and retour.blade.php)
                     @empty
                         <tr>
                             <td colspan="7" class="px-6 py-12 text-center">
@@ -295,8 +292,6 @@
                                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                     </svg>
                                     <h3 class="text-lg font-medium text-gray-900 mb-2">Aucun retour enregistré</h3>
-                                    <p class="text-gray-500">Commencez par ajouter un retour en cliquant sur le bouton
-                                        ci-dessus</p>
                                 </div>
                             </td>
                         </tr>

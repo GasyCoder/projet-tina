@@ -235,15 +235,6 @@
                                 
                                 <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <div class="flex items-center justify-end gap-2">
-                                        <!-- Bouton ajustement rapide du stock -->
-                                        <button wire:click="ajusterStock({{ $produit->id }})" 
-                                                class="text-purple-600 hover:text-purple-900 p-1 rounded-full hover:bg-purple-100" 
-                                                title="Ajuster le stock">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2M7 4h10l.94 10.34A2 2 0 0116 16H8a2 2 0 01-1.94-1.66L7 4zM5 9h14M9 9v7m6-7v7"/>
-                                            </svg>
-                                        </button>
-                                        
                                         <button wire:click="edit({{ $produit->id }})" 
                                                 class="text-blue-600 hover:text-blue-900 p-1 rounded-full hover:bg-blue-100" 
                                                 title="Modifier">
@@ -251,7 +242,6 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </button>
-                                        
                                         <button 
                                             wire:click="delete({{ $produit->id }})"
                                             wire:confirm="Êtes-vous sûr de vouloir supprimer ce produit ?"

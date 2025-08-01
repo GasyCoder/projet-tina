@@ -4,50 +4,89 @@ namespace App\Livewire\Stocks;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Models\Depots;
+use App\Models\Dechargement;
+use App\Models\Produit;
+use App\Models\Lieu;
+use App\Models\User;
+use App\Models\Vehicule;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Depot extends Component
 {
     use WithPagination;
-
-    // Propriétés pour la recherche et les filtres
+    public $showDetailsModal = false;
+    public $detailsDepot = null;
     public $search = '';
     public $filterCategorie = '';
-    
-    // Propriétés pour le tri
-    public $sortField = 'nom';
-    public $sortDirection = 'asc';
-    
-    // Propriétés pour les modales
+    public $filterStatut = '';
+    public $sortField = 'date';
+    public $sortDirection = 'desc';
+
     public $showEntreeModal = false;
     public $showAjustementModal = false;
-    
-    // Propriétés pour le formulaire d'entrée
+    public $showSortieModal = false;
+    public $showHistoriqueModal = false;
+    public $historiqueSelectionne = null;
+    public $selectedDepot = null;
+
     public $formEntree = [
+        'date_entree' => '',
         'produit_id' => '',
-        'quantite' => '',
-        'prix_unitaire' => '',
-        'fournisseur' => '',
-        'notes' => '',
+        'origine' => '',
+        'depot_id' => '',
+        'proprietaire_id' => '',
+        'sacs_pleins' => '',
+        'sacs_demi' => '',
+        'poids_entree_kg' => '',
+        'prix_marche_actuel_mga' => '',
+        'observation' => '',
     ];
-    
-    // Propriétés pour le formulaire d'ajustement
+
+    public $formSortie = [
+        'poids_sortie_kg' => '',
+        'date_sortie' => '',
+        'vehicule_sortie_id' => '',
+        'observation' => '',
+    ];
+
     public $formAjustement = [
         'produit_id' => '',
         'nouveau_stock' => '',
         'motif' => '',
         'commentaire' => '',
     ];
-    
-    // Statistiques (données factices)
-    public $stockTotal = 15420;
-    public $nombreProduits = 8;
-    public $stockCritique = 2;
-    public $valeurStock = 8547200;
 
-    // Listeners Livewire
-    protected $listeners = ['$refresh'];
+    // Ajout du listener pour debug
+    protected $listeners = [
+        '$refresh',
+        'depotAction' => 'handleDepotAction'
+    ];
 
-    // Méthodes pour réinitialiser la pagination lors des recherches
+    public function handleDepotAction($action, $id)
+    {
+        \Log::info("Action reçue: $action pour ID: $id");
+        
+        switch ($action) {
+            case 'details':
+                $this->showDetails($id);
+                break;
+            case 'sortie':
+                $this->prepareSortie($id);
+                break;
+            default:
+                session()->flash('error', 'Action non reconnue.');
+        }
+    }
+
+
+    public function mount()
+    {
+        $this->formEntree['date_entree'] = now()->format('Y-m-d');
+        $this->formSortie['date_sortie'] = now()->format('Y-m-d');
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -58,7 +97,11 @@ class Depot extends Component
         $this->resetPage();
     }
 
-    // Méthode pour le tri
+    public function updatingFilterStatut()
+    {
+        $this->resetPage();
+    }
+
     public function sortBy($field)
     {
         if ($this->sortField === $field) {
@@ -69,7 +112,6 @@ class Depot extends Component
         }
     }
 
-    // Méthodes pour les modales d'entrée de stock
     public function openEntreeModal()
     {
         $this->showEntreeModal = true;
@@ -85,15 +127,19 @@ class Depot extends Component
     public function resetFormEntree()
     {
         $this->formEntree = [
+            'date_entree' => now()->format('Y-m-d'),
             'produit_id' => '',
-            'quantite' => '',
-            'prix_unitaire' => '',
-            'fournisseur' => '',
-            'notes' => '',
+            'origine' => '',
+            'depot_id' => '',
+            'proprietaire_id' => '',
+            'sacs_pleins' => '',
+            'sacs_demi' => '',
+            'poids_entree_kg' => '',
+            'prix_marche_actuel_mga' => '',
+            'observation' => '',
         ];
     }
 
-    // Méthodes pour les modales d'ajustement
     public function openAjustementModal()
     {
         $this->showAjustementModal = true;
@@ -116,39 +162,26 @@ class Depot extends Component
         ];
     }
 
-    // Méthode pour sauvegarder une entrée de stock
     public function saveEntree()
     {
         $this->validate([
-            'formEntree.produit_id' => 'required',
-            'formEntree.quantite' => 'required|numeric|min:0',
-            'formEntree.prix_unitaire' => 'required|numeric|min:0',
-            'formEntree.fournisseur' => 'required',
-        ], [
-            'formEntree.produit_id.required' => 'Veuillez sélectionner un produit.',
-            'formEntree.quantite.required' => 'La quantité est obligatoire.',
-            'formEntree.quantite.numeric' => 'La quantité doit être un nombre.',
-            'formEntree.prix_unitaire.required' => 'Le prix unitaire est obligatoire.',
-            'formEntree.prix_unitaire.numeric' => 'Le prix unitaire doit être un nombre.',
-            'formEntree.fournisseur.required' => 'Le fournisseur est obligatoire.',
+            'formEntree.date_entree' => 'required|date',
+            'formEntree.produit_id' => 'required|exists:produits,id',
+            'formEntree.origine' => 'required|string|max:255',
+            'formEntree.depot_id' => 'required|exists:lieux,id',
+            'formEntree.proprietaire_id' => 'required|exists:users,id',
+            'formEntree.poids_entree_kg' => 'required|numeric|min:0',
+            'formEntree.prix_marche_actuel_mga' => 'required|numeric|min:0',
         ]);
 
-        // Ici vous pourrez sauvegarder en base de données
-        // MouvementStock::create([
-        //     'produit_id' => $this->formEntree['produit_id'],
-        //     'type' => 'entree',
-        //     'quantite' => $this->formEntree['quantite'],
-        //     'prix_unitaire' => $this->formEntree['prix_unitaire'],
-        //     'fournisseur' => $this->formEntree['fournisseur'],
-        //     'notes' => $this->formEntree['notes'],
-        // ]);
+        // Logique pour créer l'entrée de stock
+        // À adapter selon votre modèle de données
 
         session()->flash('message', 'Entrée de stock enregistrée avec succès !');
         $this->closeEntreeModal();
         $this->dispatch('$refresh');
     }
 
-    // Méthode pour sauvegarder un ajustement
     public function saveAjustement()
     {
         $this->validate([
@@ -156,24 +189,92 @@ class Depot extends Component
             'formAjustement.nouveau_stock' => 'required|numeric|min:0',
             'formAjustement.motif' => 'required',
             'formAjustement.commentaire' => 'required|min:5',
-        ], [
-            'formAjustement.produit_id.required' => 'Veuillez sélectionner un produit.',
-            'formAjustement.nouveau_stock.required' => 'Le nouveau stock est obligatoire.',
-            'formAjustement.nouveau_stock.numeric' => 'Le nouveau stock doit être un nombre.',
-            'formAjustement.motif.required' => 'Le motif est obligatoire.',
-            'formAjustement.commentaire.required' => 'Le commentaire est obligatoire.',
-            'formAjustement.commentaire.min' => 'Le commentaire doit contenir au moins 5 caractères.',
         ]);
-
-        // Ici vous pourrez sauvegarder en base de données
-        // AjustementStock::create($this->formAjustement);
 
         session()->flash('message', 'Ajustement de stock effectué avec succès !');
         $this->closeAjustementModal();
         $this->dispatch('$refresh');
     }
 
-    // Méthodes pour les actions sur les stocks
+    // Correction de la méthode prepareSortie
+    public function prepareSortie($id)
+    {
+        try {
+            $this->selectedDepot = $this->getStockById($id);
+
+            if ($this->selectedDepot) {
+                // Vérifier si le stock peut être sorti
+                if (($this->selectedDepot->reste_kg ?? 0) <= 0) {
+                    session()->flash('error', 'Ce stock ne peut pas être sorti (quantité insuffisante).');
+                    return;
+                }
+
+                // Préparer les données pour le modal
+                $this->selectedDepot->produit = $this->getProduitFromChargement($this->selectedDepot->chargement_id);
+                $this->selectedDepot->proprietaire = $this->getProprietaireFromDechargement($this->selectedDepot);
+
+                $this->showSortieModal = true;
+                $this->formSortie['date_sortie'] = now()->format('Y-m-d');
+                $this->formSortie['poids_sortie_kg'] = '';
+                $this->formSortie['vehicule_sortie_id'] = '';
+                $this->formSortie['observation'] = '';
+            } else {
+                session()->flash('error', 'Stock introuvable.');
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Erreur lors de la préparation de la sortie : ' . $e->getMessage());
+        }
+    }
+
+
+    public function saveSortie()
+    {
+        $this->validate([
+            'formSortie.poids_sortie_kg' => 'required|numeric|min:0.01|max:' . $this->selectedDepot->reste_kg,
+            'formSortie.date_sortie' => 'required|date',
+        ]);
+
+        // Logique pour enregistrer la sortie de stock
+        // À adapter selon votre modèle de données
+
+        session()->flash('message', 'Sortie de stock enregistrée avec succès !');
+        $this->showSortieModal = false;
+        $this->selectedDepot = null;
+        $this->dispatch('$refresh');
+    }
+
+    // Correction de la méthode showDetails
+    public function showDetails($id)
+    {
+        try {
+            // Récupérer les détails du dépôt
+            $this->detailsDepot = Dechargement::with(['chargement.produit'])
+                ->where('type', 'depot')
+                ->find($id);
+
+            if ($this->detailsDepot) {
+                // Préparer les données pour l'affichage
+                $this->detailsDepot->produit = $this->getProduitFromChargement($this->detailsDepot->chargement_id);
+                $this->detailsDepot->proprietaire = $this->getProprietaireFromDechargement($this->detailsDepot);
+                $this->detailsDepot->date_entree = $this->detailsDepot->date;
+                $this->detailsDepot->origine = 'Transport';
+
+                $this->showDetailsModal = true;
+            } else {
+                session()->flash('error', 'Dépôt introuvable.');
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Erreur lors de la récupération des détails : ' . $e->getMessage());
+        }
+    }
+
+
+    public function closeDetailsModal()
+    {
+        $this->showDetailsModal = false;
+        $this->detailsDepot = null;
+    }
+
     public function ajusterStock($id)
     {
         $this->formAjustement['produit_id'] = $id;
@@ -182,47 +283,215 @@ class Depot extends Component
 
     public function voirHistorique($id)
     {
-        // Rediriger vers la page d'historique ou ouvrir une modale
-        // return redirect()->route('stocks.historique', $id);
+        $dechargement = Dechargement::where('type', 'depot')->find($id);
+
+        if ($dechargement) {
+            $this->historiqueSelectionne = [
+                'type' => 'dechargement',
+                'id' => $dechargement->id,
+                'nom' => $dechargement->produit?->nom ?? 'Produit inconnu',
+                'date' => $dechargement->date?->format('d/m/Y'),
+                'quantite' => $dechargement->poids_arrivee_kg,
+                'proprietaire' => $dechargement->proprietaire_nom ?? 'N/A',
+            ];
+            $this->showHistoriqueModal = true;
+            return;
+        }
+
+        session()->flash('error', 'Stock introuvable.');
     }
 
-    // Méthode pour obtenir des données factices de stock
-    public function getDummyStocks()
+    // Correction de la méthode getStockById avec gestion d'erreur
+    private function getStockById($id)
     {
-        return collect([
-            ['id' => 1, 'nom' => 'Riz local', 'categorie' => 'cereales', 'stock_actuel' => 2450, 'seuil_min' => 1000, 'prix_unitaire' => 3500],
-            ['id' => 2, 'nom' => 'Maïs jaune', 'categorie' => 'cereales', 'stock_actuel' => 850, 'seuil_min' => 800, 'prix_unitaire' => 2800],
-            ['id' => 3, 'nom' => 'Haricot rouge', 'categorie' => 'legumineuses', 'stock_actuel' => 320, 'seuil_min' => 500, 'prix_unitaire' => 4200],
-            ['id' => 4, 'nom' => 'Patate douce', 'categorie' => 'tubercules', 'stock_actuel' => 1200, 'seuil_min' => 600, 'prix_unitaire' => 1800],
-            ['id' => 5, 'nom' => 'Haricot blanc', 'categorie' => 'legumineuses', 'stock_actuel' => 180, 'seuil_min' => 400, 'prix_unitaire' => 3800],
-        ]);
+        try {
+            return Dechargement::with(['chargement.produit'])
+                ->where('type', 'depot')
+                ->find($id);
+        } catch (\Exception $e) {
+            \Log::error('Erreur getStockById: ' . $e->getMessage());
+            return null;
+        }
     }
 
-    // Méthode pour obtenir des données factices d'historique
-    public function getDummyHistorique()
+
+    public function getStocksFusionnes()
     {
-        return collect([
-            ['produit' => 'Riz local', 'type' => 'entree', 'quantite' => 500, 'date' => '2024-01-15 14:30:00'],
-            ['produit' => 'Maïs jaune', 'type' => 'sortie', 'quantite' => 150, 'date' => '2024-01-15 11:20:00'],
-            ['produit' => 'Haricot rouge', 'type' => 'sortie', 'quantite' => 80, 'date' => '2024-01-14 16:45:00'],
-            ['produit' => 'Patate douce', 'type' => 'entree', 'quantite' => 300, 'date' => '2024-01-14 09:15:00'],
-            ['produit' => 'Riz local', 'type' => 'sortie', 'quantite' => 200, 'date' => '2024-01-13 15:00:00'],
-        ]);
+        $query = Dechargement::where('type', 'depot')
+            ->with(['chargement.produit']) // Charger les relations nécessaires
+            ->select([
+                'id',
+                'date',
+                'poids_arrivee_kg as poids_entree_kg',
+                DB::raw("0 as poids_sortie_kg"),
+                'poids_arrivee_kg as reste_kg',
+                'statut',
+                DB::raw("'dechargement' as source"),
+                'voyage_id',
+                'chargement_id',
+                'reference',
+                'sacs_pleins_arrivee as sacs_pleins',
+                'sacs_demi_arrivee as sacs_demi',
+                'pointeur_nom',
+                'interlocuteur_nom'
+                // Retirer 'proprietaire_nom' car ce n'est pas une vraie colonne
+            ]);
+
+        // Appliquer les filtres
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('reference', 'like', '%' . $this->search . '%')
+                    ->orWhere('pointeur_nom', 'like', '%' . $this->search . '%')
+                    ->orWhere('interlocuteur_nom', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        if ($this->filterStatut) {
+            $query->where('statut', $this->filterStatut);
+        }
+
+        // Utiliser paginate() au lieu de get()
+        return $query->orderBy($this->sortField, $this->sortDirection)
+            ->paginate(15)
+            ->through(function ($item) {
+                // Ajouter les relations et propriétés manuellement
+                $item->produit = $this->getProduitFromChargement($item->chargement_id);
+                $item->proprietaire = $this->getProprietaireFromDechargement($item);
+                $item->depot = (object) ['nom' => 'Dépôt principal']; // À adapter selon vos besoins
+                $item->date_entree = $item->date;
+                $item->origine = $someSource->lieu->nom ?? null;
+
+                $item->prix_marche_actuel_mga = 0; // À adapter selon vos besoins
+    
+                // Définir les propriétés manquantes pour éviter les erreurs
+                $item->produit_id = $item->chargement ? $item->chargement->produit_id : null;
+                $item->proprietaire_id = null; // À adapter si vous avez cette information
+    
+                return $item;
+            });
+    }
+
+
+    // Méthode alternative avec jointure si vous préférez récupérer proprietaire_nom directement
+    public function getStocksFusionnesAvecJointure()
+    {
+        $query = Dechargement::where('dechargements.type', 'depot')
+            ->leftJoin('chargements', 'dechargements.chargement_id', '=', 'chargements.id')
+            ->leftJoin('produits', 'chargements.produit_id', '=', 'produits.id')
+            ->select([
+                'dechargements.id',
+                'dechargements.date',
+                'dechargements.poids_arrivee_kg as poids_entree_kg',
+                DB::raw("0 as poids_sortie_kg"),
+                'dechargements.poids_arrivee_kg as reste_kg',
+                'dechargements.statut',
+                DB::raw("'dechargement' as source"),
+                'dechargements.voyage_id',
+                'dechargements.chargement_id',
+                'dechargements.reference',
+                'dechargements.sacs_pleins_arrivee as sacs_pleins',
+                'dechargements.sacs_demi_arrivee as sacs_demi',
+                'chargements.proprietaire_nom',
+                'dechargements.pointeur_nom',
+                'dechargements.interlocuteur_nom',
+                'produits.nom as produit_nom',
+                'chargements.produit_id'
+            ]);
+
+        // Appliquer les filtres
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('dechargements.reference', 'like', '%' . $this->search . '%')
+                    ->orWhere('chargements.proprietaire_nom', 'like', '%' . $this->search . '%')
+                    ->orWhere('dechargements.pointeur_nom', 'like', '%' . $this->search . '%')
+                    ->orWhere('produits.nom', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        if ($this->filterStatut) {
+            $query->where('dechargements.statut', $this->filterStatut);
+        }
+
+        return $query->orderBy('dechargements.' . $this->sortField, $this->sortDirection)
+            ->paginate(15)
+            ->through(function ($item) {
+                // Créer les objets relations pour la compatibilité avec la vue
+                $item->produit = (object) ['nom' => $item->produit_nom ?? 'Produit inconnu'];
+                $item->proprietaire = (object) ['name' => $item->proprietaire_nom ?? 'Inconnu'];
+                $item->depot = (object) ['nom' => 'Dépôt principal'];
+                $item->date_entree = $item->date;
+                $item->origine = 'Transport';
+                $item->prix_marche_actuel_mga = 0;
+
+                return $item;
+            });
+    }
+
+
+
+    // Mise à jour des méthodes helper pour gérer les cas où les relations sont null
+
+    // Mise à jour des méthodes helper pour gérer les cas où les relations sont null
+    protected function getProduitFromChargement($chargementId)
+    {
+        if (!$chargementId) {
+            return (object) ['nom' => 'Produit inconnu'];
+        }
+
+        try {
+            $chargement = \App\Models\Chargement::with('produit')->find($chargementId);
+            return $chargement && $chargement->produit
+                ? $chargement->produit
+                : (object) ['nom' => 'Produit inconnu'];
+        } catch (\Exception $e) {
+            return (object) ['nom' => 'Produit inconnu'];
+        }
+    }
+
+
+
+    protected function getProprietaireFromDechargement($dechargement)
+    {
+        // Utiliser l'accesseur du modèle si disponible
+        $nom = $dechargement->proprietaire_nom ??
+            $dechargement->pointeur_nom ??
+            $dechargement->interlocuteur_nom ??
+            'Inconnu';
+
+        return (object) ['name' => $nom];
+    }
+    // Méthodes pour récupérer les données des selects
+    public function getProduits()
+    {
+        return Produit::orderBy('nom')->get();
+    }
+
+    public function getLieux()
+    {
+        return Lieu::where('type', 'depot')->orderBy('nom')->get();
+    }
+
+    public function getProprietaires()
+    {
+        return User::orderBy('name')->get();
+    }
+
+    public function getVehicules()
+    {
+        return Vehicule::orderBy('immatriculation')->get();
     }
 
     public function render()
     {
-        // Pour l'instant on retourne des données factices
-        // Plus tard vous pourrez faire une vraie requête :
-        // $stocks = Stock::query()
-        //     ->when($this->search, fn($query) => $query->where('nom', 'like', '%'.$this->search.'%'))
-        //     ->when($this->filterCategorie, fn($query) => $query->where('categorie', $this->filterCategorie))
-        //     ->orderBy($this->sortField, $this->sortDirection)
-        //     ->paginate(10);
+        $stocksFusionnes = $this->getStocksFusionnes();
 
         return view('livewire.stocks.depot', [
-            'stocks' => $this->getDummyStocks(),
-            'historique' => $this->getDummyHistorique(),
+            'depots' => $stocksFusionnes, // Maintenant c'est un objet paginé
+            'stocksFusionnes' => $stocksFusionnes,
+            'produits' => $this->getProduits(),
+            'lieux' => $this->getLieux(),
+            'proprietaires' => $this->getProprietaires(),
+            'vehicules' => $this->getVehicules(),
         ]);
     }
 }

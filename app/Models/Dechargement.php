@@ -98,7 +98,19 @@ class Dechargement extends Model
     {
         return $query->where('type', $type);
     }
-
+    // Add this to your Dechargement model
+    public function scopeDepotsSimules($query)
+    {
+        return $query->where('type', 'depot_simule') // ou le type que vous utilisez
+            ->select([
+                'id',
+                'date',
+                'produit_id',
+                'proprietaire_id', // Assurez-vous que ce champ existe
+                'poids_arrivee_kg as poids',
+                // DB::raw("'dechargement' as source")
+            ]);
+    }
     public function scopeVentes($query)
     {
         return $query->where('type', 'vente');

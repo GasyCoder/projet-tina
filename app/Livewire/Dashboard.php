@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Depots;
 use Livewire\Component;
 use App\Models\Voyage;
 use App\Models\Transaction;
@@ -16,54 +17,13 @@ class Dashboard extends Component
     public $selectedPeriod = 'month';
     public $stats = [];
 
-    public function mount()
-    {
-        $this->loadStats();
-    }
-
+   
     public function updatedSelectedPeriod()
     {
         $this->loadStats();
     }
 
-    public function loadStats()
-    {
-        $dateFilter = $this->getDateFilter();
-
-        $this->stats = [
-            // Logistique
-            'voyages_total' => Voyage::count(),
-            'voyages_en_cours' => Voyage::where('statut', 'en_cours')->count(),
-            'voyages_periode' => Voyage::where('created_at', '>=', $dateFilter)->count(),
-            'vehicules_actifs' => Vehicule::where('statut', 'actif')->count(),
-            
-            // Finance
-            'chiffre_affaires' => Transaction::where('type', 'vente')
-                ->where('created_at', '>=', $dateFilter)
-                ->sum('montant_mga'),
-            'benefice_brut' => $this->calculateBenefice($dateFilter),
-            'transactions_jour' => Transaction::whereDate('created_at', today())->count(),
-            'factures_impayees' => Facture::where('statut', '!=', 'payee')->sum('montant_restant_mga'),
-            
-            // Stock
-            'produits_total' => Produit::count(),
-            'stock_total_kg' => StockDepot::where('statut', 'en_stock')->sum('reste_kg'),
-            'proprietaires_actifs' => User::where('type', 'proprietaire')->where('actif', true)->count(),
-            
-            // Activité récente
-            'derniers_voyages' => Voyage::with(['vehicule'])
-                ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get(),
-            'dernieres_transactions' => Transaction::with(['fromUser', 'toUser'])
-                ->orderBy('created_at', 'desc')
-                ->limit(8)
-                ->get(),
-            'top_produits' => $this->getTopProduits($dateFilter),
-            'alertes' => $this->getAlertes()
-        ];
-    }
-
+ 
     private function getDateFilter()
     {
         return match($this->selectedPeriod) {
@@ -136,17 +96,7 @@ class Dashboard extends Component
         }
 
         // Stock faible
-        $stockFaible = StockDepot::where('reste_kg', '<', 1000)
-            ->where('statut', 'en_stock')
-            ->count();
-        if ($stockFaible > 0) {
-            $alertes->push([
-                'type' => 'error',
-                'icon' => 'archive',
-                'message' => "$stockFaible produits en stock faible",
-                'action' => 'Voir stocks'
-            ]);
-        }
+       
 
         return $alertes;
     }

@@ -21,7 +21,7 @@
         </div>
 
         <!-- Carte Guide d'utilisation -->
-        <div x-data="{ openGuide: true }"
+        <div x-data="{ openGuide: false }"
             class="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300">
             <div class="p-4 sm:p-6 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-gray-100">
                 <div class="flex items-center justify-between">

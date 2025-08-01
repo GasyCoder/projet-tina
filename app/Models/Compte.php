@@ -8,18 +8,18 @@ use Illuminate\Database\Eloquent\Model;
 class Compte extends Model
 {
     use HasFactory;
+    
     protected $fillable = [
         'user_id',
         'nom',
         'nom_proprietaire',
         'type_compte',
-        'nom_compte',
+        'nom_compte',       
         'numero_compte',
         'solde_actuel_mga',
         'derniere_transaction_id',
         'actif'
     ];
-
 
     protected $casts = [
         'solde_actuel_mga' => 'decimal:2',

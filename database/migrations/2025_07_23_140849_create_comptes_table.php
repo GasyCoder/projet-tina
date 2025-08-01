@@ -13,25 +13,24 @@ return new class extends Migration
     {
         Schema::create('comptes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('users'); // Optionnel maintenant
-            $table->string('nom_proprietaire')->nullable(); // Nom libre du propriétaire
+            $table->foreignId('user_id')->nullable()->constrained('users'); 
+            $table->string('nom_proprietaire')->nullable(); 
             $table->enum('type_compte', [
-                'principal',     // Compte principal espèces
-                'mobile_money',  // Airtel Money, Orange Money, MVola
-                'banque',       // Compte bancaire
-                'credit'        // Solde crédit/dette
-            ]);
-            $table->string('nom_compte'); // 'Espèces', 'Airtel Money', 'BOA 207142800027'
-            $table->string('nom')->nullable();
-            $table->string('numero_compte')->nullable(); // Numéro de compte
-            $table->decimal('solde_actuel_mga', 15, 2)->default(0); // Solde en MGA
+                'principal',   
+                'AirtelMoney', 
+                'MVola',
+                'OrangeMoney',
+                'banque'      
+            ])->default('principal'); 
+            $table->string('numero_compte')->nullable(); 
+            $table->decimal('solde_actuel_mga', 15, 2)->default(0); 
             $table->foreignId('derniere_transaction_id')->nullable()->constrained('transactions');
             $table->boolean('actif')->default(true);
             $table->timestamps();
             
             // Index
             $table->index(['user_id', 'nom_proprietaire']);
-            $table->index(['type_compte', 'nom_compte']);
+            $table->index(['type_compte']);
         });
     }
 

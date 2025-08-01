@@ -1,5 +1,4 @@
 <?php
-// app/Livewire/Finance/SituationFinanciere.php
 
 namespace App\Livewire\Finance;
 

@@ -3,14 +3,14 @@
 namespace App\Livewire\Finance;
 
 use Carbon\Carbon;
+use App\Models\Lieu;
 use App\Models\User;
 use App\Models\Compte;
 use App\Models\Voyage;
 use App\Models\Produit;
-use App\Models\Dechargement;
-use App\Models\Lieu;
 use Livewire\Component;
 use App\Models\Transaction;
+use App\Models\Dechargement;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,15 +19,11 @@ class FinanceIndex extends Component
 {
     use WithPagination;
 
-    // =====================================================
-    // PROPRIÉTÉS DE L'INTERFACE
-    // =====================================================
+    // Propriétés de l'interface
     public $activeTab = 'suivi';
     public $stock_actuel = 0;
 
-    // =====================================================
-    // FILTRES DE BASE
-    // =====================================================
+    // Filtres de base
     public $searchTerm = '';
     public $filterType = '';
     public $filterStatut = '';
@@ -35,9 +31,7 @@ class FinanceIndex extends Component
     public $dateFin = '';
     public $filterPersonne = '';
 
-    // =====================================================
-    // FILTRES AVANCÉS
-    // =====================================================
+    // Filtres avancés
     public $typeSuivi = 'tous';
     public $periodeRevenus = 'mois';
     public $dateDebutRevenus = '';
@@ -47,9 +41,7 @@ class FinanceIndex extends Component
     public $dateDebutDepenses = '';
     public $dateFinDepenses = '';
 
-    // =====================================================
-    // FORMULAIRE TRANSACTION
-    // =====================================================
+    // Formulaire transaction
     public $showTransactionModal = false;
     public $editingTransaction = null;
     public $reference = '';
@@ -72,40 +64,23 @@ class FinanceIndex extends Component
     public $observation = '';
     public $lieux_display = '';
 
-    // =====================================================
-    // FORMULAIRE COMPTE
-    // =====================================================
-    public $showCompteModal = false;
-    public $editingCompte = null;
-    public $nom_proprietaire = '';
-    public $type_compte = 'principal';
-    public $numero_compte = '';
-    public $solde_actuel_mga = 0;
-    public $compte_actif = true;
-
-    // =====================================================
-    // RÈGLES DE VALIDATION
-    // =====================================================
+    // Règles de validation
     protected $rules = [
         'reference' => 'required|string|max:255',
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'nullable|string|max:255',
         'mode_paiement' => 'required|in:especes,AirtelMoney,MVola,OrangeMoney,banque',
-        'statut' => 'required|in:attente,confirme,partiellement_payee', 
+        'statut' => 'required|in:attente,confirme,partiellement_payee',
         'type' => 'required|in:achat,vente,autre',
         'voyage_id' => 'nullable|exists:voyages,id',
         'produit_id' => 'required_if:type,achat|nullable|exists:produits,id',
         'quantite' => 'required_if:type,achat|nullable|numeric|min:0',
         'prix_unitaire_mga' => 'required_if:type,achat|nullable|numeric|min:0',
-        'reste_a_payer' => 'required_if:statut,partiellement_payee', 
-        'type_compte' => 'required|in:principal,AirtelMoney,MVola,OrangeMoney,banque',
-        'solde_actuel_mga' => 'nullable|numeric',
+        'reste_a_payer' => 'required_if:statut,partiellement_payee',
     ];
 
-    // =====================================================
-    // HOOKS LIVEWIRE POUR PROTECTION DES ARRAYS
-    // =====================================================
+    // Hooks Livewire pour protection des arrays
     public function hydrate()
     {
         if (!is_array($this->dechargement_ids)) {
@@ -120,9 +95,7 @@ class FinanceIndex extends Component
         }
     }
 
-    // =====================================================
-    // COMPUTED PROPERTIES
-    // =====================================================
+    // Computed Properties
     public function getVoyagesDisponiblesProperty()
     {
         if ($this->type !== 'vente') {
@@ -162,14 +135,12 @@ class FinanceIndex extends Component
 
         $produit = Produit::find($this->produit_id);
         if ($produit) {
-            // Définir le stock selon le type de transaction
             if ($this->type === 'vente') {
-                $this->stock_actuel = $produit->qte_variable; // Stock disponible pour vente
+                $this->stock_actuel = $produit->qte_variable;
             } else {
-                // Pour les achats : calculer la capacité disponible
                 $this->stock_actuel = max(0, $produit->poids_moyen_sac_kg_max - $produit->qte_variable);
             }
-            
+
             Log::info('Produit sélectionné', [
                 'produit_id' => $this->produit_id,
                 'nom' => $produit->nom_complet,
@@ -186,9 +157,7 @@ class FinanceIndex extends Component
         return $produit;
     }
 
-    // =====================================================
-    // PROPRIÉTÉS CALCULÉES - STATISTIQUES GÉNÉRALES
-    // =====================================================
+    // Propriétés calculées - Statistiques générales
     public function getTotalEntreesProperty()
     {
         return Transaction::where('type', 'vente')
@@ -217,9 +186,7 @@ class FinanceIndex extends Component
             ->count();
     }
 
-    // =====================================================
-    // PROPRIÉTÉS CALCULÉES - REVENUS
-    // =====================================================
+    // Propriétés calculées - Revenus
     public function getRevenusProperty()
     {
         $dates = $this->getDateRangeRevenus();
@@ -278,9 +245,7 @@ class FinanceIndex extends Component
             });
     }
 
-    // =====================================================
-    // PROPRIÉTÉS CALCULÉES - DÉPENSES
-    // =====================================================
+    // Propriétés calculées - Dépenses
     public function getDepensesProperty()
     {
         $dates = $this->getDateRangeDepenses();
@@ -288,11 +253,11 @@ class FinanceIndex extends Component
             ->whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
-        
+
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
-        
+
         return $query->orderBy('date', 'desc')->paginate(10);
     }
 
@@ -302,11 +267,11 @@ class FinanceIndex extends Component
         $query = Transaction::whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
-        
+
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
-        
+
         return $query->sum('montant_mga');
     }
 
@@ -331,11 +296,11 @@ class FinanceIndex extends Component
         $query = Transaction::whereIn('type', ['achat', 'autre'])
             ->whereBetween('date', [$dates['debut'], $dates['fin']])
             ->where('statut', '!=', 'annule');
-        
+
         if ($this->categorieDepense) {
             $query->where('type', $this->categorieDepense);
         }
-        
+
         return $query->count();
     }
 
@@ -353,9 +318,7 @@ class FinanceIndex extends Component
             });
     }
 
-    // =====================================================
-    // PROPRIÉTÉS CALCULÉES - SUIVI CONDITIONNEL
-    // =====================================================
+    // Propriétés calculées - Suivi conditionnel
     public function getTransactionsVoyageProperty()
     {
         return Transaction::with(['voyage'])
@@ -395,9 +358,7 @@ class FinanceIndex extends Component
             ->pluck('count', 'statut');
     }
 
-    // =====================================================
-    // MÉTHODES UTILITAIRES POUR LES DATES
-    // =====================================================
+    // Méthodes utilitaires pour les dates
     private function getDateRangeRevenus()
     {
         if ($this->periodeRevenus === 'personnalise' && $this->dateDebutRevenus && $this->dateFinRevenus) {
@@ -406,7 +367,7 @@ class FinanceIndex extends Component
                 'fin' => $this->dateFinRevenus
             ];
         }
-        
+
         switch ($this->periodeRevenus) {
             case 'semaine':
                 return [
@@ -439,7 +400,7 @@ class FinanceIndex extends Component
                 'fin' => $this->dateFinDepenses
             ];
         }
-        
+
         switch ($this->periodeDepenses) {
             case 'semaine':
                 return [
@@ -464,12 +425,9 @@ class FinanceIndex extends Component
         }
     }
 
-    // =====================================================
-    // LISTENERS POUR AUTO-COMPLETION - VENTE SEULEMENT
-    // =====================================================
+    // Listeners pour auto-complétion
     public function updatedDechargementIds()
     {
-        // Protection contre les types non-array
         if (!is_array($this->dechargement_ids)) {
             if (is_numeric($this->dechargement_ids)) {
                 $this->dechargement_ids = [$this->dechargement_ids];
@@ -477,44 +435,42 @@ class FinanceIndex extends Component
                 $this->dechargement_ids = [];
             }
         }
-        
-        // Nettoyer le tableau
+
         $this->dechargement_ids = array_values(array_filter($this->dechargement_ids, 'is_numeric'));
 
         Log::info('=== DEBUT updatedDechargementIds ===', ['type' => $this->type, 'dechargement_ids' => $this->dechargement_ids]);
-        
+
         if ($this->type === 'vente' && !empty($this->dechargement_ids)) {
             $dechargements = Dechargement::with(['lieuLivraison', 'chargement.produit'])->whereIn('id', $this->dechargement_ids)->get();
-            
+
             Log::info('Dechargements trouvés', ['count' => $dechargements->count()]);
-            
+
             $this->montant_mga = $dechargements->sum('montant_total_mga');
-            
+
             Log::info('Calcul montant vente', ['montant' => $this->montant_mga]);
-            
+
             $interlocuteurs = [];
             $lieux = [];
-            
-            foreach($dechargements as $dechargement) {
+
+            foreach ($dechargements as $dechargement) {
                 if ($dechargement->interlocuteur_nom) {
                     $interlocuteurs[] = $dechargement->interlocuteur_nom;
                 }
-                
+
                 $lieuNom = $dechargement->lieuLivraison->nom ?? 'LIEU_NULL';
                 $lieux[] = $lieuNom;
             }
-            
+
             $interlocuteurs = array_unique(array_filter($interlocuteurs));
             $lieux = array_unique(array_filter($lieux));
-            
+
             if (!$this->editingTransaction) {
                 $this->from_nom = implode(', ', $interlocuteurs);
             }
             $this->lieux_display = implode(', ', $lieux);
-            
-            // Auto-remplir l'objet pour les ventes
+
             $this->objet = 'Vente - ' . $this->lieux_display;
-            
+
             Log::info('CORRECTION appliquée', [
                 'from_nom' => $this->from_nom,
                 'lieux_display' => $this->lieux_display,
@@ -533,7 +489,7 @@ class FinanceIndex extends Component
                 }
             }
         }
-        
+
         Log::info('=== FIN updatedDechargementIds ===', [
             'final_from_nom' => $this->from_nom,
             'final_lieux_display' => $this->lieux_display,
@@ -541,7 +497,7 @@ class FinanceIndex extends Component
         ]);
     }
 
-public function updatedProduitId()
+    public function updatedProduitId()
     {
         $this->resetErrorBag(['produit_id', 'quantite']);
         if (in_array($this->type, ['achat', 'vente']) && $this->produit_id) {
@@ -549,18 +505,17 @@ public function updatedProduitId()
             if ($produit) {
                 $this->unite = $produit->unite;
                 $this->prix_unitaire_mga = $produit->prix_reference_mga;
-                
-                // Définir le stock selon le type de transaction
+
                 if ($this->type === 'vente') {
-                    $this->stock_actuel = $produit->qte_variable ?? 0; // Stock disponible pour vente
+                    $this->stock_actuel = $produit->qte_variable ?? 0;
                 } else {
-                    $this->stock_actuel = $produit->poids_moyen_sac_kg_max ?? 0; // Capacité pour achat
+                    $this->stock_actuel = $produit->poids_moyen_sac_kg_max ?? 0;
                 }
-                
+
                 if (!$this->editingTransaction) {
                     $this->objet = ($this->type === 'achat' ? 'Achat - ' : 'Vente - ') . $produit->nom_complet;
                 }
-                
+
                 Log::info('Produit sélectionné pour ' . $this->type, [
                     'produit_id' => $this->produit_id,
                     'nom' => $produit->nom_complet,
@@ -592,9 +547,7 @@ public function updatedProduitId()
         }
     }
 
-
-
-        public function updatedQuantite()
+    public function updatedQuantite()
     {
         Log::info('=== VALIDATION QUANTITE ===', [
             'type' => $this->type,
@@ -607,12 +560,11 @@ public function updatedProduitId()
             $produit = Produit::find($this->produit_id);
             if ($produit) {
                 $quantiteSaisie = floatval($this->quantite);
-                
+
                 if ($this->type === 'vente') {
-                    // Pour les ventes : vérifier le stock disponible (qte_variable)
                     $stockDisponible = floatval($produit->qte_variable);
                     $this->stock_actuel = $stockDisponible;
-                    
+
                     Log::info('Validation stock pour vente', [
                         'quantite_saisie' => $quantiteSaisie,
                         'stock_disponible' => $stockDisponible,
@@ -622,7 +574,7 @@ public function updatedProduitId()
                     if ($quantiteSaisie > $stockDisponible) {
                         $message = 'La quantité à vendre (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') ne peut pas dépasser le stock disponible (' . number_format($stockDisponible, 2, ',', ' ') . ' ' . $this->unite . ').';
                         $this->addError('quantite', $message);
-                        
+
                         Log::warning('Stock insuffisant pour vente', [
                             'quantite_demandee' => $quantiteSaisie,
                             'stock_disponible' => $stockDisponible,
@@ -633,21 +585,19 @@ public function updatedProduitId()
                         if ($this->prix_unitaire_mga) {
                             $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
                         }
-                        
+
                         Log::info('Validation stock OK pour vente', [
                             'quantite_valide' => $quantiteSaisie,
                             'stock_disponible' => $stockDisponible,
                             'montant_calcule' => $this->montant_mga
                         ]);
                     }
-                    
                 } elseif ($this->type === 'achat') {
-                    // Pour les achats : vérifier la capacité de stockage disponible
                     $capaciteMax = floatval($produit->poids_moyen_sac_kg_max);
                     $stockActuel = floatval($produit->qte_variable);
                     $capaciteDisponible = $capaciteMax - $stockActuel;
                     $this->stock_actuel = $capaciteDisponible;
-                    
+
                     Log::info('Validation capacité pour achat', [
                         'quantite_saisie' => $quantiteSaisie,
                         'capacite_max' => $capaciteMax,
@@ -659,7 +609,7 @@ public function updatedProduitId()
                     if ($quantiteSaisie > $capaciteDisponible) {
                         $message = 'La quantité à acheter (' . number_format($quantiteSaisie, 2, ',', ' ') . ' ' . $this->unite . ') dépasse la capacité de stockage disponible (' . number_format($capaciteDisponible, 2, ',', ' ') . ' ' . $this->unite . '). Capacité max: ' . number_format($capaciteMax, 2, ',', ' ') . ' ' . $this->unite . ', Stock actuel: ' . number_format($stockActuel, 2, ',', ' ') . ' ' . $this->unite . '.';
                         $this->addError('quantite', $message);
-                        
+
                         Log::warning('Capacité de stockage dépassée pour achat', [
                             'quantite_demandee' => $quantiteSaisie,
                             'capacite_disponible' => $capaciteDisponible,
@@ -672,7 +622,7 @@ public function updatedProduitId()
                         if ($this->prix_unitaire_mga) {
                             $this->montant_mga = $quantiteSaisie * floatval($this->prix_unitaire_mga);
                         }
-                        
+
                         Log::info('Validation capacité OK pour achat', [
                             'quantite_valide' => $quantiteSaisie,
                             'capacite_disponible' => $capaciteDisponible,
@@ -682,13 +632,10 @@ public function updatedProduitId()
                 }
             }
         } elseif (in_array($this->type, ['achat', 'vente']) && $this->quantite && $this->prix_unitaire_mga) {
-            // Calcul du montant sans validation de stock (si pas de produit sélectionné)
             $this->montant_mga = floatval($this->quantite) * floatval($this->prix_unitaire_mga);
             $this->resetErrorBag('quantite');
         }
     }
-
-    
 
     public function updatedPrixUnitaireMga()
     {
@@ -704,7 +651,6 @@ public function updatedProduitId()
             return;
         }
 
-        // Reset seulement pour les ventes
         if ($this->type === 'vente') {
             $this->dechargement_ids = [];
             $this->montant_mga = '';
@@ -717,28 +663,21 @@ public function updatedProduitId()
 
     public function updatedType()
     {
-        // Reset différentiel selon le type
         if ($this->type === 'vente') {
-            // Pour vente : garder la logique automatique
             $this->voyage_id = '';
             $this->dechargement_ids = [];
             $this->lieux_display = '';
-            // produit_id reste pour la sélection de produit
         } elseif ($this->type === 'achat') {
-            // Pour achat : reset voyage mais garder produit logic
             $this->voyage_id = '';
             $this->dechargement_ids = [];
             $this->lieux_display = '';
-            // produit_id reste pour la sélection de produit
         } else {
-            // Pour autre : tout en saisie libre
             $this->voyage_id = '';
             $this->dechargement_ids = [];
             $this->lieux_display = '';
             $this->produit_id = '';
         }
-        
-        // Reset commun
+
         $this->montant_mga = '';
         $this->objet = '';
         $this->from_nom = '';
@@ -747,13 +686,10 @@ public function updatedProduitId()
         $this->unite = '';
         $this->prix_unitaire_mga = '';
         $this->stock_actuel = 0;
-        
+
         Log::info('Type updated', ['new_type' => $this->type]);
     }
 
-    // =====================================================
-    // LISTENERS POUR MISE À JOUR AUTOMATIQUE
-    // =====================================================
     public function updatedPeriodeRevenus()
     {
         $this->setDatesFromPeriod('revenus', $this->periodeRevenus);
@@ -811,7 +747,7 @@ public function updatedProduitId()
                 $fin = $now->copy()->endOfMonth();
                 break;
         }
-        
+
         if ($type === 'revenus') {
             $this->dateDebutRevenus = $debut->format('Y-m-d');
             $this->dateFinRevenus = $fin->format('Y-m-d');
@@ -826,12 +762,8 @@ public function updatedProduitId()
         if ($this->type === 'vente') {
             $this->updatedDechargementIds();
         }
-        // Pour achat/autre : pas de recalcul automatique
     }
 
-    // =====================================================
-    // INITIALISATION ET GESTION DES ONGLETS
-    // =====================================================
     public function mount()
     {
         $validTabs = ['suivi', 'revenus', 'depenses', 'transactions', 'comptes', 'rapports'];
@@ -863,9 +795,6 @@ public function updatedProduitId()
         ");
     }
 
-    // =====================================================
-    // GESTION DES TRANSACTIONS
-    // =====================================================
     public function createTransaction()
     {
         Log::info('createTransaction called', ['activeTab' => $this->activeTab]);
@@ -885,7 +814,7 @@ public function updatedProduitId()
             'montant' => $transaction->montant_mga,
             'voyage_id' => $transaction->voyage_id
         ]);
-        
+
         $this->editingTransaction = $transaction;
         $this->reference = $transaction->reference;
         $this->date = $transaction->date->format('Y-m-d');
@@ -897,21 +826,18 @@ public function updatedProduitId()
         $this->objet = $transaction->objet;
         $this->voyage_id = $transaction->voyage_id;
         $this->produit_id = $transaction->produit_id;
-        
-        // Initialiser comme array vide
+
         $this->dechargement_ids = [];
-        
-        // Logique spéciale pour les ventes avec relations
+
         if ($transaction->type === 'vente' && $transaction->voyage_id) {
             $this->dechargement_ids = $this->findAllMatchingDechargements($transaction);
-            
+
             if (!empty($this->dechargement_ids)) {
                 $originalFromNom = $transaction->from_nom;
                 $originalToNom = $transaction->to_nom;
-                
+
                 $this->updatedDechargementIds();
-                
-                // Restaurer les noms originaux
+
                 if ($originalFromNom) {
                     $this->from_nom = $originalFromNom;
                 }
@@ -920,7 +846,7 @@ public function updatedProduitId()
                 }
             }
         }
-        
+
         $this->mode_paiement = $transaction->mode_paiement;
         $this->statut = $transaction->statut;
         $this->quantite = $transaction->quantite;
@@ -929,7 +855,7 @@ public function updatedProduitId()
         $this->reste_a_payer = $transaction->reste_a_payer;
         $this->observation = $transaction->observation;
         $this->showTransactionModal = true;
-        
+
         Log::info('=== FIN ÉDITION TRANSACTION ===', [
             'dechargement_ids_final' => $this->dechargement_ids,
             'from_nom_final' => $this->from_nom,
@@ -943,36 +869,36 @@ public function updatedProduitId()
         if (!$transaction->voyage_id) {
             return [];
         }
-        
+
         $montantTarget = floatval($transaction->montant_mga);
         $tolerance = 5000;
-        
+
         $dechargements = Dechargement::where('voyage_id', $transaction->voyage_id)
             ->orderBy('created_at')
             ->get();
-        
+
         $selected = [];
         $montantActuel = 0;
-        
+
         foreach ($dechargements as $dechargement) {
             $nouveauMontant = $montantActuel + floatval($dechargement->montant_total_mga);
-            
+
             if ($nouveauMontant <= $montantTarget + $tolerance) {
                 $selected[] = intval($dechargement->id);
                 $montantActuel = $nouveauMontant;
             }
-            
+
             if (abs($montantActuel - $montantTarget) <= $tolerance) {
                 break;
             }
         }
-        
+
         if (empty($selected) || abs($montantActuel - $montantTarget) > $tolerance) {
             $bestMatch = $dechargements
                 ->where('montant_total_mga', '<=', $montantTarget + $tolerance)
                 ->sortByDesc('montant_total_mga')
                 ->first();
-                
+
             if ($bestMatch) {
                 $selected = [intval($bestMatch->id)];
                 $montantActuel = floatval($bestMatch->montant_total_mga);
@@ -984,16 +910,16 @@ public function updatedProduitId()
                 }
             }
         }
-        
+
         $selected = array_values(array_map('intval', array_filter($selected, 'is_numeric')));
-        
+
         Log::info('Déchargements trouvés pour édition', [
             'selected_ids' => $selected,
             'selected_count' => count($selected),
             'montant_total' => $montantActuel,
             'correspondance' => abs($montantActuel - $montantTarget) <= $tolerance ? 'EXACTE' : 'APPROXIMATIVE'
         ]);
-        
+
         return $selected;
     }
 
@@ -1029,7 +955,7 @@ public function updatedProduitId()
             Transaction::create($data);
             session()->flash('success', 'Transaction ajoutée avec succès');
         }
-        
+
         $this->closeTransactionModal();
     }
 
@@ -1045,67 +971,6 @@ public function updatedProduitId()
         session()->flash('success', 'Transaction confirmée');
     }
 
-    // =====================================================
-    // GESTION DES COMPTES
-    // =====================================================
-    public function createCompte()
-    {
-        Log::info('createCompte called', ['activeTab' => $this->activeTab]);
-        $this->resetCompteForm();
-        $this->editingCompte = null;
-        $this->showCompteModal = true;
-        $this->dispatch('open-compte-modal');
-    }
-
-    public function editCompte(Compte $compte)
-    {
-        $this->editingCompte = $compte;
-        $this->nom_proprietaire = $compte->nom_proprietaire;
-        $this->type_compte = $compte->type_compte;
-        $this->to_compte = $compte->to_compte ?: $compte->nom;
-        $this->numero_compte = $compte->numero_compte;
-        $this->solde_actuel_mga = $compte->solde_actuel_mga;
-        $this->compte_actif = $compte->actif;
-        $this->showCompteModal = true;
-    }
-
-    public function saveCompte()
-    {
-        $this->validate([
-            'type_compte' => 'required|in:principal,AirtelMoney,MVola,OrangeMoney,banque',
-            'to_compte' => 'nullable|string|max:255',
-            'solde_actuel_mga' => 'nullable|numeric',
-        ]);
-
-        $data = [
-            'nom' => $this->to_compte ?: 'NomInconnu',
-            'nom_proprietaire' => $this->nom_proprietaire ?: null,
-            'type_compte' => $this->type_compte,
-            'to_compte' => $this->to_compte,
-            'numero_compte' => $this->numero_compte ?: null,
-            'solde_actuel_mga' => $this->solde_actuel_mga,
-            'actif' => $this->compte_actif,
-        ];
-
-        if ($this->editingCompte) {
-            $this->editingCompte->update($data);
-            session()->flash('success', 'Compte modifié avec succès');
-        } else {
-            Compte::create($data);
-            session()->flash('success', 'Compte ajouté avec succès');
-        }
-        $this->closeCompteModal();
-    }
-
-    public function deleteCompte(Compte $compte)
-    {
-        $compte->delete();
-        session()->flash('success', 'Compte supprimé avec succès');
-    }
-
-    // =====================================================
-    // GESTION DES MODALES
-    // =====================================================
     public function closeTransactionModal()
     {
         Log::info('closeTransactionModal called');
@@ -1113,15 +978,6 @@ public function updatedProduitId()
         $this->resetTransactionForm();
         $this->editingTransaction = null;
         $this->dispatch('close-transaction-modal');
-    }
-
-    public function closeCompteModal()
-    {
-        Log::info('closeCompteModal called');
-        $this->showCompteModal = false;
-        $this->resetCompteForm();
-        $this->editingCompte = null;
-        $this->dispatch('close-compte-modal');
     }
 
     private function resetTransactionForm()
@@ -1149,35 +1005,25 @@ public function updatedProduitId()
         $this->resetErrorBag();
     }
 
-    private function resetCompteForm()
-    {
-        $this->nom_proprietaire = '';
-        $this->type_compte = 'principal';
-        $this->numero_compte = '';
-        $this->solde_actuel_mga = 0;
-        $this->compte_actif = true;
-        $this->resetErrorBag();
-    }
-
     private function generateTransactionReference()
     {
         $count = Transaction::withTrashed()
             ->whereDate('created_at', Carbon::today())
             ->count() + 1;
-        
+
         $reference = 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
-        
+
         while (Transaction::withTrashed()->where('reference', $reference)->exists()) {
             $count++;
             $reference = 'TXN' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
         }
-        
+
         Log::info('Nouvelle référence générée', [
             'reference' => $reference,
             'count_today' => $count - 1,
             'date' => Carbon::today()->format('Y-m-d')
         ]);
-        
+
         return $reference;
     }
 
@@ -1212,20 +1058,17 @@ public function updatedProduitId()
         ]);
     }
 
-    // =====================================================
-    // MÉTHODE DE RENDU PRINCIPALE
-    // =====================================================
     public function render()
     {
         Log::info('Rendering FinanceIndex', ['activeTab' => $this->activeTab]);
-        
+
         // Statistiques générales
         $totalEntrees = $this->totalEntrees;
         $totalSorties = $this->totalSorties;
         $beneficeNet = $this->beneficeNet;
         $transactionsEnAttente = $this->transactionsEnAttente;
         $revenusEnAttente = $this->revenusEnAttente;
-        
+
         // Transactions principales
         $query = Transaction::with(['voyage'])
             ->when($this->searchTerm, function ($q) {
@@ -1244,27 +1087,20 @@ public function updatedProduitId()
             })
             ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
             ->orderBy('date', 'desc');
-        
+
         $transactions = $query->paginate(15);
         $comptes = Compte::where('actif', true)->get();
-        
-        // Voyages et éléments disponibles (seulement pour ventes)
+
         $voyagesDisponibles = $this->voyagesDisponibles;
         $dechargementsDisponibles = $this->dechargementsDisponibles;
-        
-        // Produits disponibles (seulement pour achats)
         $produitsDisponibles = $this->produitsDisponibles;
         $produitSelectionne = $this->produitSelectionne;
-        
+
         $users = collect();
-        
-        // Statistiques pour le dashboard
         $repartitionParType = $this->repartitionParType;
         $repartitionParStatut = $this->repartitionParStatut;
         $transactionsVoyage = $this->transactionsVoyage;
         $transactionsAutre = $this->transactionsAutre;
-        
-        // Revenus et dépenses
         $revenus = $this->revenus;
         $depenses = $this->depenses;
         $totalRevenus = $this->totalRevenus;
@@ -1287,7 +1123,7 @@ public function updatedProduitId()
             'users',
             'totalEntrees',
             'totalSorties',
-            'beneficeNet',  
+            'beneficeNet',
             'transactionsEnAttente',
             'repartitionParType',
             'repartitionParStatut',

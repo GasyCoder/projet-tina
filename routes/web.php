@@ -51,9 +51,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/finance/dashboard-situations', DashboardSituations::class)->name('finance.dashboard.situations');
     // Finances - Routes existantes
 
-    // Finances - Nouvelles routes pour les interfaces séparées
-    Route::get('/finance/revenus', Revenus::class)->name('finance.revenus');
-    Route::get('/finance/depenses', Depenses::class)->name('finance.depenses');
 
     // Gestion de profil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

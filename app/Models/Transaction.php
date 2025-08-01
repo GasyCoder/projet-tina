@@ -91,6 +91,57 @@ class Transaction extends Model
         return $this->prix_unitaire_mga ? number_format($this->prix_unitaire_mga, 0, ',', ' ') . ' MGA/' . ($this->unite ?? '') : 'N/A';
     }
 
+    // ✅ NOUVEAU : Mettre à jour le solde du compte
+    private function updateCompteBalance($montant, $operation = 'add')
+    {
+        // Correspondance mode_paiement -> type_compte
+        $typeCompte = match($this->mode_paiement) {
+            'especes' => 'principal',
+            'AirtelMoney' => 'AirtelMoney', 
+            'MVola' => 'Mvola',
+            'OrangeMoney' => 'OrangeMoney',
+            'banque' => 'banque',
+            default => null
+        };
+
+        if (!$typeCompte) {
+            return; // Mode de paiement non reconnu, on ignore
+        }
+
+        // Trouver le compte correspondant (premier actif de ce type)
+        $compte = Compte::where('type_compte', $typeCompte)
+                       ->where('actif', true)
+                       ->first();
+
+        if (!$compte) {
+            \Illuminate\Support\Facades\Log::warning('Aucun compte actif trouvé', [
+                'mode_paiement' => $this->mode_paiement,
+                'type_compte' => $typeCompte
+            ]);
+            return;
+        }
+
+        $ancienSolde = $compte->solde_actuel_mga;
+        
+        if ($operation === 'add') {
+            $compte->solde_actuel_mga += $montant;
+        } else {
+            $compte->solde_actuel_mga -= $montant;
+        }
+
+        $compte->derniere_transaction_id = $this->id;
+        $compte->save();
+
+        \Illuminate\Support\Facades\Log::info('Solde compte mis à jour', [
+            'compte_id' => $compte->id,
+            'type_compte' => $typeCompte,
+            'operation' => $operation,
+            'montant' => $montant,
+            'ancien_solde' => $ancienSolde,
+            'nouveau_solde' => $compte->solde_actuel_mga
+        ]);
+    }
+
     // Scopes (unchanged)
     public function scopeRevenus($query)
     {
@@ -170,17 +221,16 @@ class Transaction extends Model
         return $query->whereIn('type', ['achat', 'autre']);
     }
 
-
-    // Model Events for Stock Updates - Version simplifiée
+    // ✅ MODIFIÉ : Model Events pour gestion des stocks ET des comptes
     protected static function boot()
     {
         parent::boot();
 
         static::created(function ($transaction) {
+            // 1. Gestion des stocks (votre code existant)
             if ($transaction->type === 'achat' && $transaction->produit_id && $transaction->quantite) {
                 $produit = Produit::find($transaction->produit_id);
                 if ($produit) {
-                    // Vérifier la capacité de stockage avant d'ajouter
                     if ($produit->peutStockerQuantite($transaction->quantite)) {
                         $produit->qte_variable = $produit->qte_variable + $transaction->quantite;
                         $produit->save();
@@ -206,7 +256,6 @@ class Transaction extends Model
             } elseif ($transaction->type === 'vente' && $transaction->produit_id && $transaction->quantite) {
                 $produit = Produit::find($transaction->produit_id);
                 if ($produit) {
-                    // Vérifier le stock disponible avant de décrémenter
                     if ($produit->peutVendreQuantite($transaction->quantite)) {
                         $produit->qte_variable = $produit->qte_variable - $transaction->quantite;
                         $produit->save();
@@ -228,9 +277,21 @@ class Transaction extends Model
                     }
                 }
             }
+
+            // ✅ 2. NOUVEAU : Gestion des comptes
+            if ($transaction->statut === 'confirme' && $transaction->montant_mga > 0) {
+                if ($transaction->type === 'vente') {
+                    // Vente = entrée d'argent dans le compte
+                    $transaction->updateCompteBalance($transaction->montant_mga, 'add');
+                } elseif ($transaction->type === 'achat' || $transaction->type === 'autre') {
+                    // Achat/Autre = sortie d'argent du compte
+                    $transaction->updateCompteBalance($transaction->montant_mga, 'subtract');
+                }
+            }
         });
 
         static::updated(function ($transaction) {
+            // 1. Gestion des stocks (votre code existant)
             if ($transaction->type === 'achat' && $transaction->produit_id && $transaction->quantite) {
                 $originalQuantite = $transaction->getOriginal('quantite');
                 if ($originalQuantite !== $transaction->quantite) {
@@ -238,14 +299,12 @@ class Transaction extends Model
                     if ($produit) {
                         $difference = $transaction->quantite - ($originalQuantite ?? 0);
                         
-                        // Pour les achats : vérifier la capacité si on augmente
                         if ($difference > 0) {
                             if (!$produit->peutStockerQuantite($difference)) {
                                 throw new \Exception('Capacité de stockage insuffisante pour cette modification.');
                             }
                         }
                         
-                        // Appliquer la différence
                         $produit->qte_variable = $produit->qte_variable + $difference;
                         $produit->save();
                         
@@ -266,14 +325,12 @@ class Transaction extends Model
                     if ($produit) {
                         $difference = $transaction->quantite - ($originalQuantite ?? 0);
                         
-                        // Pour les ventes : vérifier le stock si on augmente la vente
                         if ($difference > 0) {
                             if (!$produit->peutVendreQuantite($difference)) {
                                 throw new \Exception('Stock insuffisant pour cette modification de vente.');
                             }
                         }
                         
-                        // Appliquer la différence (pour vente: on soustrait)
                         $produit->qte_variable = max(0, $produit->qte_variable - $difference);
                         $produit->save();
                         
@@ -288,18 +345,49 @@ class Transaction extends Model
                     }
                 }
             }
+
+            // ✅ 2. NOUVEAU : Gestion des comptes pour les modifications
+            $originalMontant = $transaction->getOriginal('montant_mga');
+            $originalStatut = $transaction->getOriginal('statut');
+            $originalModePaiement = $transaction->getOriginal('mode_paiement');
+            
+            // Si quelque chose a changé qui affecte le compte
+            if ($originalMontant != $transaction->montant_mga || 
+                $originalStatut != $transaction->statut || 
+                $originalModePaiement != $transaction->mode_paiement) {
+                
+                // Annuler l'ancienne transaction si elle était confirmée
+                if ($originalStatut === 'confirme' && $originalMontant > 0) {
+                    $tempTransaction = new static();
+                    $tempTransaction->mode_paiement = $originalModePaiement;
+                    $tempTransaction->id = $transaction->id;
+                    
+                    if ($transaction->type === 'vente') {
+                        $tempTransaction->updateCompteBalance($originalMontant, 'subtract');
+                    } elseif ($transaction->type === 'achat' || $transaction->type === 'autre') {
+                        $tempTransaction->updateCompteBalance($originalMontant, 'add');
+                    }
+                }
+                
+                // Appliquer la nouvelle transaction si elle est confirmée
+                if ($transaction->statut === 'confirme' && $transaction->montant_mga > 0) {
+                    if ($transaction->type === 'vente') {
+                        $transaction->updateCompteBalance($transaction->montant_mga, 'add');
+                    } elseif ($transaction->type === 'achat' || $transaction->type === 'autre') {
+                        $transaction->updateCompteBalance($transaction->montant_mga, 'subtract');
+                    }
+                }
+            }
         });
 
         static::deleting(function ($transaction) {
-            // Annuler les effets sur le stock lors de la suppression
+            // 1. Annuler les effets sur le stock (votre code existant)
             if ($transaction->produit_id && $transaction->quantite) {
                 $produit = Produit::find($transaction->produit_id);
                 if ($produit) {
                     if ($transaction->type === 'achat') {
-                        // Retirer du stock lors de la suppression d'un achat
                         $produit->qte_variable = max(0, $produit->qte_variable - $transaction->quantite);
                     } elseif ($transaction->type === 'vente') {
-                        // Remettre en stock lors de la suppression d'une vente
                         $produit->qte_variable = min($produit->poids_moyen_sac_kg_max, $produit->qte_variable + $transaction->quantite);
                     }
                     
@@ -312,6 +400,17 @@ class Transaction extends Model
                         'quantite' => $transaction->quantite,
                         'nouveau_stock' => $produit->qte_variable,
                     ]);
+                }
+            }
+
+            // ✅ 2. NOUVEAU : Annuler les effets sur le compte
+            if ($transaction->statut === 'confirme' && $transaction->montant_mga > 0) {
+                if ($transaction->type === 'vente') {
+                    // Annuler une vente = retirer l'argent du compte
+                    $transaction->updateCompteBalance($transaction->montant_mga, 'subtract');
+                } elseif ($transaction->type === 'achat' || $transaction->type === 'autre') {
+                    // Annuler un achat/autre = remettre l'argent dans le compte
+                    $transaction->updateCompteBalance($transaction->montant_mga, 'add');
                 }
             }
         });

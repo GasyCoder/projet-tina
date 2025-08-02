@@ -1,24 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
+use App\Livewire\Dashboard;
+use App\Livewire\Finance\Revenus;
+use App\Livewire\Users\UserIndex;
 
 // Livewire components
-use App\Livewire\Dashboard;
-use App\Livewire\Users\UserIndex;
+use App\Livewire\Finance\Depenses;
 use App\Livewire\Lieux\LieuxIndex;
 use App\Livewire\Stocks\StockIndex;
-use App\Livewire\Voyage\VoyageIndex;
 use App\Livewire\Voyage\VoyageShow;
+use App\Livewire\Voyage\VoyageIndex;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use App\Livewire\Finance\FinanceIndex;
-use App\Livewire\Finance\SituationFinanciere;
-use App\Livewire\Finance\DashboardSituations;
-use App\Livewire\Finance\SuiviTransactions;
-use App\Livewire\Finance\Depenses;
-use App\Livewire\Finance\Revenus;
 use App\Livewire\Products\ProductIndex;
 use App\Livewire\Vehicules\VehiculeIndex;
+use App\Http\Controllers\ProfileController;
+use App\Livewire\Finance\SuiviTransactions;
+use App\Livewire\Finance\DashboardSituations;
+use App\Livewire\Finance\SituationFinanciere;
+use App\Livewire\Finance\MouvementsFinanciers;
+use App\Livewire\Finance\SituationJournaliere;
 
 // Authentication routes
 require __DIR__ . '/auth.php';
@@ -47,8 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Finances
     Route::get('/finance', FinanceIndex::class)->name('finance.index');
-    Route::get('/finance/situations', SituationFinanciere::class)->name('finance.situations');
-    Route::get('/finance/dashboard-situations', DashboardSituations::class)->name('finance.dashboard.situations');
+    Route::get('/finance/situations', MouvementsFinanciers::class)->name('finance.situations');
     // Finances - Routes existantes
 
 

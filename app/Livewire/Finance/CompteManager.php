@@ -18,7 +18,7 @@ class CompteManager extends Component
     public $compte_actif = true;
 
     protected $rules = [
-        'type_compte' => 'required|in:principal,OrangeMoney,AirtelMoney,Mvola,banque,credit',
+        'type_compte' => 'required|in:principal,OrangeMoney,AirtelMoney,Mvola,banque',
         'solde_actuel_mga' => 'nullable|numeric',
         'nom_proprietaire' => 'nullable|string|max:255',
         'numero_compte' => 'nullable|string|max:255',
@@ -29,7 +29,6 @@ class CompteManager extends Component
     {
         $this->resetCompteForm();
     }
-
 
     // ✅ SIMPLE : Créer un compte
     public function createCompte()
@@ -54,7 +53,7 @@ class CompteManager extends Component
         $this->showCompteModal = true;
     }
 
-    // ✅ SIMPLE : Sauvegarder un compte
+    // ✅ MODIFIÉ : Sauvegarder un compte SANS DUPLICATION
     public function saveCompte()
     {
         Log::info('saveCompte called');
@@ -69,11 +68,36 @@ class CompteManager extends Component
         ];
 
         if ($this->editingCompte) {
+            // Mode édition : mettre à jour le compte existant
             $this->editingCompte->update($data);
             session()->flash('success', 'Compte modifié avec succès');
         } else {
-            Compte::create($data);
-            session()->flash('success', 'Compte ajouté avec succès');
+            // ✅ Mode création : vérifier s'il existe déjà un compte de ce type
+            $compteExistant = Compte::where('type_compte', $this->type_compte)
+                                   ->where('nom_proprietaire', $this->nom_proprietaire ?: 'Mme TINAH')
+                                   ->first();
+
+            if ($compteExistant) {
+                // Mettre à jour le compte existant
+                $compteExistant->update($data);
+                session()->flash('success', 'Compte existant mis à jour avec succès');
+                
+                Log::info('Compte existant mis à jour', [
+                    'compte_id' => $compteExistant->id,
+                    'type_compte' => $this->type_compte,
+                    'nom_proprietaire' => $this->nom_proprietaire
+                ]);
+            } else {
+                // Créer un nouveau compte
+                $nouveauCompte = Compte::create($data);
+                session()->flash('success', 'Nouveau compte ajouté avec succès');
+                
+                Log::info('Nouveau compte créé', [
+                    'compte_id' => $nouveauCompte->id,
+                    'type_compte' => $this->type_compte,
+                    'nom_proprietaire' => $this->nom_proprietaire
+                ]);
+            }
         }
         
         $this->closeCompteModal();

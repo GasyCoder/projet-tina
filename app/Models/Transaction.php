@@ -106,10 +106,6 @@ class Transaction extends Model
         };
 
         if (!$typeCompte) {
-            Log::warning('Mode de paiement non reconnu', [
-                'mode_paiement' => $this->mode_paiement,
-                'transaction_id' => $this->id
-            ]);
             return;
         }
 
@@ -119,11 +115,6 @@ class Transaction extends Model
             ->first();
 
         if (!$compte) {
-            Log::warning('Aucun compte actif trouvé', [
-                'mode_paiement' => $this->mode_paiement,
-                'type_compte' => $typeCompte,
-                'transaction_id' => $this->id
-            ]);
             throw new \Exception("Aucun compte actif trouvé pour le mode de paiement {$this->mode_paiement}.");
         }
 
@@ -131,13 +122,6 @@ class Transaction extends Model
 
         // Vérifier le solde pour les opérations de soustraction
         if ($operation === 'subtract' && $ancienSolde < floatval($montant)) {
-            Log::error('Solde insuffisant pour la transaction', [
-                'compte_id' => $compte->id,
-                'type_compte' => $typeCompte,
-                'solde_actuel' => $ancienSolde,
-                'montant_requis' => $montant,
-                'transaction_id' => $this->id
-            ]);
             throw new \Exception("Solde insuffisant dans le compte {$typeCompte}. Solde actuel : " . number_format($ancienSolde, 0, ',', ' ') . " MGA, requis : " . number_format($montant, 0, ',', ' ') . " MGA.");
         }
 
@@ -150,16 +134,6 @@ class Transaction extends Model
 
         $compte->derniere_transaction_id = $this->id;
         $compte->save();
-
-        Log::info('Solde compte mis à jour', [
-            'compte_id' => $compte->id,
-            'type_compte' => $typeCompte,
-            'operation' => $operation,
-            'montant' => $montant,
-            'ancien_solde' => $ancienSolde,
-            'nouveau_solde' => $compte->solde_actuel_mga,
-            'transaction_id' => $this->id
-        ]);
     }
 
     // Scopes (unchanged)

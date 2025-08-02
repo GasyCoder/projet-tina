@@ -1,12 +1,24 @@
-<div class="min-h-screen bg-gray-100 pt-20 pb-6 md:px-6">
+<div class="min-h-screen bg-gray-100 dark:bg-gray-900 pt-20 pb-6 md:px-6">
     <!-- Header Mobile/Desktop -->
     <div class="px-3 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto">
             <div class="flex flex-row items-center justify-between space-x-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0">
-                <!-- Titre -->
-                <h1 class="text-base sm:text-2xl lg:text-3xl font-semibold text-gray-900 tracking-tight">
-                    Gestion Financière
-                </h1>
+                <!-- Titre et bouton dark/light -->
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-base sm:text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+                        Gestion Financière
+                    </h1>
+                    
+                    <!-- Bouton dark/light toggle -->
+                    <button @click="darkMode = !darkMode" class="p-2 rounded-full focus:outline-none">
+                        <svg x-show="!darkMode" class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                        <svg x-show="darkMode" class="w-5 h-5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </button>
+                </div>
 
                 <!-- Boutons d'action -->
                 <div wire:key="action-buttons-{{ $activeTab }}" class="flex justify-end">
@@ -14,10 +26,10 @@
                         <button wire:click="createTransaction" class="w-9 h-9 sm:w-auto sm:h-auto 
                                inline-flex items-center justify-center 
                                p-0 sm:px-4 sm:py-2.5 
-                               bg-indigo-600 text-white 
+                               bg-indigo-600 dark:bg-indigo-700 text-white 
                                text-xs sm:text-sm font-medium 
                                rounded-full sm:rounded-lg shadow-sm 
-                               hover:bg-indigo-700 
+                               hover:bg-indigo-700 dark:hover:bg-indigo-600
                                focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                                transition-all duration-150">
                             <!-- Icône mobile -->
@@ -37,10 +49,10 @@
                                     class="w-9 h-9 sm:w-auto sm:h-auto 
                                         inline-flex items-center justify-center 
                                         p-0 sm:px-4 sm:py-2.5 
-                                        bg-indigo-600 text-white 
+                                        bg-indigo-600 dark:bg-indigo-700 text-white 
                                         text-xs sm:text-sm font-medium 
                                         rounded-full sm:rounded-lg shadow-sm 
-                                        hover:bg-indigo-700 
+                                        hover:bg-indigo-700 dark:hover:bg-indigo-600
                                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
                                         transition-all duration-150">
                                 <!-- Icône mobile -->
@@ -65,99 +77,92 @@
         <div class="max-w-7xl mx-auto">
             <!-- Alertes -->
             @if (session()->has('success'))
-                <div class="mb-4 mx-3 sm:mx-0 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                <div class="mb-4 mx-3 sm:mx-0 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400 dark:border-green-600 p-4 rounded-r-lg">
                     <div class="flex items-center">
-                        <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-green-500 dark:text-green-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        <p class="text-green-800 text-sm font-medium">{{ session('success') }}</p>
+                        <p class="text-green-800 dark:text-green-200 text-sm font-medium">{{ session('success') }}</p>
                     </div>
                 </div>
             @endif
 
             <!-- Container Principal -->
-            <div class="bg-white shadow-sm mx-0 sm:mx-0 sm:rounded-xl overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 shadow-sm mx-0 sm:mx-0 sm:rounded-xl overflow-hidden">
                 <!-- Navigation Onglets -->
-                <div class="border-b border-gray-200 bg-white">
+                <div class="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                     <div class="overflow-x-auto scrollbar-hide">
                         <nav class="flex min-w-max sm:min-w-0">
-                            <!-- Suivi Global -->
-                            <a href="{{ request()->url() }}?tab=suivi" 
-                               wire:click.prevent="setActiveTab('suivi')"
-                               class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'suivi' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2M9 19" />
-                                    </svg>
-                                    <span class="hidden sm:inline">Suivi Global</span>
-                                    <span class="sm:hidden">Suivi</span>
-                                </span>
-                            </a>
-
-                            <!-- Revenus -->
-                            <a href="{{ request()->url() }}?tab=revenus" 
-                               wire:click.prevent="setActiveTab('revenus')"
-                               class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'revenus' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Revenus
-                                </span>
-                            </a>
-
-                            <!-- Dépenses -->
-                            <a href="{{ request()->url() }}?tab=depenses" 
-                               wire:click.prevent="setActiveTab('depenses')"
-                               class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'depenses' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    Dépenses
-                                </span>
-                            </a>
-
                             <!-- Transactions -->
                             <button wire:click="setActiveTab('transactions')"
-                                    class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'transactions' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
+                                    class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'transactions' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500 dark:border-indigo-400' : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
                                 <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                    </svg>
+                                    <!-- Cercle bleu avec icône échange -->
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <!-- Flèches d'échange -->
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m0 4l-4-4m0 0l4-4m-4 4h14" />
+                                        </svg>
+                                    </span>
                                     <span class="hidden sm:inline">Transactions</span>
                                     <span class="sm:hidden">Trans.</span>
                                     @if($transactionsEnAttente > 0)
-                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
                                             {{ $transactionsEnAttente }}
                                         </span>
                                     @endif
                                 </span>
                             </button>
 
+                            <!-- Revenus -->
+                            <a href="{{ request()->url() }}?tab=revenus" 
+                            wire:click.prevent="setActiveTab('revenus')"
+                            class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'revenus' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500 dark:border-indigo-400' : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                                <span class="flex items-center whitespace-nowrap">
+                                    <!-- Cercle vert avec plus -->
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2" fill="none"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8" />
+                                        </svg>
+                                    </span>
+                                    Revenus
+                                </span>
+                            </a>
+                            <!-- Dépenses -->
+                            <a href="{{ request()->url() }}?tab=depenses" 
+                            wire:click.prevent="setActiveTab('depenses')"
+                            class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'depenses' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500 dark:border-indigo-400' : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
+                                <span class="flex items-center whitespace-nowrap">
+                                    <!-- Cercle rouge avec moins -->
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="2" fill="none"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h8" />
+                                        </svg>
+                                    </span>
+                                    Dépenses
+                                </span>
+                            </a>
                             <!-- Comptes -->
                             <button wire:click="setActiveTab('comptes')"
-                                    class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'comptes' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
+                                    class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'comptes' ? 'text-indigo-600 dark:text-indigo-400 border-indigo-500 dark:border-indigo-400' : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
                                 <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                    </svg>
+                                    <!-- Cercle gris-bleu avec icône de portefeuille/carte -->
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-full mr-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <!-- Carte bancaire stylisée -->
+                                            <rect x="3" y="7" width="18" height="10" rx="2" stroke="currentColor" stroke-width="2" fill="none" />
+                                            <path d="M3 10h18" stroke="currentColor" stroke-width="2" />
+                                            <circle cx="7" cy="15" r="1" fill="currentColor" />
+                                            <circle cx="11" cy="15" r="1" fill="currentColor" />
+                                        </svg>
+                                    </span>
                                     <span class="hidden sm:inline">Comptes</span>
                                     <span class="sm:hidden">Comptes</span>
                                     <span class="ml-1 text-xs">({{ $comptes->count() }})</span>
                                 </span>
                             </button>
-
-                            {{-- <!-- Rapports -->
-                            <button wire:click="setActiveTab('rapports')"
-                                    class="flex-shrink-0 px-3 sm:px-4 py-4 text-sm font-medium border-b-2 transition-all duration-150 {{ $activeTab === 'rapports' ? 'text-indigo-600 border-indigo-500' : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300' }}">
-                                <span class="flex items-center whitespace-nowrap">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2M9 19" />
-                                    </svg>
-                                    Rapports
-                                </span>
-                            </button> --}}
                         </nav>
                     </div>
                 </div>
@@ -167,34 +172,42 @@
                     @if($activeTab === 'suivi')
                         <div wire:key="tab-suivi">
                             @if($transactions->isEmpty())
-                                <div class="text-center py-8 text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2M9 19" />
                                     </svg>
                                     <p class="mt-2 text-sm">Aucune transaction trouvée pour cette période.</p>
                                 </div>
                             @else
-                                @include('livewire.finance.tabs.suivi-globale', [
-                                    'transactions' => $transactions,
-                                    'dateDebut' => $dateDebut,
-                                    'dateFin' => $dateFin,
-                                    'filterType' => $filterType,
-                                    'filterStatut' => $filterStatut,
-                                    'totalEntrees' => $totalEntrees,
-                                    'totalSorties' => $totalSorties,
-                                    'beneficeNet' => $beneficeNet,
-                                    'repartitionParType' => $repartitionParType,
-                                    'repartitionParStatut' => $repartitionParStatut,
-                                    'transactionsVoyage' => $transactionsVoyage,
-                                    'transactionsAutre' => $transactionsAutre
-                                ])
+                                {{-- @include('livewire.finance.tabs.suivi-globale') --}}
                             @endif
                         </div>
+                    @elseif($activeTab === 'transactions')
+                        <div wire:key="tab-transactions">
+                            @if($transactions->isEmpty())
+                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                    <p class="mt-2 text-sm">Aucune transaction trouvée.</p>
+                                </div>
+                            @else
+                                @include('livewire.finance.tabs.transactions', [
+                                    'transactions' => $transactions,
+                                    'searchTerm' => $searchTerm,
+                                    'filterType' => $filterType,
+                                    'filterStatut' => $filterStatut,
+                                    'filterPersonne' => $filterPersonne,
+                                    'dateDebut' => $dateDebut,
+                                    'dateFin' => $dateFin
+                                ])
+                            @endif
+                        </div>    
                     @elseif($activeTab === 'revenus')
                         <div wire:key="tab-revenus">
                             @if($revenus->isEmpty())
-                                <div class="text-center py-8 text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <p class="mt-2 text-sm">Aucun revenu trouvé pour cette période.</p>
@@ -216,8 +229,8 @@
                     @elseif($activeTab === 'depenses')
                         <div wire:key="tab-depenses">
                             @if($depenses->isEmpty())
-                                <div class="text-center py-8 text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <p class="mt-2 text-sm">Aucune dépense trouvée pour cette période.</p>
@@ -236,41 +249,10 @@
                                 ])
                             @endif
                         </div>
-                    @elseif($activeTab === 'transactions')
-                        <div wire:key="tab-transactions">
-                            @if($transactions->isEmpty())
-                                <div class="text-center py-8 text-gray-500">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                    </svg>
-                                    <p class="mt-2 text-sm">Aucune transaction trouvée.</p>
-                                </div>
-                            @else
-                                @include('livewire.finance.tabs.transactions', [
-                                    'transactions' => $transactions,
-                                    'searchTerm' => $searchTerm,
-                                    'filterType' => $filterType,
-                                    'filterStatut' => $filterStatut,
-                                    'filterPersonne' => $filterPersonne,
-                                    'dateDebut' => $dateDebut,
-                                    'dateFin' => $dateFin
-                                ])
-                            @endif
-                        </div>
                     @elseif($activeTab === 'comptes')
                            <div wire:key="tab-comptes">
                                 <livewire:finance.compte-manager :key="'compte-manager-'.now()" />
                             </div>
-                    @elseif($activeTab === 'rapports')
-                        {{-- <div wire:key="tab-rapports">
-                            @include('livewire.finance.tabs.rapports', [
-                                'dateDebut' => $dateDebut,
-                                'dateFin' => $dateFin,
-                                'totalEntrees' => $totalEntrees,
-                                'totalSorties' => $totalSorties,
-                                'beneficeNet' => $beneficeNet
-                            ])
-                        </div> --}}
                     @endif
                 </div>
             </div>

@@ -1,4 +1,15 @@
 <div class="space-y-4">
+    <!-- Total général et bouton créer -->
+    <div class="flex justify-between items-center">
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-gray-700">💰 Total général</h3>
+            <p class="text-2xl font-bold text-gray-900">
+                {{ number_format($comptes->sum('solde_actuel_mga'), 0) }} MGA
+            </p>
+            <p class="text-xs text-gray-600">{{ $comptes->count() }} compte(s) total</p>
+        </div>
+    </div>
+
     <!-- Résumé détaillé par type de paiement -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div class="bg-blue-50 p-4 rounded-lg">
@@ -57,6 +68,9 @@
                                 @case('banque') 🏦 Comptes Bancaires @break
                                 @default {{ ucfirst($type) }}
                             @endswitch
+                            <span class="text-xs text-gray-500 ml-2">
+                                ({{ $comptesGroup->count() }} compte(s) - {{ number_format($comptesGroup->sum('solde_actuel_mga'), 0) }} MGA)
+                            </span>
                         </h3>
                     </li>
                     @foreach($comptesGroup as $compte)
@@ -64,13 +78,26 @@
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2">
-                                        {{-- ✅ CHANGÉ : Remplacé nom_compte par type_compte + proprietaire --}}
                                         <h4 class="text-sm font-medium text-gray-900">
-                                            {{ ucfirst($compte->type_compte) }} - {{ $compte->nom_proprietaire ?: 'Compte' }}
+                                            @switch($compte->type_compte)
+                                                @case('principal') 💰 Espèces @break
+                                                @case('AirtelMoney') 📱 Airtel Money @break
+                                                @case('Mvola') 📱 MVola @break
+                                                @case('OrangeMoney') 📱 Orange Money @break
+                                                @case('banque') 🏦 Banque @break
+                                                @default {{ ucfirst($compte->type_compte) }}
+                                            @endswitch
+                                            - {{ $compte->nom_proprietaire ?: 'Compte' }}
                                         </h4>
                                         @if(!$compte->actif)
                                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                                                 Inactif
+                                            </span>
+                                        @endif
+                                        {{-- Indicateur de mise à jour automatique --}}
+                                        @if($compte->derniere_transaction_id)
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800" title="Solde mis à jour automatiquement">
+                                                🔄 Auto
                                             </span>
                                         @endif
                                     </div>
@@ -80,32 +107,22 @@
                                             @if($compte->nom_proprietaire)
                                                 <p class="text-sm text-gray-600">👤 {{ $compte->nom_proprietaire }}</p>
                                             @endif
+                                            @if($compte->numero_compte && in_array($compte->type_compte, ['AirtelMoney', 'Mvola', 'OrangeMoney', 'banque']))
+                                                <p class="text-xs text-gray-500">📋 N° {{ $compte->numero_compte }}</p>
+                                            @endif
                                         </div>
                                         
                                         <div>
-                                            <p class="text-xs text-gray-500">
-                                                🏷️ {{ ucfirst(str_replace('_', ' ', $compte->type_compte)) }}
-                                            </p>
-                                            
-                                            @if($compte->type_compte == 'principal')
-                                                <p class="text-xs text-green-600">
-                                                    Espèces
-                                                </p>
-                                            @elseif(in_array($compte->type_compte, ['OrangeMoney', 'AirtelMoney', 'Mvola']))
-                                                @if($compte->numero_compte)
-                                                    <p class="text-xs text-gray-500">📋 N° {{ $compte->numero_compte }}</p>
-                                                @endif
-                                            @elseif($compte->type_compte == 'banque')
-                                                <p class="text-xs text-green-600">
-                                                    Banque
+                                            @if($compte->derniere_transaction_id)
+                                                <p class="text-xs text-blue-600">
+                                                    🔗 Dernière transaction: #{{ $compte->derniere_transaction_id }}
                                                 </p>
                                             @else
                                                 <p class="text-xs text-gray-400">
-                                                    {{ $compte->numero_compte ?? '-' }}
+                                                    ⏸️ Aucune transaction
                                                 </p>
                                             @endif
                                         </div>
-
                                     </div>
                                 </div>
                                 
@@ -117,26 +134,28 @@
                                         
                                         @if($compte->solde_actuel_mga < 0)
                                             <p class="text-xs text-red-500">⚠️ Solde négatif</p>
+                                        @elseif($compte->solde_actuel_mga == 0)
+                                            <p class="text-xs text-gray-500">💰 Solde nul</p>
+                                        @else
+                                            <p class="text-xs text-green-500">✅ Solde positif</p>
                                         @endif
                                         
-                                        <!-- Date de création du compte -->
                                         <p class="text-xs text-gray-400 mt-1">
                                             📅 Créé: {{ $compte->created_at->format('d/m/Y') }}
                                         </p>
                                     </div>
                                     
                                     <div class="flex flex-col space-y-1">
-                                        {{-- ✅ CHANGÉ : Noms des types de comptes corrigés --}}
                                         <button wire:click="editCompte({{ $compte->id }})" 
-                                                class="text-blue-600 hover:text-blue-900 p-1" title="Modifier">
+                                                class="text-blue-600 hover:text-blue-900 p-1" title="Modifier le compte">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
                                         </button>
                                         
                                         <button wire:click="deleteCompte({{ $compte->id }})" 
-                                                wire:confirm="Supprimer ce compte ?"
-                                                class="text-red-600 hover:text-red-900 p-1" title="Supprimer">
+                                                wire:confirm="Supprimer ce compte ? Attention : cette action est irréversible."
+                                                class="text-red-600 hover:text-red-900 p-1" title="Supprimer le compte">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                             </svg>
@@ -154,8 +173,8 @@
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3 3v8a3 3 0 003 3z"/>
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun compte</h3>
-            <p class="mt-1 text-sm text-gray-500">Commencez par ajouter un nouveau compte.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun compte trouvé</h3>
+            <p class="mt-1 text-sm text-gray-500">Commencez par créer votre premier compte.</p>
             <div class="mt-4">
                 <button wire:click="createCompte" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
                     🏦 Créer un compte

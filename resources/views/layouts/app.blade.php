@@ -12,6 +12,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+
     <!-- Script pour éviter le flash lors du changement de mode -->
     <script>
         // Applique immédiatement le mode sombre si nécessaire
@@ -48,6 +49,8 @@
             </div>
         </div>
     </main>
-     @stack('scripts')
+    
+    <!-- Scripts Livewire et PHPFlasher -->
+    @stack('scripts')
 </body>
 </html>

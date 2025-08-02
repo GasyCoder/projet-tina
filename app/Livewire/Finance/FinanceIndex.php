@@ -18,7 +18,7 @@ class FinanceIndex extends Component
     use WithPagination;
 
     // Propriétés de l'interface
-    public $activeTab = 'suivi';
+    public $activeTab = 'transactions';  //suivi
     public $stock_actuel = 0;
 
     // Filtres de base
@@ -764,9 +764,9 @@ class FinanceIndex extends Component
 
     public function mount()
     {
-        $validTabs = ['suivi', 'revenus', 'depenses', 'transactions', 'comptes', 'rapports'];
-        $requestedTab = request()->query('tab', 'suivi');
-        $this->activeTab = in_array($requestedTab, $validTabs) ? $requestedTab : 'suivi';
+        $validTabs = ['transactions', 'revenus', 'depenses', 'suivi', 'comptes', 'rapports'];
+        $requestedTab = request()->query('tab', 'transactions');
+        $this->activeTab = in_array($requestedTab, $validTabs) ? $requestedTab : 'transactions';
         $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
         $this->dateFin = Carbon::now()->endOfMonth()->format('Y-m-d');
         $this->dateDebutRevenus = Carbon::now()->startOfMonth()->format('Y-m-d');
@@ -778,7 +778,7 @@ class FinanceIndex extends Component
 
     public function setActiveTab($tab)
     {
-        $validTabs = ['suivi', 'revenus', 'depenses', 'transactions', 'comptes', 'rapports'];
+        $validTabs = ['transactions', 'revenus', 'depenses', 'suivi', 'comptes', 'rapports'];
         if (!in_array($tab, $validTabs)) {
             Log::warning("Invalid tab requested: {$tab}");
             return;

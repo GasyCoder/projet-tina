@@ -12,23 +12,29 @@ class Depots extends Model
     protected $table = 'depots'; // Spécifier le nom de la table
 
     protected $fillable = [
+        'numero_entree',
+        'type_entree',
         'date_entree',
-        'origine',
         'produit_id',
         'depot_id',
+        'fournisseur_nom',
+        'fournisseur_contact',
+        'bon_livraison',
         'proprietaire_id',
         'sacs_pleins',
         'sacs_demi',
         'poids_entree_kg',
-        'date_sortie',
-        'vehicule_sortie_id',
-        'poids_sortie_kg',
-        'reste_kg',
-        'statut',
+        'qualite_produit',
+        'temperature_stockage',
+        'humidite_stockage',
         'prix_marche_actuel_mga',
-        'decision_proprietaire',
-        'observation'
+        'statut',
+        'photos',
+        'controle_qualite',
+        'observation',
+        'user_reception_id'
     ];
+
 
     protected $casts = [
         'date_entree' => 'date',
@@ -38,8 +44,13 @@ class Depots extends Model
         'reste_kg' => 'decimal:2',
         'prix_marche_actuel_mga' => 'decimal:2',
         'sacs_pleins' => 'integer',
-        'sacs_demi' => 'integer'
+        'humidite_stockage' => 'decimal:2',
+        'photos' => 'array',
+        'sacs_demi' => 'integer',
+        'controle_qualite' => 'array'
+
     ];
+    protected $appends = ['statut_badge', 'qualite_badge', 'valeur_stock'];
 
     // Relations
     public function produit()
@@ -71,6 +82,10 @@ class Depots extends Model
     {
         return $this->hasMany(TransfertStock::class, 'stock_origine_id');
     }
+    public function userReception()
+    {
+        return $this->belongsTo(User::class, 'user_reception_id');
+    }
 
     // Scopes
     public function scopeEnStock($query)
@@ -96,6 +111,19 @@ class Depots extends Model
                     $query->where('name', 'like', '%' . $search . '%');
                 });
         });
+    }
+
+    // Accesseurs
+
+    public function getQualiteBadgeAttribute()
+    {
+        return match ($this->qualite_produit) {
+            'excellent' => ['class' => 'bg-green-100 text-green-800', 'text' => '⭐⭐⭐'],
+            'bon' => ['class' => 'bg-blue-100 text-blue-800', 'text' => '⭐⭐'],
+            'moyen' => ['class' => 'bg-yellow-100 text-yellow-800', 'text' => '⭐'],
+            'mauvais' => ['class' => 'bg-red-100 text-red-800', 'text' => '❌'],
+            default => ['class' => 'bg-gray-100 text-gray-800', 'text' => '?']
+        };
     }
 
     // Mutateurs
@@ -133,6 +161,8 @@ class Depots extends Model
         return match ($this->statut) {
             'en_stock' => ['class' => 'bg-green-100 text-green-800', 'text' => 'En stock'],
             'sorti' => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Sorti'],
+            'quarantaine' => ['class' => 'bg-orange-100 text-orange-800', 'text' => 'Quarantaine'],
+            'reserve' => ['class' => 'bg-blue-100 text-blue-800', 'text' => 'Réservé'],
             'en_attente' => ['class' => 'bg-yellow-100 text-yellow-800', 'text' => 'En attente'],
             default => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Inconnu']
         };
@@ -170,6 +200,12 @@ class Depots extends Model
             }
             if (!$depot->reste_kg) {
                 $depot->reste_kg = $depot->poids_entree_kg;
+            }
+        });
+        static::creating(function ($model) {
+            if (!$model->numero_entree) {
+                $count = static::whereDate('date_entree', $model->date_entree ?? today())->count() + 1;
+                $model->numero_entree = 'ENT' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
             }
         });
 

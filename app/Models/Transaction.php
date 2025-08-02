@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -91,38 +92,56 @@ class Transaction extends Model
         return $this->prix_unitaire_mga ? number_format($this->prix_unitaire_mga, 0, ',', ' ') . ' MGA/' . ($this->unite ?? '') : 'N/A';
     }
 
-    // ✅ NOUVEAU : Mettre à jour le solde du compte
+    // Mettre à jour le solde du compte
     private function updateCompteBalance($montant, $operation = 'add')
     {
         // Correspondance mode_paiement -> type_compte
         $typeCompte = match($this->mode_paiement) {
             'especes' => 'principal',
-            'AirtelMoney' => 'AirtelMoney', 
-            'MVola' => 'Mvola',
+            'AirtelMoney' => 'AirtelMoney',
+            'Mvola' => 'Mvola',
             'OrangeMoney' => 'OrangeMoney',
             'banque' => 'banque',
             default => null
         };
 
         if (!$typeCompte) {
-            return; // Mode de paiement non reconnu, on ignore
-        }
-
-        // Trouver le compte correspondant (premier actif de ce type)
-        $compte = Compte::where('type_compte', $typeCompte)
-                       ->where('actif', true)
-                       ->first();
-
-        if (!$compte) {
-            \Illuminate\Support\Facades\Log::warning('Aucun compte actif trouvé', [
+            Log::warning('Mode de paiement non reconnu', [
                 'mode_paiement' => $this->mode_paiement,
-                'type_compte' => $typeCompte
+                'transaction_id' => $this->id
             ]);
             return;
         }
 
+        // Trouver le compte correspondant
+        $compte = Compte::where('type_compte', $typeCompte)
+            ->where('actif', true)
+            ->first();
+
+        if (!$compte) {
+            Log::warning('Aucun compte actif trouvé', [
+                'mode_paiement' => $this->mode_paiement,
+                'type_compte' => $typeCompte,
+                'transaction_id' => $this->id
+            ]);
+            throw new \Exception("Aucun compte actif trouvé pour le mode de paiement {$this->mode_paiement}.");
+        }
+
         $ancienSolde = $compte->solde_actuel_mga;
-        
+
+        // Vérifier le solde pour les opérations de soustraction
+        if ($operation === 'subtract' && $ancienSolde < floatval($montant)) {
+            Log::error('Solde insuffisant pour la transaction', [
+                'compte_id' => $compte->id,
+                'type_compte' => $typeCompte,
+                'solde_actuel' => $ancienSolde,
+                'montant_requis' => $montant,
+                'transaction_id' => $this->id
+            ]);
+            throw new \Exception("Solde insuffisant dans le compte {$typeCompte}. Solde actuel : " . number_format($ancienSolde, 0, ',', ' ') . " MGA, requis : " . number_format($montant, 0, ',', ' ') . " MGA.");
+        }
+
+        // Mettre à jour le solde
         if ($operation === 'add') {
             $compte->solde_actuel_mga += $montant;
         } else {
@@ -132,13 +151,14 @@ class Transaction extends Model
         $compte->derniere_transaction_id = $this->id;
         $compte->save();
 
-        \Illuminate\Support\Facades\Log::info('Solde compte mis à jour', [
+        Log::info('Solde compte mis à jour', [
             'compte_id' => $compte->id,
             'type_compte' => $typeCompte,
             'operation' => $operation,
             'montant' => $montant,
             'ancien_solde' => $ancienSolde,
-            'nouveau_solde' => $compte->solde_actuel_mga
+            'nouveau_solde' => $compte->solde_actuel_mga,
+            'transaction_id' => $this->id
         ]);
     }
 

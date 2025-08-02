@@ -715,100 +715,100 @@
 
                                     </div>
                                 </div>
-
                             </div>
                             
                             <!-- Colonne droite - Résumé et finalisation -->
                             <div class="space-y-6">
                                 <!-- MONTANT -->
                                 <div class="overflow-hidden">
-                                    {{-- <div class="p-6">
-                                        <label class="block text-sm font-semibold text-gray-700 mb-3">
-                                            <span class="flex items-center justify-between">
-                                                <span>Montant total (MGA) *</span>
-                                                @if(in_array($type, ['vente', 'achat']) && !$editingTransaction)
-                                                    <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-calculé</span>
+                                @if($type === 'autre')
+                                <div class="p-6">
+                                    <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                        <span class="flex items-center justify-between">
+                                            <span>Montant total (MGA) *</span>
+                                            @if(in_array($type, ['vente', 'achat']) && !$editingTransaction)
+                                                <span class="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded-full">Auto-calculé</span>
+                                            @else
+                                                <span class="text-xs text-orange-500 bg-orange-100 px-2 py-1 rounded-full">Saisie libre</span>
+                                            @endif
+                                        </span>
+                                    </label>
+                                    
+                                    <div class="relative">
+                                        <!-- Pour vente : affichage auto-calculé en lecture seule -->
+                                        @if($type === 'vente' && !$editingTransaction)
+                                            <div class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg bg-gray-50 text-green-700 min-h-[50px] flex items-center justify-between">
+                                                <span>{{ $montant_mga ? number_format($montant_mga, 0, ',', ' ') : '0' }}</span>
+                                                <span class="text-green-600 text-sm font-medium">MGA</span>
+                                            </div>
+                                            <input type="hidden" wire:model.live="montant_mga">
+                                        @else
+                                            <!-- Pour achats et autres types : champ éditable avec calcul automatique -->
+                                            <input wire:model.live="montant_mga" 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="0"
+                                                @if($type === 'achat') 
+                                                    class="w-full px-4 py-3 text-xl font-bold border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-green-50"
                                                 @else
-                                                    <span class="text-xs text-orange-500 bg-orange-100 px-2 py-1 rounded-full">Saisie libre</span>
-                                                @endif
-                                            </span>
-                                        </label>
-                                        
-                                        <div class="relative">
-                                            <!-- Pour vente : affichage auto-calculé en lecture seule -->
-                                            @if($type === 'vente' && !$editingTransaction)
-                                                <div class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg bg-gray-50 text-green-700 min-h-[50px] flex items-center justify-between">
-                                                    <span>{{ $montant_mga ? number_format($montant_mga, 0, ',', ' ') : '0' }}</span>
+                                                    class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                                                @endif>
+                                            
+                                            @if($montant_mga)
+                                                <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                                     <span class="text-green-600 text-sm font-medium">MGA</span>
                                                 </div>
-                                                <input type="hidden" wire:model.live="montant_mga">
-                                            @else
-                                                <!-- Pour achats et autres types : champ éditable avec calcul automatique -->
-                                                <input wire:model.live="montant_mga" 
-                                                    type="number" 
-                                                    step="0.01" 
-                                                    placeholder="0"
-                                                    @if($type === 'achat') 
-                                                        class="w-full px-4 py-3 text-xl font-bold border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-green-50"
-                                                    @else
-                                                        class="w-full px-4 py-3 text-xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
-                                                    @endif>
-                                                
-                                                @if($montant_mga)
-                                                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                                                        <span class="text-green-600 text-sm font-medium">MGA</span>
-                                                    </div>
-                                                @endif
+                                            @endif
+                                        @endif
+                                    </div>
+                                    
+                                    @if($montant_mga)
+                                        <div class="mt-4 p-4 rounded-lg border-l-4 border-green-400 bg-green-50">
+                                            <div class="text-sm text-green-800">
+                                                <div class="font-semibold">💰 Montant de la transaction</div>
+                                                <div class="mt-1">
+                                                    <span class="font-bold text-green-700">{{ number_format($montant_mga, 0, ',', ' ') }} MGA</span>
+                                                </div>
+                                            </div>
+                                            
+                                            @if($type === 'vente')
+                                                <button type="button" wire:click="recalculerMontant" 
+                                                        class="mt-3 w-full px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center">
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                    </svg>
+                                                    Recalculer le montant
+                                                </button>
+                                            @elseif($type === 'achat')
+                                                <div class="mt-3 text-xs text-green-600 text-center">
+                                                    ✅ Montant calculé automatiquement : {{ $quantite ?? '0' }} {{ $unite ?? 'unité' }} × {{ number_format($prix_unitaire_mga ?? 0, 0, ',', ' ') }} MGA
+                                                </div>
                                             @endif
                                         </div>
-                                        
-                                        @if($montant_mga)
-                                            <div class="mt-4 p-4 rounded-lg border-l-4 border-green-400 bg-green-50">
-                                                <div class="text-sm text-green-800">
-                                                    <div class="font-semibold">💰 Montant de la transaction</div>
-                                                    <div class="mt-1">
-                                                        <span class="font-bold text-green-700">{{ number_format($montant_mga, 0, ',', ' ') }} MGA</span>
-                                                    </div>
-                                                </div>
-                                                
+                                    @else
+                                        <div class="mt-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
+                                            <div class="text-sm text-gray-600 text-center">
                                                 @if($type === 'vente')
-                                                    <button type="button" wire:click="recalculerMontant" 
-                                                            class="mt-3 w-full px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium flex items-center justify-center">
-                                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                                        </svg>
-                                                        Recalculer le montant
-                                                    </button>
+                                                    🔄 Sélectionnez des déchargements pour calculer automatiquement le montant
                                                 @elseif($type === 'achat')
-                                                    <div class="mt-3 text-xs text-green-600 text-center">
-                                                        ✅ Montant calculé automatiquement : {{ $quantite ?? '0' }} {{ $unite ?? 'unité' }} × {{ number_format($prix_unitaire_mga ?? 0, 0, ',', ' ') }} MGA
-                                                    </div>
+                                                    📦 Sélectionnez un produit, une quantité et un prix pour calculer automatiquement le montant
+                                                @else
+                                                    💰 Saisissez le montant de la transaction
                                                 @endif
                                             </div>
-                                        @else
-                                            <div class="mt-4 p-4 rounded-lg border border-gray-200 bg-gray-50">
-                                                <div class="text-sm text-gray-600 text-center">
-                                                    @if($type === 'vente')
-                                                        🔄 Sélectionnez des déchargements pour calculer automatiquement le montant
-                                                    @elseif($type === 'achat')
-                                                        📦 Sélectionnez un produit, une quantité et un prix pour calculer automatiquement le montant
-                                                    @else
-                                                        💰 Saisissez le montant de la transaction
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        @endif
-                                        
-                                        @error('montant_mga') 
-                                            <div class="mt-2 flex items-center text-red-600 text-sm bg-red-50 p-2 rounded">
-                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                                </svg>
-                                                {{ $message }}
-                                            </div>
-                                        @enderror
-                                    </div> --}}
-
+                                        </div>
+                                    @endif
+                                    
+                                    @error('montant_mga') 
+                                        <div class="mt-2 flex items-center text-red-600 text-sm bg-red-50 p-2 rounded">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                            </svg>
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
+                                </div>
+                                @endif
 
                                 <!-- MODALITÉS DE PAIEMENT -->
                                 <div class="mb-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -828,7 +828,7 @@
                                                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors">
                                                 <option value="especes">💵 Espèces</option>
                                                 <option value="AirtelMoney">📱 AirtelMoney</option>
-                                                <option value="MVola">📱 MVola</option>
+                                                <option value="Mvola">📱 MVola</option>
                                                 <option value="OrangeMoney">📱 OrangeMoney</option>
                                                 <option value="banque">🏦 Banque</option>
                                             </select>
@@ -903,7 +903,7 @@
                                         @endif
                                     </div>
                                 </div>
-
+                               
                                 <!-- OBSERVATIONS -->
                                 <div class="mb-4 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                                     <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-100">

@@ -29,13 +29,7 @@
                     <option value="">Tous</option>
                     <option value="achat">🛒 Achat</option>
                     <option value="vente">💰 Vente</option>
-                    <option value="transfert">🔄 Transfert</option>
-                    <option value="frais">🧾 Frais</option>
-                    <option value="commission">💼 Commission</option>
-                    <option value="paiement">💳 Paiement</option>
-                    <option value="avance">💸 Avance</option>
-                    <option value="depot">📥 Dépôt</option>
-                    <option value="retrait">📤 Retrait</option>
+                    <option value="retrait">📤 Autres</option>
                 </select>
             </div>
             <div class="mt-4 md:mt-0">
@@ -114,32 +108,7 @@
                                                     @case('vente')
                                                         💰
                                                     @break
-
-                                                    @case('transfert')
-                                                        🔄
-                                                    @break
-
-                                                    @case('frais')
-                                                        🧾
-                                                    @break
-
-                                                    @case('commission')
-                                                        💼
-                                                    @break
-
-                                                    @case('paiement')
-                                                        💳
-                                                    @break
-
-                                                    @case('avance')
-                                                        💸
-                                                    @break
-
-                                                    @case('depot')
-                                                        📥
-                                                    @break
-
-                                                    @case('retrait')
+                                                    @case('autre')
                                                         📤
                                                     @break
                                                 @endswitch
@@ -148,8 +117,13 @@
                                         <div class="ml-3">
                                             <div class="text-sm font-medium text-gray-900">{{ $transaction->reference }}
                                             </div>
-                                            <div class="text-sm text-gray-500 truncate max-w-32">
-                                                {{ $transaction->objet }}</div>
+                                            <div class="text-sm text-gray-500 dark:text-gray-300 truncate max-w-32">
+                                                @if(!empty($transaction->objet))  
+                                                    {{ $transaction->objet }}
+                                                @else
+                                                    Autre transaction
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </td>

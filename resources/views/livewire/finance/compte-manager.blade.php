@@ -12,54 +12,54 @@
 
     <!-- Résumé détaillé par type de paiement -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div class="bg-blue-50 p-4 rounded-lg">
-            <h3 class="text-sm font-medium text-blue-900">💰 Principal (Espèces)</h3>
-            <p class="text-xl font-bold text-blue-600">
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-blue-900 dark:text-blue-200">💰 Principal (Espèces)</h3>
+            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">
                 {{ number_format($comptes->where('type_compte', 'principal')->sum('solde_actuel_mga'), 0) }} MGA
             </p>
-            <p class="text-xs text-blue-700">{{ $comptes->where('type_compte', 'principal')->count() }} compte(s)</p>
+            <p class="text-xs text-blue-700 dark:text-blue-300">{{ $comptes->where('type_compte', 'principal')->count() }} compte(s)</p>
         </div>
         
-        <div class="bg-red-50 p-4 rounded-lg">
-            <h3 class="text-sm font-medium text-red-900">📱 Airtel Money</h3>
-            <p class="text-xl font-bold text-red-600">
+        <div class="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-red-900 dark:text-red-200">📱 Airtel Money</h3>
+            <p class="text-xl font-bold text-red-600 dark:text-red-400">
                 {{ number_format($comptes->where('type_compte', 'AirtelMoney')->sum('solde_actuel_mga'), 0) }} MGA
             </p>
-            <p class="text-xs text-red-700">{{ $comptes->where('type_compte', 'AirtelMoney')->count() }} compte(s)</p>
+            <p class="text-xs text-red-700 dark:text-red-300">{{ $comptes->where('type_compte', 'AirtelMoney')->count() }} compte(s)</p>
         </div>
         
-        <div class="bg-green-50 p-4 rounded-lg">
-            <h3 class="text-sm font-medium text-green-900">📱 MVola</h3>
-            <p class="text-xl font-bold text-green-600">
+        <div class="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-green-900 dark:text-green-200">📱 MVola</h3>
+            <p class="text-xl font-bold text-green-600 dark:text-green-400">
                 {{ number_format($comptes->where('type_compte', 'Mvola')->sum('solde_actuel_mga'), 0) }} MGA
             </p>
-            <p class="text-xs text-green-700">{{ $comptes->where('type_compte', 'Mvola')->count() }} compte(s)</p>
+            <p class="text-xs text-green-700 dark:text-green-300">{{ $comptes->where('type_compte', 'Mvola')->count() }} compte(s)</p>
         </div>
         
-        <div class="bg-orange-50 p-4 rounded-lg">
-            <h3 class="text-sm font-medium text-orange-900">📱 Orange Money</h3>
-            <p class="text-xl font-bold text-orange-600">
+        <div class="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-orange-900 dark:text-orange-200">📱 Orange Money</h3>
+            <p class="text-xl font-bold text-orange-600 dark:text-orange-400">
                 {{ number_format($comptes->where('type_compte', 'OrangeMoney')->sum('solde_actuel_mga'), 0) }} MGA
             </p>
-            <p class="text-xs text-orange-700">{{ $comptes->where('type_compte', 'OrangeMoney')->count() }} compte(s)</p>
+            <p class="text-xs text-orange-700 dark:text-orange-300">{{ $comptes->where('type_compte', 'OrangeMoney')->count() }} compte(s)</p>
         </div>
         
-        <div class="bg-purple-50 p-4 rounded-lg">
-            <h3 class="text-sm font-medium text-purple-900">🏦 Banques</h3>
-            <p class="text-xl font-bold text-purple-600">
+        <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+            <h3 class="text-sm font-medium text-purple-900 dark:text-purple-200">🏦 Banques</h3>
+            <p class="text-xl font-bold text-purple-600 dark:text-purple-400">
                 {{ number_format($comptes->where('type_compte', 'banque')->sum('solde_actuel_mga'), 0) }} MGA
             </p>
-            <p class="text-xs text-purple-700">{{ $comptes->where('type_compte', 'banque')->count() }} compte(s)</p>
+            <p class="text-xs text-purple-700 dark:text-purple-300">{{ $comptes->where('type_compte', 'banque')->count() }} compte(s)</p>
         </div>
     </div>
 
     <!-- Liste des comptes par type -->
     @if($comptes->count() > 0)
-        <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul class="divide-y divide-gray-200">
+        <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                 @foreach($comptes->groupBy('type_compte') as $type => $comptesGroup)
-                    <li class="bg-gray-50 px-6 py-3">
-                        <h3 class="text-sm font-medium text-gray-900">
+                    <li class="bg-gray-50 dark:bg-gray-700 px-6 py-3">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
                             @switch($type)
                                 @case('principal') 💰 Espèces @break
                                 @case('AirtelMoney') 📱 Airtel Money @break
@@ -74,7 +74,7 @@
                         </h3>
                     </li>
                     @foreach($comptesGroup as $compte)
-                        <li class="px-6 py-4 hover:bg-gray-50">
+                        <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-2">
@@ -90,7 +90,7 @@
                                             - {{ $compte->nom_proprietaire ?: 'Compte' }}
                                         </h4>
                                         @if(!$compte->actif)
-                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
                                                 Inactif
                                             </span>
                                         @endif
@@ -105,7 +105,7 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                                         <div>
                                             @if($compte->nom_proprietaire)
-                                                <p class="text-sm text-gray-600">👤 {{ $compte->nom_proprietaire }}</p>
+                                                <p class="text-sm text-gray-600 dark:text-gray-400">👤 {{ $compte->nom_proprietaire }}</p>
                                             @endif
                                             @if($compte->numero_compte && in_array($compte->type_compte, ['AirtelMoney', 'Mvola', 'OrangeMoney', 'banque']))
                                                 <p class="text-xs text-gray-500">📋 N° {{ $compte->numero_compte }}</p>
@@ -128,7 +128,7 @@
                                 
                                 <div class="flex items-center space-x-4">
                                     <div class="text-right">
-                                        <p class="text-lg font-semibold {{ $compte->solde_actuel_mga >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        <p class="text-lg font-semibold {{ $compte->solde_actuel_mga >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
                                             {{ $compte->solde_formatted }}
                                         </p>
                                         
@@ -176,7 +176,7 @@
             <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun compte trouvé</h3>
             <p class="mt-1 text-sm text-gray-500">Commencez par créer votre premier compte.</p>
             <div class="mt-4">
-                <button wire:click="createCompte" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
+                <button wire:click="createCompte" class="inline-flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 dark:hover:bg-blue-600">
                     🏦 Créer un compte
                 </button>
             </div>

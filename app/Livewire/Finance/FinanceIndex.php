@@ -20,6 +20,7 @@ class FinanceIndex extends Component
     // Propriétés de l'interface
     public $activeTab = 'transactions';  //suivi
     public $stock_actuel = 0;
+    public $soldeInsuffisantMessage = '';
 
     // Filtres de base
     public $searchTerm = '';
@@ -68,7 +69,7 @@ class FinanceIndex extends Component
         'date' => 'required|date',
         'montant_mga' => 'required|numeric|min:0',
         'objet' => 'nullable|string|max:255',
-        'mode_paiement' => 'required|in:especes,AirtelMoney,MVola,OrangeMoney,banque',
+        'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
         'statut' => 'required|in:attente,confirme,partiellement_payee',
         'type' => 'required|in:achat,vente,autre',
         'voyage_id' => 'nullable|exists:voyages,id',
@@ -76,6 +77,7 @@ class FinanceIndex extends Component
         'quantite' => 'required_if:type,achat|nullable|numeric|min:0',
         'prix_unitaire_mga' => 'required_if:type,achat|nullable|numeric|min:0',
         'reste_a_payer' => 'required_if:statut,partiellement_payee',
+        'to_compte' => 'required_if:mode_paiement,AirtelMoney,Mvola,OrangeMoney,banque|nullable|string|max:255',
     ];
 
     // Hooks Livewire pour protection des arrays
@@ -921,10 +923,18 @@ class FinanceIndex extends Component
         return $selected;
     }
 
+
     public function saveTransaction()
     {
+        // Valider les données du formulaire
         $this->validate();
 
+        // Vérifier le solde du compte
+        if (!$this->verifierSoldeCompte()) {
+            return;
+        }
+
+        // Préparer les données pour la création/mise à jour
         $data = [
             'reference' => $this->reference,
             'date' => $this->date,
@@ -946,16 +956,24 @@ class FinanceIndex extends Component
             'observation' => $this->observation ?: null,
         ];
 
-        if ($this->editingTransaction) {
-            $this->editingTransaction->update($data);
-            session()->flash('success', 'Transaction modifiée avec succès');
-        } else {
-            Transaction::create($data);
-            session()->flash('success', 'Transaction ajoutée avec succès');
+        // Créer ou mettre à jour la transaction
+        try {
+            if ($this->editingTransaction) {
+                $this->editingTransaction->update($data);
+                flash()->success('Transaction modifiée avec succès'); // Notification de succès
+            } else {
+                Transaction::create($data);
+                flash()->success('Transaction ajoutée avec succès'); // Notification de succès
+            }
+        } catch (\Exception $e) {
+            flash()->error("Erreur : {$e->getMessage()}"); // Notification d'erreur
+            return;
         }
 
+        // Fermer le modal
         $this->closeTransactionModal();
     }
+
 
     public function deleteTransaction(Transaction $transaction)
     {
@@ -1043,17 +1061,59 @@ class FinanceIndex extends Component
         session()->flash('success', 'Rapport généré avec succès !');
     }
 
-    public function debugData()
+
+    // vérifier le solde du compte
+    private function verifierSoldeCompte()
     {
-        $revenus = $this->revenus;
-        $depenses = $this->depenses;
-        session()->flash('debug', [
-            'revenus_count' => $revenus->total(),
-            'depenses_count' => $depenses->total(),
-            'total_revenus' => $this->totalRevenus,
-            'total_depenses' => $this->totalDepenses,
-            'revenus_en_attente' => $this->revenusEnAttente,
-        ]);
+        // Ne vérifier que pour les transactions sortantes (achat ou autre)
+        if (in_array($this->type, ['achat', 'autre']) && $this->statut === 'confirme' && $this->mode_paiement !== 'especes') {
+            $typeCompte = match($this->mode_paiement) {
+                'AirtelMoney' => 'AirtelMoney',
+                'Mvola' => 'Mvola',
+                'OrangeMoney' => 'OrangeMoney',
+                'banque' => 'banque',
+                default => null
+            };
+
+            if ($typeCompte) {
+                $compte = Compte::where('type_compte', $typeCompte)
+                    ->where('actif', true)
+                    ->first();
+
+                if (!$compte) {
+                    flash()->error("Aucun compte actif trouvé pour le mode de paiement {$this->mode_paiement}.");
+                    return false;
+                }
+
+                $solde = $compte->solde_actuel_mga;
+                if ($solde < floatval($this->montant_mga)) {
+                    $this->soldeInsuffisantMessage = "Solde insuffisant pour le compte {$typeCompte}. Solde actuel : " . number_format($solde, 0, ',', ' ') . " MGA, requis : " . number_format($this->montant_mga, 0, ',', ' ') . " MGA.";
+                    flash()->error($this->soldeInsuffisantMessage); // Utilisation de PHPFlasher
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public function updatedModePaiement()
+    {
+        if (in_array($this->type, ['achat', 'autre']) && $this->montant_mga && $this->mode_paiement !== 'especes') {
+            $this->verifierSoldeCompte();
+        } else {
+            $this->resetErrorBag('montant_mga');
+            $this->soldeInsuffisantMessage = '';
+        }
+    }
+
+    public function updatedMontantMga()
+    {
+        if (in_array($this->type, ['achat', 'autre']) && $this->montant_mga && $this->mode_paiement !== 'especes') {
+            $this->verifierSoldeCompte();
+        } else {
+            $this->resetErrorBag('montant_mga');
+            $this->soldeInsuffisantMessage = '';
+        }
     }
 
     public function render()

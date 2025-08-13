@@ -351,8 +351,8 @@
                                     <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Filtrer par type</label>
                                     <select wire:model.live="filterType" class="w-full px-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                                         <option value="all">🔍 Tous les types</option>
-                                        <option value="client">👥 Clients uniquement</option>
-                                        <option value="fournisseur">🏭 Fournisseurs uniquement</option>
+                                        <option value="client">👥 Clients</option>
+                                        <option value="fournisseur">🏭 Fournisseurs</option>
                                     </select>
                                 </div>
                             </div>

@@ -156,22 +156,8 @@
                         </nav>
                     </div>
                 </div>
-
                 <!-- Contenu des Onglets -->
                 <div class="p-3 sm:p-6">
-                    @if($activeTab === 'suivi')
-                        <div wire:key="tab-suivi">
-                            @if($transactions->isEmpty())
-                                <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2M9 19" />
-                                    </svg>
-                                    <p class="mt-2 text-sm">Aucune transaction trouvée pour cette période.</p>
-                                </div>
-                            @else
-                                {{-- @include('livewire.finance.tabs.suivi-globale') --}}
-                            @endif
-                        </div>
                     @elseif($activeTab === 'transactions')
                         <div wire:key="tab-transactions">
                             @if($transactions->isEmpty())

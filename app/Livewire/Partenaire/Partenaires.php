@@ -159,6 +159,7 @@ class Partenaires extends Component
 
     public function show(int $id): void
     {
+        redirect()->route('partenaire.show', ['partenaire' => $id]);
         $p = Partenaire::findOrFail($id);
         $this->detail = [
             'id' => $p->id,
@@ -169,8 +170,10 @@ class Partenaires extends Component
             'is_active' => (bool) $p->is_active,
             'created_at' => optional($p->created_at)->format('d/m/Y à H:i'),
             'updated_at' => optional($p->updated_at)->format('d/m/Y à H:i'),
+            
         ];
         $this->showDetail = true;
+        
     }
 
     public function closeDetail(): void

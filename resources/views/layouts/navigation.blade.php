@@ -83,7 +83,7 @@
                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Véhicules
                             </x-nav-link>
-                            <x-nav-link :href="route('partenaires.index')" :active="request()->routeIs('partenaires.*')"
+                            <x-nav-link :href="route('finance.partenaires')" :active="request()->routeIs('partenaires.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Partenaires
                             </x-nav-link>
@@ -252,7 +252,7 @@ $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 've
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Véhicules
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('partenaires.index')" :active="request()->routeIs('partenaires.*')"
+                    <x-responsive-nav-link :href="route('finance.partenaires')" :active="request()->routeIs('partenaires.*')"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Partenaires
                     </x-responsive-nav-link>

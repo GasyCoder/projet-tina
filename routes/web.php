@@ -21,6 +21,7 @@ use App\Livewire\Finance\DashboardSituations;
 use App\Livewire\Finance\SituationFinanciere;
 use App\Livewire\Finance\MouvementsFinanciers;
 use App\Livewire\Finance\SituationJournaliere;
+use App\Livewire\Partenaire\Partenaires;
 
 // Authentication routes
 require __DIR__ . '/auth.php';

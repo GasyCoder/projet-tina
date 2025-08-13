@@ -9,14 +9,18 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('partenaires', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
-
+        public function up(): void
+        {
+            Schema::create('partenaires', function (Blueprint $table) {
+                $table->id();
+                $table->string('nom');
+                $table->string('telephone')->nullable();
+                $table->string('adresse')->nullable();
+                $table->enum('type', ['fournisseur', 'client'])->default('fournisseur');
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
     /**
      * Reverse the migrations.
      */

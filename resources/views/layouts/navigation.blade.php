@@ -111,6 +111,11 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
 
                         <div x-show="openFinance" x-transition
                             class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-600 z-10">
+                            <x-nav-link :href="route('finance.partenaires')"
+                                :active="request()->routeIs('finance.partenaires')"
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                                Partenaires
+                            </x-nav-link>
                             <x-nav-link :href="route('finance.index')" :active="request()->routeIs('finance.index')"
                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Gestion Financière

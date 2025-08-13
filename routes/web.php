@@ -11,6 +11,7 @@ use App\Livewire\Stocks\StockIndex;
 use App\Livewire\Voyage\VoyageShow;
 use App\Livewire\Voyage\VoyageIndex;
 use Illuminate\Support\Facades\Auth;
+use App\Livewire\Finance\Partenaires;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Finance\FinanceIndex;
 use App\Livewire\Products\ProductIndex;
@@ -50,7 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Finances
     Route::get('/finance', FinanceIndex::class)->name('finance.index');
     Route::get('/finance/situations', MouvementsFinanciers::class)->name('finance.situations');
-    // Finances - Routes existantes
+    Route::get('/finance/partenaires', Partenaires::class)->name('finance.partenaires');
 
 
     // Gestion de profil

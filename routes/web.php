@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Finances
     Route::get('/finance', FinanceIndex::class)->name('finance.index');
     Route::get('/finance/situations', MouvementsFinanciers::class)->name('finance.situations');
+    // 
     Route::get('/finance/partenaires', Partenaires::class)->name('finance.partenaires');
 
 

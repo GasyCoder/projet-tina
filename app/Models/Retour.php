@@ -6,228 +6,165 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
+
 class Retour extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'dechargements'; // Utilisation de la table dechargements
-
     protected $fillable = [
-        'dechargement_id',
-        'voyage_id',
-        'chargement_id',
-        'reference',
-        'type', // Ajout du type pour la différenciation
+        'numero_retour',
         'date_retour',
-        'proprietaire_nom',
-        'proprietaire_contact',
+        'vente_id',
         'produit_id',
         'lieu_stockage_id',
-        'quantite_kg',
-        'quantite_sacs_pleins',
-        'quantite_sacs_demi',
-        'prix_unitaire_mga',
-        'montant_total_mga',
-        'statut',
+        'client_nom',
+        'client_contact',
+        'quantite_retour_kg',
+        'sacs_pleins_retour',
+        'sacs_demi_retour',
         'motif_retour',
-        'observation',
-        'created_by',
-        'processed_at'
+        'description_motif',
+        'responsabilite',
+        'etat_produit',
+        'produit_revendable',
+        'valeur_recuperable_mga',
+        'perte_estimee_mga',
+        'statut_retour',
+        'action_prise',
+        'montant_rembourse_mga',
+        'date_traitement',
+        'transporteur_retour',
+        'frais_retour_mga',
+        'prise_charge_frais',
+        'photos_produit',
+        'documents_justificatifs',
+        'user_reception_id',
+        'user_traitement_id',
+        'observations'
     ];
 
     protected $casts = [
-        'quantite_kg' => 'decimal:2',
-        'prix_unitaire_mga' => 'decimal:2',
-        'montant_total_mga' => 'decimal:2',
         'date_retour' => 'date',
-        'processed_at' => 'datetime',
+        'date_traitement' => 'date',
+        'quantite_retour_kg' => 'decimal:2',
+        'valeur_recuperable_mga' => 'decimal:2',
+        'perte_estimee_mga' => 'decimal:2',
+        'montant_rembourse_mga' => 'decimal:2',
+        'frais_retour_mga' => 'decimal:2',
+        'produit_revendable' => 'boolean',
+        'photos_produit' => 'array',
+        'documents_justificatifs' => 'array',
+        'sacs_pleins_retour' => 'integer',
+        'sacs_demi_retour' => 'integer'
     ];
 
-    protected $appends = [
-        'quantite_totale_sacs',
-        'valeur_stock',
-        'statut_lisible'
-    ];
-
-    // Scope global pour ne récupérer que les retours
-    protected static function booted()
-    {
-        static::addGlobalScope('retour', function ($query) {
-            $query->where('type', 'retour');
-        });
-    }
+    protected $appends = ['statut_badge', 'motif_badge', 'total_sacs_retour'];
 
     // Relations
-    public function dechargement()
+    public function vente()
     {
-        return $this->belongsTo(Dechargement::class);
+        return $this->belongsTo(Vente::class);
     }
 
-    public function voyage()
-    {
-        return $this->belongsTo(Voyage::class);
-    }
-
-    public function chargement()
-    {
-        return $this->belongsTo(Chargement::class);
-    }
-
-
-    public function lieuLivraison()
-    {
-        return $this->belongsTo(Lieu::class, 'lieu_livraison_id');
-    }
     public function produit()
     {
-        return $this->hasOneThrough(
-            Produit::class,
-            Chargement::class,
-            'id', // Foreign key sur chargements
-            'id', // Foreign key sur produits
-            'chargement_id', // Local key sur ventes
-            'produit_id' // Local key sur chargements
-        );
+        return $this->belongsTo(Produit::class);
     }
+
     public function lieuStockage()
     {
         return $this->belongsTo(Lieu::class, 'lieu_stockage_id');
     }
 
-    public function createdBy()
+    public function userReception()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'user_reception_id');
+    }
+
+    public function userTraitement()
+    {
+        return $this->belongsTo(User::class, 'user_traitement_id');
     }
 
     // Accesseurs
-    public function getQuantiteTotaleSacsAttribute()
+    public function getStatutBadgeAttribute()
     {
-        return $this->quantite_sacs_pleins + ($this->quantite_sacs_demi * 0.5);
-    }
-
-    public function getValeurStockAttribute()
-    {
-        return $this->quantite_kg * $this->prix_unitaire_mga;
-    }
-
-    public function getStatutLisibleAttribute()
-    {
-        return match($this->statut) {
-            'en_stock' => 'En stock',
-            'vendu' => 'Vendu',
-            'perdu' => 'Perdu',
-            default => 'Inconnu'
+        return match ($this->statut_retour) {
+            'en_attente' => ['class' => 'bg-yellow-100 text-yellow-800', 'text' => 'En attente'],
+            'accepte' => ['class' => 'bg-green-100 text-green-800', 'text' => 'Accepté'],
+            'refuse' => ['class' => 'bg-red-100 text-red-800', 'text' => 'Refusé'],
+            'en_cours_traitement' => ['class' => 'bg-blue-100 text-blue-800', 'text' => 'En traitement'],
+            'traite' => ['class' => 'bg-purple-100 text-purple-800', 'text' => 'Traité'],
+            'archive' => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Archivé'],
+            default => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Inconnu']
         };
     }
 
-    // Scopes
-    public function scopeEnStock($query)
+    public function getMotifBadgeAttribute()
     {
-        return $query->where('statut', 'en_stock');
+        return match ($this->motif_retour) {
+            'defaut_qualite' => ['class' => 'bg-red-100 text-red-800', 'text' => 'Défaut qualité'],
+            'erreur_livraison' => ['class' => 'bg-orange-100 text-orange-800', 'text' => 'Erreur livraison'],
+            'annulation_client' => ['class' => 'bg-blue-100 text-blue-800', 'text' => 'Annulation'],
+            'surplus' => ['class' => 'bg-green-100 text-green-800', 'text' => 'Surplus'],
+            'autre' => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Autre'],
+            default => ['class' => 'bg-gray-100 text-gray-800', 'text' => 'Non défini']
+        };
     }
 
-    public function scopeVendu($query)
+    public function getTotalSacsRetourAttribute()
     {
-        return $query->where('statut', 'vendu');
-    }
-
-    public function scopePerdu($query)
-    {
-        return $query->where('statut', 'perdu');
-    }
-
-    public function scopeParProduit($query, $produitId)
-    {
-        return $query->where('produit_id', $produitId);
-    }
-
-    public function scopeParLieu($query, $lieuId)
-    {
-        return $query->where('lieu_stockage_id', $lieuId);
-    }
-
-    public function scopeParPeriode($query, $dateDebut, $dateFin)
-    {
-        return $query->whereBetween('date_retour', [$dateDebut, $dateFin]);
+        return $this->sacs_pleins_retour + ($this->sacs_demi_retour * 0.5);
     }
 
     // Méthodes métier
-    public static function creerDepuisDechargement(Dechargement $dechargement)
+    public function accepter()
     {
-        if ($dechargement->type !== 'retour') {
-            throw new \InvalidArgumentException('Le déchargement doit être de type retour');
+        $this->update([
+            'statut_retour' => 'accepte',
+            'user_traitement_id' => auth()->id()
+        ]);
+
+        if ($this->produit_revendable) {
+            DepotStock::ajouterRetour($this);
         }
 
-        $retour = self::create([
-            'dechargement_id' => $dechargement->id,
-            'voyage_id' => $dechargement->voyage_id,
-            'chargement_id' => $dechargement->chargement_id,
-            'reference' => 'RET-' . $dechargement->reference,
-            'type' => 'retour',
-            'date_retour' => $dechargement->date,
-            'proprietaire_nom' => $dechargement->interlocuteur_nom,
-            'proprietaire_contact' => $dechargement->interlocuteur_contact,
-            'produit_id' => $dechargement->produit->id ?? null,
-            'lieu_stockage_id' => $dechargement->lieu_livraison_id,
-            'quantite_kg' => $dechargement->poids_arrivee_kg,
-            'quantite_sacs_pleins' => $dechargement->sacs_pleins_arrivee,
-            'quantite_sacs_demi' => $dechargement->sacs_demi_arrivee,
-            'prix_unitaire_mga' => $dechargement->prix_unitaire_mga,
-            'montant_total_mga' => $dechargement->montant_total_mga,
-            'statut' => 'en_stock',
-            'motif_retour' => $dechargement->observation,
-            'observation' => 'Créé automatiquement depuis le déchargement ' . $dechargement->reference,
-            'created_by' => auth()->id(),
-            'processed_at' => now()
-        ]);
-
-        // Mettre à jour le stock
-        StockRetour::ajouterStock($retour);
-
-        return $retour;
+        HistoriqueMouvement::creerPourRetour($this);
     }
 
-    public function marquerCommeVendu($acheteur, $prixVente = null)
+    public function refuser($motif)
     {
         $this->update([
-            'statut' => 'vendu',
-            'observation' => $this->observation . ' | Vendu à: ' . $acheteur,
-            'prix_unitaire_mga' => $prixVente ?? $this->prix_unitaire_mga,
-            'processed_at' => now()
+            'statut_retour' => 'refuse',
+            'observations' => $this->observations . ' | Refusé: ' . $motif,
+            'user_traitement_id' => auth()->id()
         ]);
-
-        // Retirer du stock
-        StockRetour::retirerStock($this);
-
-        return $this;
     }
 
-    public function marquerCommePerdu($raison)
+    public function traiter($action, $montant = 0)
     {
         $this->update([
-            'statut' => 'perdu',
-            'observation' => $this->observation . ' | Perdu: ' . $raison,
-            'processed_at' => now()
+            'statut_retour' => 'traite',
+            'action_prise' => $action,
+            'montant_rembourse_mga' => $montant,
+            'date_traitement' => now(),
+            'user_traitement_id' => auth()->id()
         ]);
 
-        // Retirer du stock
-        StockRetour::retirerStock($this);
-
-        return $this;
+        if ($action === 'remboursement' && $montant > 0) {
+            $this->vente->ajouterPaiement(-$montant, 'retour');
+        }
     }
 
-    public function estEnStock()
+    protected static function boot()
     {
-        return $this->statut === 'en_stock';
-    }
+        parent::boot();
 
-    public function estVendu()
-    {
-        return $this->statut === 'vendu';
-    }
-
-    public function estPerdu()
-    {
-        return $this->statut === 'perdu';
+        static::creating(function ($model) {
+            if (!$model->numero_retour) {
+                $count = static::whereDate('date_retour', $model->date_retour ?? today())->count() + 1;
+                $model->numero_retour = 'RET' . date('Ymd') . str_pad($count, 4, '0', STR_PAD_LEFT);
+            }
+        });
     }
 }

@@ -51,7 +51,7 @@
                     </x-nav-link>
 
                     @php
-                    $isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', 'voyages.*');
+                    $isGestionsActive = request()->routeIs('lieux.*', 'produits.*', 'vehicules.*', 'voyages.*', 'partenaires.*');
                     @endphp
 
                     <div x-data="{ openGestions: false }" class="relative group">
@@ -82,6 +82,10 @@
                             <x-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
                                 Véhicules
+                            </x-nav-link>
+                            <x-nav-link :href="route('partenaires.index')" :active="request()->routeIs('partenaires.*')"
+                                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                                Partenaires
                             </x-nav-link>
                             <x-nav-link :href="route('voyages.index')" :active="request()->routeIs('voyages.*')"
                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 transition">
@@ -216,7 +220,7 @@ $isFinanceActive = request()->routeIs('finance.index', 'finance.situations', 'fi
 
             <!-- Gestions (mobile) -->
             @php
-$isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 'vehicules.*');
+$isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 'vehicules.*', 'partenaires.*');
             @endphp
             <div x-data="{ openGestionsMobile: false }" class="px-4 py-2">
                 <button @click="openGestionsMobile = !openGestionsMobile"
@@ -247,6 +251,10 @@ $isGestionsActive = request()->routeIs('voyages.*', 'produits.*', 'lieux.*', 've
                     <x-responsive-nav-link :href="route('vehicules.index')" :active="request()->routeIs('vehicules.*')"
                         class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
                         Véhicules
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('partenaires.index')" :active="request()->routeIs('partenaires.*')"
+                        class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400">
+                        Partenaires
                     </x-responsive-nav-link>
                 </div>
             </div>

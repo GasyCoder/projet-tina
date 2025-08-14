@@ -13,7 +13,7 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class FinanceIndex extends Component
+class AchatIndex extends Component
 {
     use WithPagination;
 
@@ -1171,7 +1171,7 @@ class FinanceIndex extends Component
         $repartitionDepenses = $this->repartitionDepenses;
         $repartitionRevenus = $this->repartitionRevenus;
 
-        return view('livewire.finance.finance-index', compact(
+        return view('livewire.finance.achat-index', compact(
             'transactions',
             'comptes',
             'voyagesDisponibles',

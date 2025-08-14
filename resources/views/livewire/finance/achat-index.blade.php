@@ -6,7 +6,7 @@
                 <!-- Titre et bouton dark/light -->
                 <div class="flex items-center space-x-4">
                     <h1 class="text-base sm:text-2xl lg:text-3xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                        Gestion Financière
+                        Achats
                     </h1>
                 </div>
 

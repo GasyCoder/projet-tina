@@ -24,6 +24,7 @@ use App\Livewire\Finance\SituationJournaliere;
 use App\Livewire\Partenaire\Partenaires;
 use App\Livewire\Partenaire\PartenaireShow;
 use App\Livewire\Categorie\CategorieShow;
+use App\Livewire\Finance\AchatIndex;
 
 // Authentication routes
 require __DIR__ . '/auth.php';
@@ -51,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/voyages/{voyage}', VoyageShow::class)->name('voyages.show');
 
     // Finances
-    Route::get('/finance', FinanceIndex::class)->name('finance.index');
+    Route::get('/finance', AchatIndex::class)->name('finance.index');
     Route::get('/finance/situations', MouvementsFinanciers::class)->name('finance.situations');
     Route::get('/finance/partenaires', Partenaires::class)->name('finance.partenaires');
     Route::get('/partenaire/{partenaire}', PartenaireShow::class)->name('partenaire.show');

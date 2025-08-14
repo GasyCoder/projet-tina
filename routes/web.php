@@ -23,6 +23,7 @@ use App\Livewire\Finance\MouvementsFinanciers;
 use App\Livewire\Finance\SituationJournaliere;
 use App\Livewire\Partenaire\Partenaires;
 use App\Livewire\Partenaire\PartenaireShow;
+use App\Livewire\Categorie\CategorieShow;
 
 // Authentication routes
 require __DIR__ . '/auth.php';
@@ -56,6 +57,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/partenaire/{partenaire}', PartenaireShow::class)->name('partenaire.show');
     
 
+    // Categories
+    Route::get('/categories', \App\Livewire\Categorie\Categories::class)->name('categories.index');
+    Route::get('/categories/{categorie}', \App\Livewire\Categorie\CategorieShow::class)->name('categories.show');
+    Route::get('/categories/{categorie}', CategorieShow::class)->name('categorie.categories.show');
 
     // Gestion de profil
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

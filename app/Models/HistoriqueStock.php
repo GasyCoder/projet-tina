@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 
 class HistoriqueStock extends Model
@@ -81,7 +82,7 @@ class HistoriqueStock extends Model
             'prix_unitaire' => $operation->prix_unitaire_mga,
             'valeur_mouvement' => abs($quantiteMouvement) * $operation->prix_unitaire_mga,
             'reference_operation' => $operation->reference,
-            'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'date_operation' => $operation->date
         ]);
 
@@ -89,5 +90,3 @@ class HistoriqueStock extends Model
         AlerteStock::verifierAlertes($produit->id, $lieu->id, $stockApres);
     }
 }
-
-/**

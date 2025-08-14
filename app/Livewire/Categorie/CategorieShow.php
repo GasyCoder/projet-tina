@@ -23,6 +23,7 @@ class CategorieShow extends Component
     public bool $showDetail = false;
     public bool $showTransactionModal = false;
 
+
     // Modal transaction
     public ?array $selectedTransaction = null;
 

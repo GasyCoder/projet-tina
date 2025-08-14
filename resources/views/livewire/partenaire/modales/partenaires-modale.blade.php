@@ -102,11 +102,33 @@
                                     <span class="text-red-500 ml-1">*</span>
                                 </span>
                             </label>
-                            <select wire:model.defer="type" 
-                                    class="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                                <option value="fournisseur" class="py-2">🏭 Fournisseur</option>
-                                <option value="client" class="py-2">👥 Client</option>
-                            </select>
+                            
+                            <div class="flex space-x-6">
+                                <!-- Fournisseur -->
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" 
+                                        name="type"
+                                        wire:model.defer="type" 
+                                        value="fournisseur"
+                                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                        🏭 Fournisseur
+                                    </span>
+                                </label>
+
+                                <!-- Client -->
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="radio" 
+                                        name="type"
+                                        wire:model.defer="type" 
+                                        value="client"
+                                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
+                                        👥 Client
+                                    </span>
+                                </label>
+                            </div>
+                            
                             @error('type') 
                                 <p class="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
                                     <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">

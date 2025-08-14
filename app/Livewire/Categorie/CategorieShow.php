@@ -7,6 +7,7 @@ use App\Models\TransactionComptable;
 use App\Models\Partenaire;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Database\Eloquent\Builder;
 
 class CategorieShow extends Component
 {
@@ -18,16 +19,31 @@ class CategorieShow extends Component
     public string $periode = 'all';
     public string $dateDebut = '';
     public string $dateFin = '';
+    public bool $showFormModal = false;
+    public bool $showDetail = false;
+    public bool $showTransactionModal = false;
 
     // Modal transaction
-    public bool $showTransactionModal = false;
     public ?array $selectedTransaction = null;
 
     // Modal création transaction
     public bool $showCreateModal = false;
     public array $newTransaction = [];
     public $partenaires = [];
+    // Add this method to the model
+    public function scopeActive(Builder $query)
+    {
+        return $query->where('is_active', true); // or whatever your active condition is
+    }
+    public function openFormModal(): void
+    {
+        $this->showFormModal = true;
+    }
 
+    public function closeFormModal(): void
+    {
+        $this->showFormModal = false;
+    }
     protected $queryString = [
         'filter' => ['except' => 'all'],
         'search' => ['except' => ''],
@@ -38,7 +54,7 @@ class CategorieShow extends Component
     public function mount(Categorie $categorie)
     {
         $this->categorie = $categorie;
-        $this->partenaires = Partenaire::active()->orderBy('nom')->get();
+        // $this->partenaires = Partenaire::active()->orderBy('nom')->get();
         $this->initNewTransaction();
     }
 
@@ -215,9 +231,11 @@ class CategorieShow extends Component
 
     public function render()
     {
-        return view('livewire.comptabilite.categorie-show', [
+        return view('livewire.categorie.categorieShow', [
             'transactions' => $this->transactions,
             'statistiques' => $this->statistiques,
         ]);
+
     }
+    
 }

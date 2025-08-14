@@ -5,8 +5,7 @@
             <div class="flex flex-row items-center justify-between space-x-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0">
                 <!-- Titre et info catégorie -->
                 <div class="flex items-center space-x-4">
-                    <a href="{{ route('comptabilite.categories') }}" 
-                       class="w-8 h-8 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <a href="{{ route('categories.index') }}" ...> 
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                         </svg>

@@ -31,11 +31,6 @@ class Compte extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function derniereTransaction()
-    {
-        return $this->belongsTo(Transaction::class, 'derniere_transaction_id');
-    }
-
     // Accesseurs
     public function getProprietaireDisplayAttribute()
     {

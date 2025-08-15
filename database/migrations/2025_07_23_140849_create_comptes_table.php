@@ -24,7 +24,6 @@ return new class extends Migration
             ])->default('principal'); 
             $table->string('numero_compte')->nullable(); 
             $table->decimal('solde_actuel_mga', 15, 2)->default(0); 
-            $table->foreignId('derniere_transaction_id')->nullable()->constrained('transactions');
             $table->boolean('actif')->default(true);
             $table->timestamps();
             

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('date');
             $table->string('chargeur_nom')->nullable();
             $table->string('chargeur_contact')->nullable();
-            $table->foreignId('depart_id')->constrained('lieux');
+            $table->foreignId('origine_id')->nullable()->constrained('lieux');
             $table->string('proprietaire_nom')->nullable();
             $table->string('proprietaire_contact')->nullable();
             $table->foreignId('produit_id')->constrained('produits');

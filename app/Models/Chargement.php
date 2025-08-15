@@ -16,7 +16,7 @@ class Chargement extends Model
         'reference',
         'chargeur_nom',
         'chargeur_contact',
-        'depart_id',
+        'origine_id', 
         'proprietaire_nom',
         'proprietaire_contact',
         'produit_id',
@@ -37,9 +37,9 @@ class Chargement extends Model
         return $this->belongsTo(Voyage::class);
     }
 
-    public function depart()
+    public function origine()
     {
-        return $this->belongsTo(Lieu::class, 'depart_id');
+        return $this->belongsTo(Lieu::class, 'origine_id');
     }
 
 
@@ -101,14 +101,6 @@ class Chargement extends Model
         });
     }
 
-    /**
-     * Relation avec les transactions
-     */
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class, 'chargement_id');
-    }
-
 
     // ✅ NOUVEAU : Events pour gérer automatiquement le stock
     protected static function boot()
@@ -118,7 +110,7 @@ class Chargement extends Model
         static::created(function ($chargement) {
             // Le stock est déjà géré dans VoyageShow::saveChargement()
             // Mais on peut ajouter des logs supplémentaires ici
-            \Illuminate\Support\Facades\Log::info('Chargement created event', [
+           \Log::info('Chargement created event', [
                 'chargement_id' => $chargement->id,
                 'produit_id' => $chargement->produit_id,
                 'poids' => $chargement->poids_depart_kg
@@ -127,7 +119,7 @@ class Chargement extends Model
 
         static::updated(function ($chargement) {
             // Le stock est déjà géré dans VoyageShow::saveChargement()
-            \Illuminate\Support\Facades\Log::info('Chargement updated event', [
+            \Log::info('Chargement updated event', [
                 'chargement_id' => $chargement->id,
                 'produit_id' => $chargement->produit_id,
                 'poids' => $chargement->poids_depart_kg
@@ -136,7 +128,7 @@ class Chargement extends Model
 
         static::deleting(function ($chargement) {
             // Le stock est déjà géré dans VoyageShow::deleteChargement()
-            \Illuminate\Support\Facades\Log::info('Chargement deleting event', [
+           \Log::info('Chargement deleting event', [
                 'chargement_id' => $chargement->id,
                 'produit_id' => $chargement->produit_id,
                 'poids' => $chargement->poids_depart_kg
@@ -144,8 +136,7 @@ class Chargement extends Model
         });
     }
 
-    // ✅ NOUVEAU : Méthodes utilitaires pour la gestion du stock
-    
+
     /**
      * Calcule la quantité équivalente selon l'unité du produit
      */

@@ -132,11 +132,4 @@ class Dechargement extends Model
         });
     }
 
-    /**
-     * Relation avec les transactions
-     */
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class, 'dechargement_id');
-    }
 }

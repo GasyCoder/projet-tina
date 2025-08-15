@@ -144,7 +144,8 @@ class CompteManager extends Component
 
     public function render()
     {
-        $comptes = Compte::where('actif', true)->orderBy('type_compte')->get();
+        // Afficher tous les comptes actifs, y compris ceux créés automatiquement par les ventes
+        $comptes = Compte::where('actif', true)->orderBy('type_compte')->orderBy('created_at')->get();
         return view('livewire.finance.compte-manager', compact('comptes'));
     }
 }

@@ -38,16 +38,6 @@ class Produit extends Model
         return $this->hasMany(Dechargement::class);
     }
 
-    public function prixMarche()
-    {
-        return $this->hasMany(PrixMarche::class);
-    }
-
-    public function transactions()
-    {
-        return $this->hasMany(Transaction::class);
-    }
-
     // Accesseurs
     public function getPrixReferenceMgaFormattedAttribute()
     {

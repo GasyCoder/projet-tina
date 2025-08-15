@@ -229,7 +229,7 @@
 
             <!-- Carte Stocks (conditionnelle pour admins) -->
             @if(Auth::user()->isAdmin())
-                <a href="{{ route('admin.stocks') }}"
+                <a href="#"
                     class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-sm dark:shadow-gray-900/50 border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-lg dark:hover:shadow-gray-900/70 transition-shadow duration-300">
                     <div class="p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/30 dark:to-violet-900/30 border-b border-gray-100 dark:border-gray-700">
                         <div class="flex items-center gap-2 sm:gap-3">

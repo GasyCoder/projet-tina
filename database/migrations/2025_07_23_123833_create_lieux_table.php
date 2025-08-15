@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('lieux', function (Blueprint $table) {
             $table->id();
             $table->string('nom'); // ANKIRIRIKA, VISHAL, etc.
-            $table->enum('type', ['depart', 'destination', 'depot']);
-            $table->string('region')->nullable();
+            $table->enum('type', ['origine', 'depot', 'magasin', 'boutique'])->index(); // 👈 index
+            $table->string('region')->nullable()->index(); // 👈 index
             $table->string('telephone')->nullable();
             $table->text('adresse')->nullable();
-            $table->boolean('actif')->default(true);
+            $table->boolean('actif')->default(true)->index(); // 👈 index
             $table->timestamps();
         });
     }

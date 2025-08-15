@@ -15,8 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('reference')->unique(); 
             $table->date('date');
-            $table->string('from_nom')->nullable(); // ✅ VOS champs originaux
-            $table->string('to_nom')->nullable();   // ✅ VOS champs originaux  
+            $table->string('from_nom')->nullable();
+            $table->string('to_nom')->nullable();  
+            $table->string('to_compte')->nullable();  
             $table->decimal('montant_mga', 15, 2);
             $table->text('objet')->nullable();
             $table->enum('mode_paiement', [
@@ -35,7 +36,7 @@ return new class extends Migration
             $table->softDeletes();
             
             $table->index(['date']);
-            $table->index(['from_nom', 'to_nom']);
+            $table->index(['from_nom', 'to_nom', 'to_compte']);
             $table->index('reference');
         });
     }

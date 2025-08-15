@@ -2,488 +2,455 @@
 
 namespace App\Livewire\Finance;
 
-use Carbon\Carbon;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Illuminate\Support\Facades\Log;
 use App\Models\Achat;
 use App\Models\Compte;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 class AchatIndex extends Component
 {
     use WithPagination;
 
-    /** UI */
-    public $activeTab = 'transactions';
-    public $soldeInsuffisantMessage = '';
+    /** Onglets */
+    public string $activeTab = 'achats';
 
     /** Filtres */
-    public $searchTerm = '';
-    public $filterModePaiement = '';
-    public $filterDate = '';           // Filtre par date au lieu de statut
-    public $filterPersonne = '';
-    public $dateDebut = '';
-    public $dateFin = '';
+    public string $searchTerm = '';
+    public string $filterModePaiement = '';
+    public string $filterDate = '';
+    public string $dateDebut = '';
+    public string $dateFin = '';
 
-    /** Formulaire Achat */
-    public $showTransactionModal = false;
-    public $editingTransaction = null;
-    public $reference = '';
-    public $date = '';
-    public $from_nom = '';
-    public $to_nom = '';
-    public $montant = '';              // Unifié : montant au lieu de montant_mga
-    public $objet = '';
-    public $mode_paiement = 'especes';
-    public $statut = true;             // ✅ BOOLEAN : true = confirmé, false = en attente
-    public $observation = '';
+    /** Modal & form */
+    public bool $showModal = false;
+    public ?Achat $editingAchat = null;
+    public string $soldeMessage = '';
+
+    /** Gestion des détails expandables - SANS ALPINE */
+    public array $expandedAchats = [];
+
+    /** Form groupé */
+    public array $form = [
+        'reference'      => '',
+        'date'           => '',
+        'from_nom'       => '',
+        'to_nom'         => '',
+        'to_compte'      => '',
+        'montant'        => '',
+        'objet'          => '',
+        'mode_paiement'  => 'especes',
+        'statut'         => true,
+        'observation'    => '',
+    ];
 
     /** Règles de validation */
-    protected $rules = [
-        'reference'     => 'required|string|max:255',
-        'date'          => 'required|date',
-        'from_nom'      => 'nullable|string|max:255',
-        'to_nom'        => 'nullable|string|max:255',
-        'montant'       => 'required|numeric|min:0',
-        'objet'         => 'required|string|max:255',
-        'mode_paiement' => 'required|in:especes,AirtelMoney,Mvola,OrangeMoney,banque',
-        'statut'        => 'required|boolean',
-        'observation'   => 'nullable|string',
-    ];
-
-    /** Messages d'erreur personnalisés */
-    protected $messages = [
-        'objet.required' => 'L\'objet de la transaction est obligatoire.',
-        'montant.required' => 'Le montant est obligatoire.',
-        'montant.numeric' => 'Le montant doit être un nombre.',
-        'montant.min' => 'Le montant doit être positif.',
-        'date.required' => 'La date est obligatoire.',
-        'mode_paiement.required' => 'Le mode de paiement est obligatoire.',
-        'statut.required' => 'Le statut est obligatoire.',
-        'statut.boolean' => 'Le statut doit être valide.',
-    ];
-
-    /** Mount */
-    public function mount()
+    protected function rules(): array
     {
-        $this->activeTab = in_array(request()->query('tab', 'transactions'), ['transactions','rapports'])
-            ? request()->query('tab', 'transactions')
-            : 'transactions';
-
-        $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->dateFin   = Carbon::now()->endOfMonth()->format('Y-m-d');
-
-        $this->dispatch('tab-changed', tab: $this->activeTab);
+        return [
+            'form.reference'     => ['required','string','max:255'],
+            'form.date'          => ['required','date'],
+            'form.from_nom'      => ['nullable','string','max:255'],
+            'form.to_nom'        => ['nullable','string','max:255'],
+            'form.to_compte'     => ['nullable','string','max:255'],
+            'form.montant'       => ['required','numeric','min:0'],
+            'form.objet'         => ['required','string','max:255'],
+            'form.mode_paiement' => ['required','in:'.implode(',', Achat::modesPaiement())],
+            'form.statut'        => ['required','boolean'],
+            'form.observation'   => ['nullable','string'],
+        ];
     }
 
-    /** Tabs */
-    public function setActiveTab($tab)
+    protected array $messages = [
+        'form.objet.required'         => "L'objet est obligatoire.",
+        'form.montant.required'       => 'Le montant est obligatoire.',
+        'form.montant.numeric'        => 'Le montant doit être un nombre.',
+        'form.montant.min'            => 'Le montant doit être positif.',
+        'form.date.required'          => 'La date est obligatoire.',
+        'form.mode_paiement.required' => 'Le mode de paiement est obligatoire.',
+        'form.mode_paiement.in'       => 'Mode de paiement inconnu.',
+    ];
+
+    public function mount(): void
     {
-        $validTabs = ['transactions', 'rapports'];
-        if (!in_array($tab, $validTabs)) {
-            Log::warning("Invalid tab requested: {$tab}");
+        Log::info('🚀 AchatIndex::mount() - Initialisation du composant PURE LIVEWIRE');
+        $this->activeTab = request()->query('tab', 'achats');
+        $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
+        $this->dateFin   = Carbon::now()->endOfMonth()->format('Y-m-d');
+    }
+
+    /** Toggle des détails - REMPLACE ALPINE.JS */
+    public function toggleDetails($achatId): void
+    {
+        Log::info("🔄 Toggle détails pour achat ID: {$achatId}");
+        
+        if (in_array($achatId, $this->expandedAchats)) {
+            // Fermer
+            $this->expandedAchats = array_diff($this->expandedAchats, [$achatId]);
+            Log::info("➖ Détails fermés pour achat ID: {$achatId}");
+        } else {
+            // Ouvrir
+            $this->expandedAchats[] = $achatId;
+            Log::info("➕ Détails ouverts pour achat ID: {$achatId}");
+        }
+    }
+
+    /** Navigation entre onglets */
+    public function setActiveTab(string $tab): void
+    {
+        Log::info("📋 Changement d'onglet vers: {$tab}");
+        
+        if (!in_array($tab, ['achats', 'rapports'], true)) {
+            Log::warning("⚠️ Onglet invalide: {$tab}");
             return;
         }
+
         $this->activeTab = $tab;
         $this->resetPage();
         $this->dispatch('tab-changed', tab: $tab);
-        $this->js("
-            const url = new URL(window.location);
-            url.searchParams.set('tab', '{$tab}');
-            window.history.pushState({}, '', url);
-        ");
-    }
-
-    /** CRUD Methods */
-    public function createTransaction()
-    {
-        Log::info('createTransaction called', ['activeTab' => $this->activeTab]);
-        $this->resetTransactionForm();
-        $this->editingTransaction = null;
-        $this->reference = $this->generateTransactionReference();
-        $this->date = Carbon::now()->format('Y-m-d');
-        $this->statut = true;          // ✅ true par défaut = confirmé
-        $this->showTransactionModal = true;
-        $this->dispatch('open-transaction-modal');
-    }
-
-    public function editTransaction($achatId)
-    {
-        $achat = Achat::findOrFail($achatId);
         
-        Log::info('=== DÉBUT ÉDITION ACHAT ===', [
-            'achat_id' => $achat->id,
-            'montant' => $achat->montant_mga,
-            'statut' => $achat->statut
-        ]);
-
-        $this->editingTransaction = $achat;
-        $this->reference     = $achat->reference;
-        $this->date          = $achat->date?->format('Y-m-d');
-        $this->from_nom      = $achat->from_nom;
-        $this->to_nom        = $achat->to_nom;
-        $this->montant       = $achat->montant_mga;  // Mapping
-        $this->objet         = $achat->objet;
-        $this->mode_paiement = $achat->mode_paiement;
-        $this->statut        = (bool) $achat->statut; // ✅ Cast vers boolean
-        $this->observation   = $achat->observation;
-
-        $this->showTransactionModal = true;
-
-        Log::info('=== FIN ÉDITION ACHAT ===', [
-            'reference' => $this->reference,
-            'date' => $this->date,
-            'montant' => $this->montant,
-            'statut' => $this->statut ? 'confirmé' : 'attente'
-        ]);
+        Log::info("✅ Onglet changé: {$tab}");
     }
 
-
-    public function saveTransaction()
+    /** CRUD OPERATIONS */
+    
+    public function createAchat(): void
     {
-        Log::info('=== DÉBUT SAUVEGARDE TRANSACTION ===', [
-            'montant' => $this->montant,
-            'statut' => $this->statut ? 'confirmé' : 'attente',
-            'objet' => $this->objet,
-            'mode_paiement' => $this->mode_paiement,
-            'editing' => $this->editingTransaction ? 'true' : 'false'
-        ]);
+        Log::info('➕ AchatIndex::createAchat() - Création nouvel achat');
+        
+        $this->resetFormAndModal();
+        $this->form['reference'] = $this->generateReference();
+        $this->form['date'] = Carbon::now()->format('Y-m-d');
+        $this->showModal = true;
+        
+        Log::info('✅ Modal création ouvert', ['reference' => $this->form['reference']]);
+    }
 
-        // Validation avec gestion d'erreurs détaillée
+    public function editAchat($id): void
+    {
+        Log::info("✏️ AchatIndex::editAchat() - Edition achat ID: {$id}");
+        
         try {
-            $this->validate();
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Erreurs de validation:', [
-                'errors' => $e->errors(),
-                'data' => [
-                    'montant' => $this->montant,
-                    'objet' => $this->objet,
-                    'date' => $this->date,
-                    'statut' => $this->statut
-                ]
+            $this->editingAchat = Achat::findOrFail($id);
+            
+            Log::info('📄 Achat trouvé pour édition', [
+                'id' => $this->editingAchat->id,
+                'reference' => $this->editingAchat->reference
             ]);
-            return;
-        }
 
-        // Vérification solde uniquement si transaction confirmée (true)
-        if ($this->statut === true && !$this->verifierSoldeCompte()) {
-            Log::warning('Vérification solde échouée');
-            return;
-        }
+            $this->form = [
+                'reference'      => $this->editingAchat->reference,
+                'date'           => optional($this->editingAchat->date)->format('Y-m-d'),
+                'from_nom'       => $this->editingAchat->from_nom ?? '',
+                'to_nom'         => $this->editingAchat->to_nom ?? '',
+                'to_compte'      => $this->editingAchat->to_compte ?? '',
+                'montant'        => $this->editingAchat->montant_mga,
+                'objet'          => $this->editingAchat->objet,
+                'mode_paiement'  => $this->editingAchat->mode_paiement,
+                'statut'         => (bool) $this->editingAchat->statut,
+                'observation'    => $this->editingAchat->observation ?? '',
+            ];
 
-        // Préparation des données avec mapping correct
-        $data = [
-            'reference'     => $this->reference,
-            'date'          => $this->date,
-            'from_nom'      => $this->from_nom ?: null,
-            'to_nom'        => $this->to_nom   ?: null,
-            'montant_mga'   => $this->montant,          // ✅ Mapping vers montant_mga
-            'objet'         => $this->objet,
-            'mode_paiement' => $this->mode_paiement,
-            'statut'        => (bool) $this->statut,    // ✅ Cast boolean
-            'observation'   => $this->observation ?: null,
-        ];
-
-        Log::info('Données à sauvegarder:', $data);
-
-        try {
-            if ($this->editingTransaction) {
-                $this->editingTransaction->update($data);
-                flash()->success('Transaction modifiée avec succès');
-                Log::info('Transaction modifiée avec succès', ['id' => $this->editingTransaction->id]);
-            } else {
-                $transaction = Achat::create($data);
-                flash()->success('Transaction créée avec succès');
-                Log::info('Transaction créée avec succès', ['id' => $transaction->id]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Erreur lors de la sauvegarde:', [
+            $this->showModal = true;
+            $this->soldeMessage = '';
+            
+            Log::info('✅ Modal édition ouvert', ['achat_id' => $id]);
+            
+        } catch (\Throwable $e) {
+            Log::error("❌ Erreur édition achat ID: {$id}", [
                 'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-            flash()->error("Erreur lors de la sauvegarde : {$e->getMessage()}");
-            return;
+            
+            session()->flash('error', 'Erreur lors du chargement de l\'achat.');
         }
-
-        $this->closeTransactionModal();
     }
 
-    public function deleteTransaction($achatId)
+    public function saveAchat(): void
     {
+        Log::info('💾 AchatIndex::saveAchat() - Début sauvegarde');
+        
         try {
-            $achat = Achat::findOrFail($achatId);
+            $this->validate();
+            
+            $data = [
+                'reference'      => $this->form['reference'],
+                'date'           => $this->form['date'],
+                'from_nom'       => $this->form['from_nom'] ?: null,
+                'to_nom'         => $this->form['to_nom'] ?: null,
+                'to_compte'      => $this->form['to_compte'] ?: null,
+                'montant_mga'    => $this->form['montant'],
+                'objet'          => $this->form['objet'],
+                'mode_paiement'  => $this->form['mode_paiement'],
+                'statut'         => $this->form['statut'],
+                'observation'    => $this->form['observation'] ?: null,
+            ];
+
+            // Vérification du solde si nécessaire
+            if ($data['statut'] && $data['mode_paiement'] !== Achat::MODE_ESPECES) {
+                $check = $this->verifierSolde($data['mode_paiement'], (float) $data['montant_mga']);
+                if (!$check['success']) {
+                    $this->soldeMessage = $check['message'];
+                    Log::warning('⚠️ Solde insuffisant', ['message' => $check['message']]);
+                    return;
+                }
+            }
+
+            if ($this->editingAchat) {
+                $this->editingAchat->update($data);
+                session()->flash('success', 'Achat modifié avec succès.');
+                Log::info("✅ Achat modifié ID: {$this->editingAchat->id}");
+            } else {
+                $newAchat = Achat::create($data);
+                session()->flash('success', 'Achat créé avec succès.');
+                Log::info("✅ Nouvel achat créé ID: {$newAchat->id}");
+            }
+
+            $this->closeModal();
+
+        } catch (\Throwable $e) {
+            Log::error('❌ Erreur sauvegarde achat', [
+                'message' => $e->getMessage(),
+                'form' => $this->form
+            ]);
+            session()->flash('error', 'Erreur lors de la sauvegarde.');
+        }
+    }
+
+    public function deleteAchat($id): void
+    {
+        Log::info("🗑️ AchatIndex::deleteAchat() - Suppression achat ID: {$id}");
+        
+        try {
+            $achat = Achat::findOrFail($id);
+            
+            Log::info('📄 Achat trouvé pour suppression', [
+                'id' => $achat->id,
+                'reference' => $achat->reference
+            ]);
+            
             $achat->delete();
-            session()->flash('success', 'Transaction supprimée avec succès');
-            Log::info('Transaction supprimée', ['id' => $achat->id]);
-        } catch (\Exception $e) {
-            session()->flash('error', 'Erreur lors de la suppression');
-            Log::error('Erreur suppression transaction', ['error' => $e->getMessage()]);
+            
+            // Retirer de la liste des expanded si présent
+            $this->expandedAchats = array_diff($this->expandedAchats, [$id]);
+            
+            session()->flash('success', 'Achat supprimé avec succès.');
+            Log::info("✅ Achat supprimé ID: {$id}");
+            
+        } catch (\Throwable $e) {
+            Log::error("❌ Erreur suppression achat ID: {$id}", [
+                'message' => $e->getMessage()
+            ]);
+            session()->flash('error', 'Erreur lors de la suppression.');
         }
     }
 
-    public function confirmerTransaction($achatId)
+    public function confirmerAchat($id): void
     {
+        Log::info("✅ AchatIndex::confirmerAchat() - Confirmation achat ID: {$id}");
+        
         try {
-            $achat = Achat::findOrFail($achatId);
-            $achat->update(['statut' => true]); // ✅ Boolean true = confirmé
-            session()->flash('success', 'Transaction confirmée');
-            Log::info('Transaction confirmée', ['id' => $achat->id]);
-        } catch (\Exception $e) {
-            session()->flash('error', 'Erreur lors de la confirmation');
-            Log::error('Erreur confirmation transaction', ['error' => $e->getMessage()]);
+            $achat = Achat::findOrFail($id);
+            
+            Log::info('📄 Achat trouvé pour confirmation', [
+                'id' => $achat->id,
+                'reference' => $achat->reference,
+                'mode_paiement' => $achat->mode_paiement
+            ]);
+
+            // Vérifier le solde si nécessaire
+            if ($achat->mode_paiement !== Achat::MODE_ESPECES) {
+                $check = $this->verifierSolde($achat->mode_paiement, (float) $achat->montant_mga);
+                if (!$check['success']) {
+                    session()->flash('error', $check['message']);
+                    Log::warning('⚠️ Solde insuffisant pour confirmation', ['message' => $check['message']]);
+                    return;
+                }
+            }
+
+            $achat->update(['statut' => true]);
+            
+            session()->flash('success', 'Achat confirmé avec succès.');
+            Log::info("✅ Achat confirmé ID: {$id}");
+            
+        } catch (\Throwable $e) {
+            Log::error("❌ Erreur confirmation achat ID: {$id}", [
+                'message' => $e->getMessage()
+            ]);
+            session()->flash('error', 'Erreur lors de la confirmation.');
         }
     }
 
-    /** Modal helpers */
-    public function closeTransactionModal()
+    /** MODAL MANAGEMENT */
+    
+    public function closeModal(): void
     {
-        Log::info('closeTransactionModal called');
-        $this->showTransactionModal = false;
-        $this->resetTransactionForm();
-        $this->editingTransaction = null;
-        $this->dispatch('close-transaction-modal');
+        Log::info('❌ Fermeture modal');
+        
+        $this->showModal = false;
+        $this->resetFormAndModal();
+        
+        Log::info('✅ Modal fermé');
     }
 
-    private function resetTransactionForm()
+    private function resetFormAndModal(): void
     {
-        $this->reference = '';
-        $this->date = '';
-        $this->from_nom = '';
-        $this->to_nom = '';
-        $this->montant = '';
-        $this->objet = '';
-        $this->mode_paiement = 'especes';
-        $this->statut = true;          // ✅ true par défaut = confirmé
-        $this->observation = '';
-        $this->soldeInsuffisantMessage = '';
+        $this->form = [
+            'reference'      => '',
+            'date'           => '',
+            'from_nom'       => '',
+            'to_nom'         => '',
+            'to_compte'      => '',
+            'montant'        => '',
+            'objet'          => '',
+            'mode_paiement'  => Achat::MODE_ESPECES,
+            'statut'         => true,
+            'observation'    => '',
+        ];
+        
+        $this->editingAchat = null;
+        $this->soldeMessage = '';
         $this->resetErrorBag();
     }
 
-    private function generateTransactionReference(): string
+    /** HELPER METHODS */
+    
+    private function generateReference(): string
     {
         $count = Achat::withTrashed()
             ->whereDate('created_at', Carbon::today())
             ->count() + 1;
 
-        $reference = 'ACH' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
-
-        while (Achat::withTrashed()->where('reference', $reference)->exists()) {
-            $count++;
+        do {
             $reference = 'ACH' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
-        }
+            $count++;
+        } while (Achat::withTrashed()->where('reference', $reference)->exists());
 
-        Log::info('Nouvelle référence ACH générée', [
-            'reference' => $reference,
-            'count_today' => $count - 1,
-            'date' => Carbon::today()->format('Y-m-d')
-        ]);
-
+        Log::info("🔢 Référence générée: {$reference}");
         return $reference;
     }
 
-    /** Filtres */
-    public function clearFilters()
+    private function verifierSolde(string $modePaiement, float $montant): array
     {
+        Log::info("💰 Vérification solde", [
+            'mode_paiement' => $modePaiement,
+            'montant' => $montant
+        ]);
+        
+        $typeCompte = match ($modePaiement) {
+            Achat::MODE_AIRTEL => 'AirtelMoney',
+            Achat::MODE_MVOLA  => 'Mvola',
+            Achat::MODE_ORANGE => 'OrangeMoney',
+            Achat::MODE_BANQUE => 'banque',
+            default            => null,
+        };
+
+        if (!$typeCompte) {
+            return ['success' => false, 'message' => 'Mode de paiement invalide.'];
+        }
+
+        $compte = Compte::where('type_compte', $typeCompte)
+            ->where('actif', true)
+            ->first();
+
+        if (!$compte) {
+            return ['success' => false, 'message' => "Aucun compte actif pour {$modePaiement}"];
+        }
+
+        $solde = (float) $compte->solde_actuel_mga;
+
+        if ($solde < $montant) {
+            return [
+                'success' => false,
+                'message' => "Solde insuffisant. Disponible : " . number_format($solde, 0, ',', ' ') . " MGA",
+            ];
+        }
+
+        return ['success' => true];
+    }
+
+    /** FILTERS */
+    
+    public function clearFilters(): void
+    {
+        Log::info('🧹 Effacement des filtres');
+        
         $this->searchTerm = '';
         $this->filterModePaiement = '';
         $this->filterDate = '';
-        $this->filterPersonne = '';
         $this->resetPage();
+        
+        Log::info('✅ Filtres effacés');
     }
 
-    /** Vérification solde avec gestion boolean */
-    private function verifierSoldeCompte(): bool
+    /** REAL-TIME VALIDATION */
+    
+    public function updatedForm($field): void
     {
-        if ($this->statut === true && $this->mode_paiement !== 'especes') {
-            $typeCompte = match($this->mode_paiement) {
-                'AirtelMoney' => 'AirtelMoney',
-                'Mvola'       => 'Mvola',
-                'OrangeMoney' => 'OrangeMoney',
-                'banque'      => 'banque',
-                default       => null
-            };
-
-            if ($typeCompte) {
-                $compte = Compte::where('type_compte', $typeCompte)
-                    ->where('actif', true)
-                    ->first();
-
-                if (!$compte) {
-                    flash()->error("Aucun compte actif trouvé pour le mode de paiement {$this->mode_paiement}.");
-                    return false;
-                }
-
-                $solde = (float) $compte->solde_actuel_mga;
-                if ($solde < (float) $this->montant) {
-                    $this->soldeInsuffisantMessage =
-                        "Solde insuffisant pour le compte {$typeCompte}. Solde actuel : "
-                        . number_format($solde, 0, ',', ' ')
-                        . " MGA, requis : "
-                        . number_format((float)$this->montant, 0, ',', ' ')
-                        . " MGA.";
-                    flash()->error($this->soldeInsuffisantMessage);
-                    return false;
-                }
+        if (in_array($field, ['form.montant', 'form.mode_paiement', 'form.statut'], true)) {
+            if ($this->form['statut'] && 
+                $this->form['montant'] !== '' && 
+                $this->form['mode_paiement'] !== Achat::MODE_ESPECES) {
+                
+                $check = $this->verifierSolde($this->form['mode_paiement'], (float) $this->form['montant']);
+                $this->soldeMessage = $check['success'] ? '' : $check['message'];
+            } else {
+                $this->soldeMessage = '';
             }
         }
-        return true;
     }
 
-    /** Event listeners mis à jour */
-    public function updatedModePaiement()
-    {
-        if ($this->montant && $this->mode_paiement !== 'especes' && $this->statut === true) {
-            $this->verifierSoldeCompte();
-        } else {
-            $this->resetErrorBag('montant');
-            $this->soldeInsuffisantMessage = '';
-        }
-    }
-
-    public function updatedMontant()
-    {
-        if ($this->montant && $this->mode_paiement !== 'especes' && $this->statut === true) {
-            $this->verifierSoldeCompte();
-        } else {
-            $this->resetErrorBag('montant');
-            $this->soldeInsuffisantMessage = '';
-        }
-    }
-
-    public function updatedStatut()
-    {
-        if ($this->montant && $this->mode_paiement !== 'especes' && $this->statut === true) {
-            $this->verifierSoldeCompte();
-        } else {
-            $this->resetErrorBag('montant');
-            $this->soldeInsuffisantMessage = '';
-        }
-    }
-
-    /** Render avec filtres par date */
+    /** RENDER */
+    
     public function render()
     {
-        Log::info('Rendering AchatIndex', ['activeTab' => $this->activeTab]);
-
+        Log::info('🎨 Rendu du composant PURE LIVEWIRE');
+        
         $query = Achat::query()
             ->when($this->searchTerm, function ($q) {
-                $q->where(function ($subQ) {
-                    $subQ->where('reference', 'like', '%' . $this->searchTerm . '%')
-                         ->orWhere('objet', 'like', '%' . $this->searchTerm . '%')
-                         ->orWhere('from_nom', 'like', '%' . $this->searchTerm . '%')
-                         ->orWhere('to_nom', 'like', '%' . $this->searchTerm . '%');
+                $q->where(function ($sub) {
+                    $term = '%' . $this->searchTerm . '%';
+                    $sub->where('reference', 'like', $term)
+                        ->orWhere('objet', 'like', $term)
+                        ->orWhere('from_nom', 'like', $term)
+                        ->orWhere('to_nom', 'like', $term);
                 });
             })
-            ->when($this->filterModePaiement, fn($q) => $q->where('mode_paiement', $this->filterModePaiement))
-            ->when($this->filterDate, function($q) {
-                // Filtre par date
-                switch($this->filterDate) {
-                    case 'today':
-                        $q->whereDate('date', Carbon::today());
-                        break;
-                    case 'week':
-                        $q->whereBetween('date', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
-                        break;
-                    case 'month':
-                        $q->whereBetween('date', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()]);
-                        break;
-                    case 'year':
-                        $q->whereBetween('date', [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()]);
-                        break;
-                }
+            ->when($this->filterModePaiement, fn ($q) => $q->where('mode_paiement', $this->filterModePaiement))
+            ->when($this->filterDate, function ($q) {
+                match ($this->filterDate) {
+                    'today' => $q->whereDate('date', Carbon::today()),
+                    'week'  => $q->whereBetween('date', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]),
+                    'month' => $q->whereBetween('date', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()]),
+                    'year'  => $q->whereBetween('date', [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()]),
+                    default => null,
+                };
             })
-            ->when($this->filterPersonne, function ($q) {
-                $q->where(function ($subQ) {
-                    $subQ->where('from_nom', 'like', '%' . $this->filterPersonne . '%')
-                         ->orWhere('to_nom', 'like', '%' . $this->filterPersonne . '%');
-                });
-            })
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->orderBy('date', 'desc');
+            ->when($this->dateDebut && $this->dateFin, fn ($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
+            ->orderByDesc('date');
 
-        $transactions = $query->paginate(15);
+        $achats = $query->paginate(15);
 
-        // Statistiques avec boolean
-        $totalSorties = Achat::query()
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->where('statut', true)  // ✅ true = confirmé
-            ->sum('montant_mga');
+        $statistiques = [
+            'totalSorties'        => (float) Achat::where('statut', true)->sum('montant_mga'),
+            'achatsEnAttente'     => (int) Achat::where('statut', false)->count(),
+            'nombreAchats'        => (int) Achat::count(),
+        ];
 
-        $transactionsEnAttente = Achat::query()
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->where('statut', false)  // ✅ false = en attente
-            ->count();
+        Log::info('✅ Rendu terminé PURE LIVEWIRE', [
+            'nombre_achats' => $achats->count(),
+            'total_pages' => $achats->lastPage(),
+            'expanded_count' => count($this->expandedAchats)
+        ]);
 
-        // Statistiques pour compatibilité avec la vue
-        $totalEntrees = 0;
-        $beneficeNet = 0 - $totalSorties;
-        $revenusEnAttente = 0;
-        
-        $repartitionParStatut = Achat::select('statut')
-            ->selectRaw('COUNT(*) as count')
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->groupBy('statut')
-            ->pluck('count', 'statut');
+        return view('livewire.finance.achat-index', compact('achats', 'statistiques'));
+    }
 
-        $repartitionParType = Achat::select('mode_paiement as type')
-            ->selectRaw('COUNT(*) as count, SUM(montant_mga) as total')
-            ->when($this->dateDebut && $this->dateFin, fn($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->groupBy('mode_paiement')
-            ->get()
-            ->mapWithKeys(function ($item) {
-                return [$item->type => ['count' => (int)$item->count, 'total' => (float)$item->total]];
-            });
-
-        $comptes = Compte::where('actif', true)->get();
-
-        // Variables de compatibilité (pour anciennes vues)
-        $voyagesDisponibles = collect();
-        $dechargementsDisponibles = collect();
-        $produitsDisponibles = collect();
-        $produitSelectionne = null;
-        $transactionsVoyage = collect();
-        $transactionsAutre = collect();
-        $revenus = collect();
-        $depenses = $transactions;
-        $totalRevenus = 0;
-        $revenuMoyen = 0;
-        $nombreRevenus = 0;
-        $totalDepenses = $totalSorties;
-        $depenseMoyenne = ($transactions->total() > 0) ? (float) $totalSorties / $transactions->total() : 0;
-        $depensesEnAttente = Achat::where('statut', false)->sum('montant_mga');  // ✅ false = attente
-        $nombreDepenses = $transactions->total();
-        $repartitionDepenses = $repartitionParType;
-        $repartitionRevenus = collect();
-
-        return view('livewire.finance.achat-index', compact(
-            'transactions',
-            'comptes',
-            'voyagesDisponibles',
-            'dechargementsDisponibles',
-            'produitsDisponibles',
-            'produitSelectionne',
-            'totalEntrees',
-            'totalSorties',
-            'beneficeNet',
-            'transactionsEnAttente',
-            'repartitionParType',
-            'repartitionParStatut',
-            'transactionsVoyage',
-            'transactionsAutre',
-            'revenus',
-            'depenses',
-            'totalRevenus',
-            'revenuMoyen',
-            'nombreRevenus',
-            'revenusEnAttente',
-            'totalDepenses',
-            'depenseMoyenne',
-            'depensesEnAttente',
-            'nombreDepenses',
-            'repartitionDepenses',
-            'repartitionRevenus'
-        ));
+    // Méthode de test pour déboguer
+    public function testMethod(): void
+    {
+        Log::info('🧪 TEST METHOD APPELÉE AVEC SUCCÈS !!!! (PURE LIVEWIRE)');
+        session()->flash('success', 'Test méthode fonctionne parfaitement ! ✅');
     }
 }

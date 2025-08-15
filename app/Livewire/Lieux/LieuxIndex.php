@@ -10,156 +10,156 @@ class LieuxIndex extends Component
 {
     use WithPagination;
 
-    public $search = '';
-    public $filterType = '';
-    public $sortField = 'nom';
-    public $sortDirection = 'asc';
-    public $showModal = false;
-    public $editingLieu = null;
+    /** Filtres & tri */
+    public string $search = '';
+    public string $filterType = '';
+    public string $sortField = 'nom';
+    public string $sortDirection = 'asc';
 
-    // Form fields
-    public $nom = '';
-    public $type = 'depart';
-    public $point_chargement = '';
-    public $region = '';
-    public $telephone = '';
-    public $adresse = '';
-    public $actif = true;
+    /** Modal & édition */
+    public bool $showModal = false;
+    public ?Lieu $editingLieu = null;
 
-    protected $rules = [
-        'nom' => 'required|string|max:255',
-        'type' => 'required|in:depart,destination,depot',
-        'point_chargement' => 'nullable|string|max:255',
-        'telephone' => 'nullable|string|max:20',
-        'region' => 'nullable|string|max:255',
-        'adresse' => 'nullable|string',
-        'actif' => 'boolean'
-    ];
+    /** Form */
+    public string $nom = '';
+    public string $type = 'origine'; // défaut aligné
+    public string $region = '';
+    public string $telephone = '';
+    public string $adresse = '';
+    public bool $actif = true;
 
-    public function updatingSearch()
+    /** Tri autorisé pour éviter les erreurs SQL */
+    protected array $sortable = ['nom', 'type', 'region', 'telephone', 'actif', 'created_at'];
+
+    protected function rules(): array
     {
-        $this->resetPage();
+        return [
+            'nom'       => ['required','string','max:255'],
+            'type'      => ['required','in:'.implode(',', Lieu::types())], // origine|depot|magasin|boutique
+            'region'    => ['nullable','string','max:255'],
+            'telephone' => ['nullable','string','max:20'],
+            'adresse'   => ['nullable','string'],
+            'actif'     => ['boolean'],
+        ];
     }
 
-    public function updatedFilterType()
-    {
-        $this->resetPage();
-    }
+    /* ==== Hooks filtres/recherche ==== */
+    public function updatingSearch(): void   { $this->resetPage(); }
+    public function updatedFilterType(): void{ $this->resetPage(); }
 
-    public function sortBy($field)
+    public function sortBy(string $field): void
     {
+        if (!in_array($field, $this->sortable, true)) return;
+
         if ($this->sortField === $field) {
             $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
+            $this->sortField = $field;
             $this->sortDirection = 'asc';
         }
-        $this->sortField = $field;
+
+        $this->resetPage();
     }
 
-    public function create()
+    /* ==== CRUD ==== */
+    public function create(): void
     {
         $this->resetForm();
         $this->editingLieu = null;
         $this->showModal = true;
     }
 
-    public function edit(Lieu $lieu)
+    public function edit(Lieu $lieu): void
     {
         $this->editingLieu = $lieu;
-        $this->nom = $lieu->nom;
-        $this->type = $lieu->type;
-        $this->region = $lieu->region;
-        $this->point_chargement = $lieu->point_chargement;
-        $this->telephone = $lieu->telephone;
-        $this->adresse = $lieu->adresse;
-        $this->actif = $lieu->actif;
+        $this->nom       = (string) $lieu->nom;
+        $this->type      = (string) $lieu->type;
+        $this->region    = (string) ($lieu->region ?? '');
+        $this->telephone = (string) ($lieu->telephone ?? '');
+        $this->adresse   = (string) ($lieu->adresse ?? '');
+        $this->actif     = (bool) $lieu->actif;
+
         $this->showModal = true;
     }
 
-    public function save()
+    public function save(): void
     {
         $this->validate();
 
+        $payload = [
+            'nom'       => $this->nom,
+            'type'      => $this->type,
+            'region'    => $this->region ?: null,
+            'telephone' => $this->telephone ?: null,
+            'adresse'   => $this->adresse ?: null,
+            'actif'     => $this->actif,
+        ];
+
         if ($this->editingLieu) {
-            $this->editingLieu->update([
-                'nom' => $this->nom,
-                'type' => $this->type,
-                'region' => $this->region,
-                'point_chargement' => $this->point_chargement,
-                'telephone' => $this->telephone,
-                'adresse' => $this->adresse,
-                'actif' => $this->actif,
-            ]);
-            session()->flash('success', 'Lieu modifié avec succès');
+            $this->editingLieu->update($payload);
+            session()->flash('success', 'Lieu modifié avec succès.');
         } else {
-            Lieu::create([
-                'nom' => $this->nom,
-                'type' => $this->type,
-                'region' => $this->region,
-                'point_chargement' => $this->point_chargement,
-                'telephone' => $this->telephone,
-                'adresse' => $this->adresse,
-                'actif' => $this->actif,
-            ]);
-            session()->flash('success', 'Lieu créé avec succès');
+            Lieu::create($payload);
+            session()->flash('success', 'Lieu créé avec succès.');
         }
 
         $this->closeModal();
     }
 
-    public function delete(Lieu $lieu)
+    public function delete(Lieu $lieu): void
     {
         $lieu->delete();
-        session()->flash('success', 'Lieu supprimé avec succès');
+        session()->flash('success', 'Lieu supprimé avec succès.');
+        $this->resetPage();
     }
 
-    public function toggleActif(Lieu $lieu)
+    public function toggleActif(Lieu $lieu): void
     {
         $lieu->update(['actif' => !$lieu->actif]);
-        session()->flash('success', 'Statut mis à jour');
+        session()->flash('success', 'Statut mis à jour.');
     }
 
-    public function closeModal()
+    public function closeModal(): void
     {
         $this->showModal = false;
         $this->resetForm();
         $this->editingLieu = null;
     }
 
-    private function resetForm()
+    private function resetForm(): void
     {
-        $this->nom = '';
-        $this->type = 'depart';
-        $this->point_chargement = '';
-        $this->region = '';
+        $this->nom       = '';
+        $this->type      = 'origine';
+        $this->region    = '';
         $this->telephone = '';
-        $this->adresse = '';
-        $this->actif = true;
+        $this->adresse   = '';
+        $this->actif     = true;
         $this->resetErrorBag();
     }
 
     public function render()
     {
         $lieux = Lieu::query()
-            ->when($this->search, function ($query) {
-                $query->where('nom', 'like', '%' . $this->search . '%')
-                      ->orWhere('region', 'like', '%' . $this->search . '%');
+            ->when($this->search, function ($q) {
+                $term = '%'.$this->search.'%';
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('nom', 'like', $term)
+                        ->orWhere('region', 'like', $term)
+                        ->orWhere('telephone', 'like', $term);
+                });
             })
-            ->when($this->filterType, function ($query) {
-                $query->where('type', $this->filterType);
-            })
+            ->when($this->filterType, fn($q) => $q->where('type', $this->filterType))
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
 
         $stats = [
-            'total' => Lieu::count(),
-            'departs' => Lieu::where('type', 'depart')->count(),
-            'points' => Lieu::where('type', 'point_chargement')->count(),
-            'destinations' => Lieu::where('type', 'destination')->count(),
-            'depots' => Lieu::where('type', 'depot')->count(),
+            'total'      => Lieu::count(),
+            'origines'   => Lieu::where('type', Lieu::TYPE_ORIGINE)->count(),
+            'depots'     => Lieu::where('type', Lieu::TYPE_DEPOT)->count(),
+            'magasins'   => Lieu::where('type', Lieu::TYPE_MAGASIN)->count(),
+            'boutiques'  => Lieu::where('type', Lieu::TYPE_BOUTIQUE)->count(),
         ];
 
         return view('livewire.lieux.lieux-index', compact('lieux', 'stats'));
     }
 }
-

@@ -2,21 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Achat extends Model
 {
     use HasFactory, SoftDeletes;
-
-    // Table par défaut "achats" -> pas besoin de $table
 
     protected $fillable = [
         'reference',
         'date',
         'from_nom',
         'to_nom',
+        'to_compte',     // 👈 manquait dans ta version
         'montant_mga',
         'objet',
         'mode_paiement',
@@ -25,19 +24,17 @@ class Achat extends Model
     ];
 
     protected $casts = [
-        'date'         => 'date',       // ta colonne est de type DATE (pas datetime)
-        'montant_mga'  => 'decimal:2',
-        'statut'       => 'boolean',    // ta migration utilise un boolean
+        'date'        => 'date',
+        'montant_mga' => 'decimal:2',
+        'statut'      => 'boolean',
     ];
 
-    /**
-     * Constantes utilitaires
-     */
-    public const MODE_ESPECES     = 'especes';
-    public const MODE_AIRTEL      = 'AirtelMoney';
-    public const MODE_ORANGE      = 'OrangeMoney';
-    public const MODE_MVOLA       = 'Mvola';
-    public const MODE_BANQUE      = 'banque';
+    /** Constantes modes */
+    public const MODE_ESPECES = 'especes';
+    public const MODE_AIRTEL  = 'AirtelMoney';
+    public const MODE_ORANGE  = 'OrangeMoney';
+    public const MODE_MVOLA   = 'Mvola';
+    public const MODE_BANQUE  = 'banque';
 
     public static function modesPaiement(): array
     {
@@ -50,22 +47,10 @@ class Achat extends Model
         ];
     }
 
-    /**
-     * Accessors (présentation)
-     */
+    /** Accessors présentation */
     public function getMontantMgaFormattedAttribute(): string
     {
         return number_format((float) $this->montant_mga, 0, ',', ' ') . ' MGA';
-    }
-
-    public function getFromNomDisplayAttribute(): string
-    {
-        return $this->from_nom ?: 'Inconnu';
-    }
-
-    public function getToNomDisplayAttribute(): string
-    {
-        return $this->to_nom ?: 'Inconnu';
     }
 
     public function getModePaiementLabelAttribute(): string
@@ -80,9 +65,7 @@ class Achat extends Model
         };
     }
 
-    /**
-     * Scopes utiles (basés uniquement sur les colonnes existantes)
-     */
+    /** Scopes */
     public function scopePeriode($query, $dateDebut, $dateFin)
     {
         return $query->whereBetween('date', [$dateDebut, $dateFin]);
@@ -103,13 +86,11 @@ class Achat extends Model
 
     public function scopeConfirme($query)
     {
-        // boolean true = confirmé (selon ta migration)
         return $query->where('statut', true);
     }
 
     public function scopeAttente($query)
     {
-        // boolean false = en attente (ou non confirmé)
         return $query->where('statut', false);
     }
 }

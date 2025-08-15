@@ -16,6 +16,7 @@ class Categories extends Component
     public string $filterType = 'all';
 
     public ?int $editingId = null;
+    public $filter = 'all'; // Add this property
 
     #[Validate('required|string|max:10')]
     public string $code_comptable = '';
@@ -44,11 +45,13 @@ class Categories extends Component
         'filterType' => ['except' => 'all'],
         'page' => ['except' => 1],
     ];
+    
 
     public function updatingSearch()
     {
         $this->resetPage();
     }
+    
 
     public function updatingFilterType()
     {
@@ -161,40 +164,7 @@ class Categories extends Component
         redirect()->route('categorie.categories.show', ['categorie' => $id]);
     }
 
-    public function showQuick(int $id): void
-    {
-        $categorie = Categorie::with([
-            'transactions' => function ($query) {
-                $query->latest('date_transaction')->limit(5);
-            }
-        ])->findOrFail($id);
-
-        $this->detail = [
-            'id' => $categorie->id,
-            'code_comptable' => $categorie->code_comptable,
-            'nom' => $categorie->nom,
-            'description' => $categorie->description,
-            'type' => $categorie->type,
-            'is_active' => (bool) $categorie->is_active,
-            'montant_total' => $categorie->montant_total,
-            'transactions_mois' => $categorie->transactions_mois,
-            'nombre_transactions' => $categorie->nombre_transactions,
-            'created_at' => optional($categorie->created_at)->format('d/m/Y à H:i'),
-            'updated_at' => optional($categorie->updated_at)->format('d/m/Y à H:i'),
-            'recent_transactions' => $categorie->transactions->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'reference' => $transaction->reference,
-                    'description' => $transaction->description,
-                    'montant' => $transaction->montant,
-                    'date' => $transaction->date_formattee,
-                    'partenaire' => $transaction->partenaire?->nom,
-                ];
-            })->toArray()
-        ];
-        $this->showDetail = true;
-    }
-
+   
     public function closeDetail(): void
     {
         $this->showDetail = false;
@@ -252,9 +222,51 @@ class Categories extends Component
                 });
             })
             ->when($this->filterType !== 'all', fn($q) => $q->where('type', $this->filterType))
-            ->withCount('transactions')
+            ->withCount([
+                'transactions' => function ($query) {
+                    if ($this->filter === 'en_attente') {
+                        $query->where('statut', 'en_attente');
+                    } elseif ($this->filter === 'validees') {
+                        $query->where('statut', 'validee');
+                    }
+                }
+            ])
             ->orderBy('code_comptable')
             ->paginate(12);
+    }
+
+    public function afficherDetailsRapides(int $id): void
+    {
+        $categorie = Categorie::with([
+            'transactions' => function ($query) {
+                $query->latest('date_transaction')->limit(5);
+            }
+        ])->findOrFail($id);
+
+        $this->detail = [
+            'id' => $categorie->id,
+            'code_comptable' => $categorie->code_comptable,
+            'nom' => $categorie->nom,
+            'description' => $categorie->description,
+            'type' => $categorie->type,
+            'is_active' => (bool) $categorie->is_active,
+            'montant_total' => $categorie->montant_total,
+            'transactions_mois' => $categorie->transactions_mois,
+            'nombre_transactions' => $categorie->nombre_transactions,
+            'created_at' => optional($categorie->created_at)->format('d/m/Y à H:i'),
+            'updated_at' => optional($categorie->updated_at)->format('d/m/Y à H:i'),
+            'recent_transactions' => $categorie->transactions->map(function ($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'reference' => $transaction->reference,
+                    'description' => $transaction->description,
+                    'montant' => $transaction->montant,
+                    'date' => $transaction->date_formattee,
+                    'partenaire' => $transaction->partenaire?->nom,
+                ];
+            })->toArray()
+        ];
+        $this->showDetail = true;
     }
 
     public function render()

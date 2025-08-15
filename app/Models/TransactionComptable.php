@@ -33,7 +33,12 @@ class TransactionComptable extends Model
         'date_transaction' => 'date',
         'montant' => 'decimal:2',
     ];
-
+    // Add this for easy status access
+    public const STATUTS = [
+        'en_attente' => 'En attente',
+        'validee' => 'Validée',
+        'annulee' => 'Annulée'
+    ];
     /**
      * Relation avec la catégorie
      */
@@ -48,6 +53,11 @@ class TransactionComptable extends Model
     public function partenaire()
     {
         return $this->belongsTo(Partenaire::class);
+    }
+    // Add accessor for formatted status
+    public function getStatutFormateAttribute()
+    {
+        return self::STATUTS[$this->statut] ?? $this->statut;
     }
 
     /**

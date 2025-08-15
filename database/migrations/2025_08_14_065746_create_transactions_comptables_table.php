@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -19,10 +18,10 @@ return new class extends Migration
             $table->decimal('montant', 15, 2);
             $table->date('date_transaction');
             $table->enum('type', ['depense', 'recette'])->default('depense');
+            $table->enum('statut', ['en_attente', 'validee', 'annulee'])->default('en_attente');
             $table->timestamps();
         });
     }
-
 
     /**
      * Reverse the migrations.

@@ -35,7 +35,7 @@
 
                 <!-- Boutons d'action -->
                 <div class="flex justify-end space-x-2">
-                    <button wire:click="openCreateModal"
+                    <button wire:click="afficherDetailsRapides({{ $categorie->id }})"
                         class="w-8 h-8 sm:w-auto sm:h-auto inline-flex items-center justify-center p-0 sm:px-3 sm:py-2 bg-blue-600 dark:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-150">
                         <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -169,20 +169,17 @@
                             </div>
 
                             <div class="flex gap-2">
-                                <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                                    <button wire:click="filter = 'all'"
-                                        class="px-2 py-1 text-xs rounded-md {{ $filter === 'all' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                        Toutes
-                                    </button>
-                                    <button wire:click="filter = 'validees'"
-                                        class="px-2 py-1 text-xs rounded-md {{ $filter === 'validees' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                        Validées
-                                    </button>
-                                    <button wire:click="filter = 'en_attente'"
-                                        class="px-2 py-1 text-xs rounded-md {{ $filter === 'en_attente' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                        En attente
-                                    </button>
-                                </div>
+                                 <div class="flex bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                                <button wire:click="filterTransactions('all')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'all' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                    Toutes
+                                </button>
+                                <button wire:click="filterTransactions('validees')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'validees' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                    Validées
+                                </button>
+                                <button wire:click="filterTransactions('en_attente')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'en_attente' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                      En attente
+                                </button>
+                            </div>
 
                                 <select wire:model.live="periode"
                                     class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm">

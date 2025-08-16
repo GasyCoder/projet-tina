@@ -438,8 +438,8 @@
                                         <select wire:model="newDetail.type_detail" 
                                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                                             <option value="achat_produit">Achat Produit</option>
-                                            <option value="credit">Crédit</option>
-                                            <option value="frais">Frais</option>
+                                            {{-- <option value="credit">Crédit</option>
+                                            <option value="frais">Frais</option> --}}
                                             <option value="autre">Autre</option>
                                         </select>
                                     </div>

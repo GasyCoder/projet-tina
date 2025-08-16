@@ -15,7 +15,7 @@ class Achat extends Model
         'date',
         'from_nom',
         'to_nom',
-        'to_compte',     // 👈 manquait dans ta version
+        'to_compte',     
         'montant_mga',
         'objet',
         'mode_paiement',

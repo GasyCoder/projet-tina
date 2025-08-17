@@ -13,10 +13,10 @@ class Categories extends Component
     use WithPagination;
 
     public string $search = '';
-    public string $filterType = 'all';
-
     public ?int $editingId = null;
-    public $filter = 'all'; // Add this property
+
+    // Filtre sur les transactions (si tu l'utilises dans withCount)
+    public string $filter = 'all';
 
     #[Validate('required|string|max:10')]
     public string $code_comptable = '';
@@ -27,13 +27,13 @@ class Categories extends Component
     #[Validate('nullable|string|max:255')]
     public ?string $description = null;
 
-    #[Validate('required|in:depense,recette')]
-    public string $type = 'depense';
+    #[Validate('required|numeric|min:0|max:99999999.99')]
+    public string $budget = '0';
 
     #[Validate('boolean')]
     public bool $is_active = true;
 
-    // Propriétés pour les modales
+    // Modales
     public bool $showDetail = false;
     public ?array $detail = null;
     public bool $showFormModal = false;
@@ -42,33 +42,22 @@ class Categories extends Component
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'filterType' => ['except' => 'all'],
-        'page' => ['except' => 1],
+        'page'   => ['except' => 1],
     ];
-    
 
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-    
-
-    public function updatingFilterType()
-    {
-        $this->resetPage();
-    }
+    public function updatingSearch() { $this->resetPage(); }
 
     private function resetForm(): void
     {
-        $this->editingId = null;
+        $this->editingId      = null;
         $this->code_comptable = '';
-        $this->nom = '';
-        $this->description = null;
-        $this->type = 'depense';
-        $this->is_active = true;
+        $this->nom            = '';
+        $this->description    = null;
+        $this->budget         = '0';
+        $this->is_active      = true;
     }
 
-    // Méthodes pour la modal de formulaire
+    // Form modale
     public function openModal(): void
     {
         $this->resetForm();
@@ -84,12 +73,14 @@ class Categories extends Component
     public function editModal(int $id): void
     {
         $categorie = Categorie::findOrFail($id);
-        $this->editingId = $categorie->id;
+
+        $this->editingId      = $categorie->id;
         $this->code_comptable = $categorie->code_comptable;
-        $this->nom = $categorie->nom;
-        $this->description = $categorie->description;
-        $this->type = $categorie->type;
-        $this->is_active = (bool) $categorie->is_active;
+        $this->nom            = $categorie->nom;
+        $this->description    = $categorie->description;
+        $this->budget         = (string) $categorie->budget;
+        $this->is_active      = (bool) $categorie->is_active;
+
         $this->showFormModal = true;
     }
 
@@ -97,12 +88,11 @@ class Categories extends Component
     {
         $data = $this->validate();
 
-        // Vérifier l'unicité du code comptable
+        // unicité code_comptable
         $query = Categorie::where('code_comptable', $this->code_comptable);
         if ($this->editingId) {
             $query->where('id', '!=', $this->editingId);
         }
-
         if ($query->exists()) {
             $this->addError('code_comptable', 'Ce code comptable existe déjà.');
             return;
@@ -129,7 +119,6 @@ class Categories extends Component
 
         session()->flash('success', 'Statut mis à jour avec succès.');
 
-        // Mettre à jour les détails si la modal est ouverte pour cette catégorie
         if ($this->showDetail && $this->detail && $this->detail['id'] == $id) {
             $this->detail['is_active'] = (bool) $categorie->is_active;
         }
@@ -139,7 +128,6 @@ class Categories extends Component
     {
         $categorie = Categorie::findOrFail($id);
 
-        // Vérifier s'il y a des transactions liées
         if ($categorie->transactions()->count() > 0) {
             session()->flash('error', 'Impossible de supprimer cette catégorie car elle contient des transactions.');
             return;
@@ -148,10 +136,7 @@ class Categories extends Component
         $categorie->delete();
         session()->flash('success', 'Catégorie supprimée avec succès.');
 
-        if ($this->editingId === $id)
-            $this->resetForm();
-
-        // Fermer la modal de détails si elle était ouverte pour cette catégorie
+        if ($this->editingId === $id) $this->resetForm();
         if ($this->showDetail && $this->detail && $this->detail['id'] == $id) {
             $this->closeDetail();
         }
@@ -164,22 +149,21 @@ class Categories extends Component
         redirect()->route('categorie.categories.show', ['categorie' => $id]);
     }
 
-   
     public function closeDetail(): void
     {
         $this->showDetail = false;
         $this->detail = null;
     }
 
-    // Méthodes pour ajouter une transaction rapide
+    // Modale transaction rapide (le type est sur TransactionComptable, pas sur Categorie)
     public function openTransactionModal(int $categorieId): void
     {
         $this->newTransaction = [
-            'categorie_id' => $categorieId,
-            'description' => '',
-            'montant' => '',
+            'categorie_id'     => $categorieId,
+            'description'      => '',
+            'montant'          => '',
             'date_transaction' => now()->format('Y-m-d'),
-            'type' => 'depense',
+            'type'             => 'depense',
         ];
         $this->showTransactionModal = true;
     }
@@ -193,8 +177,8 @@ class Categories extends Component
     public function saveTransaction(): void
     {
         $this->validate([
-            'newTransaction.description' => 'required|string|min:3',
-            'newTransaction.montant' => 'required|numeric|min:0.01',
+            'newTransaction.description'      => 'required|string|min:3',
+            'newTransaction.montant'          => 'required|numeric|min:0.01',
             'newTransaction.date_transaction' => 'required|date',
         ]);
 
@@ -205,9 +189,8 @@ class Categories extends Component
         session()->flash('success', 'Transaction ajoutée avec succès.');
         $this->closeTransactionModal();
 
-        // Rafraîchir les données si la modal de détail est ouverte
-        if ($this->showDetail) {
-            $this->showQuick($this->detail['id']);
+        if ($this->showDetail && $this->detail) {
+            $this->afficherDetailsRapides($this->detail['id']);
         }
     }
 
@@ -217,11 +200,10 @@ class Categories extends Component
             ->when($this->search !== '', function ($q) {
                 $q->where(function ($qq) {
                     $qq->where('nom', 'like', "%{$this->search}%")
-                        ->orWhere('code_comptable', 'like', "%{$this->search}%")
-                        ->orWhere('description', 'like', "%{$this->search}%");
+                       ->orWhere('code_comptable', 'like', "%{$this->search}%")
+                       ->orWhere('description', 'like', "%{$this->search}%");
                 });
             })
-            ->when($this->filterType !== 'all', fn($q) => $q->where('type', $this->filterType))
             ->withCount([
                 'transactions' => function ($query) {
                     if ($this->filter === 'en_attente') {
@@ -238,42 +220,34 @@ class Categories extends Component
     public function afficherDetailsRapides(int $id): void
     {
         $categorie = Categorie::with([
-            'transactions' => function ($query) {
-                $query->latest('date_transaction')->limit(5);
-            }
+            'transactions' => fn($q) => $q->latest('date_transaction')->limit(5),
         ])->findOrFail($id);
 
         $this->detail = [
-            'id' => $categorie->id,
-            'code_comptable' => $categorie->code_comptable,
-            'nom' => $categorie->nom,
-            'description' => $categorie->description,
-            'type' => $categorie->type,
-            'is_active' => (bool) $categorie->is_active,
-            'montant_total' => $categorie->montant_total,
-            'transactions_mois' => $categorie->transactions_mois,
-            'nombre_transactions' => $categorie->nombre_transactions,
-            'created_at' => optional($categorie->created_at)->format('d/m/Y à H:i'),
-            'updated_at' => optional($categorie->updated_at)->format('d/m/Y à H:i'),
-            'recent_transactions' => $categorie->transactions->map(function ($transaction) {
+            'id'                  => $categorie->id,
+            'code_comptable'      => $categorie->code_comptable,
+            'nom'                 => $categorie->nom,
+            'description'         => $categorie->description,
+            'budget'              => $categorie->budget,   // <-- BUDGET envoyé au modal
+            'is_active'           => (bool) $categorie->is_active,
+            'created_at'          => optional($categorie->created_at)->format('d/m/Y à H:i'),
+            'updated_at'          => optional($categorie->updated_at)->format('d/m/Y à H:i'),
+            'recent_transactions' => $categorie->transactions->map(function ($t) {
                 return [
-                    'id' => $transaction->id,
-                    'reference' => $transaction->reference,
-                    'description' => $transaction->description,
-                    'montant' => $transaction->montant,
-                    'date' => $transaction->date_formattee,
-                    'partenaire' => $transaction->partenaire?->nom,
+                    'id'         => $t->id,
+                    'reference'  => $t->reference,
+                    'description'=> $t->description,
+                    'montant'    => $t->montant,
+                    'date'       => $t->date_formattee,
+                    'partenaire' => $t->partenaire?->nom,
                 ];
-            })->toArray()
+            })->toArray(),
         ];
         $this->showDetail = true;
     }
 
     public function render()
     {
-        return view('livewire.categorie.categorie', [
-            'rows' => $this->rows
-        ]);
-
+        return view('livewire.categorie.categorie', ['rows' => $this->rows]);
     }
 }

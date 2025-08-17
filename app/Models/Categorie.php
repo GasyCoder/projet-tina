@@ -14,17 +14,18 @@ class Categorie extends Model
     protected $fillable = [
         'code_comptable',
         'nom',
-        'type',
+        'budget',
         'description',
         'is_active',
     ];
 
     protected $attributes = [
-        'type' => 'depense',
+        'budget'    => 0,
         'is_active' => true,
     ];
 
     protected $casts = [
+        'budget'    => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -37,7 +38,7 @@ class Categorie extends Model
     }
 
     /**
-     * Calcul du montant total des transactions pour cette catégorie
+     * Montant total des transactions
      */
     public function getMontantTotalAttribute()
     {
@@ -45,7 +46,7 @@ class Categorie extends Model
     }
 
     /**
-     * Nombre de transactions pour cette catégorie
+     * Nombre de transactions
      */
     public function getNombreTransactionsAttribute()
     {
@@ -53,7 +54,7 @@ class Categorie extends Model
     }
 
     /**
-     * Transactions du mois en cours
+     * Total des transactions du mois en cours
      */
     public function getTransactionsMoisAttribute()
     {
@@ -64,15 +65,7 @@ class Categorie extends Model
     }
 
     /**
-     * Scope pour filtrer par type
-     */
-    public function scopeType($query, $type)
-    {
-        return $query->where('type', $type);
-    }
-
-    /**
-     * Scope pour les catégories actives
+     * Scope : catégories actives
      */
     public function scopeActive($query)
     {

@@ -1,5 +1,5 @@
 {{-- resources/views/livewire/finance/modals/vente-modal.blade.php --}}
-{{-- DESIGN TAILWIND SIMPLE + CONDITIONS --}}
+{{-- DESIGN TAILWIND SIMPLE + CONDITIONS / ALIGNE AVEC type_paiement + sous_type_paiement + compte_id --}}
 
 @if($showModal)
 <div class="fixed inset-0 z-50 overflow-y-auto">
@@ -34,16 +34,15 @@
             </div>
             @endif
 
-            <!-- Formulaire - DESIGN SIMPLE -->
+            <!-- Formulaire -->
             <form wire:submit.prevent="saveVente">
                 <div class="px-6 py-6 space-y-6">
                     
-                    <!-- Référence (caché) -->
+                    <!-- Référence (caché si générée côté composant) -->
                     <input wire:model="form.reference" type="hidden">
 
-                    <!-- Première ligne : Objet + Date -->
+                    <!-- Objet + Date -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Objet -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Objet de la vente
@@ -57,7 +56,6 @@
                             @enderror
                         </div>
 
-                        <!-- Date -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Date de vente *
@@ -71,9 +69,8 @@
                         </div>
                     </div>
 
-                    <!-- Deuxième ligne : Vendeur + Dépôt -->
+                    <!-- Vendeur + Dépôt -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Vendeur -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Nom du vendeur
@@ -87,7 +84,6 @@
                             @enderror
                         </div>
 
-                        <!-- Dépôt -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Lieu de vente
@@ -105,42 +101,75 @@
                         </div>
                     </div>
 
-                    <!-- Troisième ligne : Montant payé + Mode de paiement -->
+                    <!-- Montant payé + Type Paiement -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Montant payé -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Montant payé (MGA) *
                             </label>
-                            <input wire:model.live="form.montant_paye" 
+                            <input wire:model.live="form.montant_paye_mga" 
                                    type="number" 
                                    step="0.01" 
                                    min="0" 
                                    placeholder="0"
                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-300">
-                            @error('form.montant_paye') 
+                            @error('form.montant_paye_mga') 
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
                             @enderror
                         </div>
 
-                        <!-- Mode de paiement -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Mode de paiement *
+                                Type de paiement *
                             </label>
-                            <select wire:model.live="form.mode_paiement" 
+                            <select wire:model.live="form.type_paiement" 
                                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-300">
-                                <option value="especes">💵 Espèces</option>
-                                <option value="AirtelMoney">📱 AirtelMoney</option>
-                                <option value="Mvola">📱 MVola</option>
-                                <option value="OrangeMoney">📱 OrangeMoney</option>
-                                <option value="banque">🏦 Banque</option>
+                                <option value="Principal">💵 Principal (Espèces)</option>
+                                <option value="MobileMoney">📱 Mobile Money</option>
+                                <option value="Banque">🏦 Banque</option>
                             </select>
-                            @error('form.mode_paiement') 
+                            @error('form.type_paiement') 
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
                             @enderror
                         </div>
                     </div>
+
+                    <!-- Sous-type (conditionnel) -->
+                    @if(($form['type_paiement'] ?? null) === 'MobileMoney')
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Opérateur Mobile Money 
+                            </label>
+                            <select wire:model="form.sous_type_paiement"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-300">
+                                <option value="">Sélectionner...</option>
+                                <option value="Mvola">Mvola</option>
+                                <option value="OrangeMoney">OrangeMoney</option>
+                                <option value="AirtelMoney">AirtelMoney</option>
+                            </select>
+                            @error('form.sous_type_paiement') 
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                    @elseif(($form['type_paiement'] ?? null) === 'Banque')
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Banque
+                            </label>
+                            <select wire:model="form.sous_type_paiement"
+                                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-gray-300">
+                                <option value="">Sélectionner...</option>
+                                <option value="BNI">BNI</option>
+                                <option value="BFV">BFV</option>
+                                <option value="BOA">BOA</option>
+                                <option value="BMOI">BMOI</option>
+                                <option value="SBM">SBM</option>
+                            </select>
+                            @error('form.sous_type_paiement') 
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
+                            @enderror
+                        </div>
+                    @endif
 
                     <!-- Statut de paiement -->
                     <div>
@@ -171,12 +200,12 @@
                     </div>
 
                     <!-- Montant restant - CONDITIONNEL -->
-                    @if($this->form['statut_paiement'] === 'partiel')
+                    @if(($form['statut_paiement'] ?? null) === 'partiel')
                     <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md p-4">
                         <label class="block text-sm font-medium text-yellow-800 dark:text-yellow-300 mb-2">
                             Montant restant à payer (MGA)
                         </label>
-                        <input wire:model="form.montant_restant" 
+                        <input wire:model="form.montant_restant_mga" 
                                type="number" 
                                step="0.01" 
                                min="0" 
@@ -185,7 +214,7 @@
                         <p class="mt-1 text-xs text-yellow-700 dark:text-yellow-400">
                             Ce montant reste à encaisser ultérieurement
                         </p>
-                        @error('form.montant_restant') 
+                        @error('form.montant_restant_mga') 
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p> 
                         @enderror
                     </div>

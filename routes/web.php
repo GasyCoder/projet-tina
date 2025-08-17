@@ -51,7 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/vente', VenteIndex::class)->name('vente.index');
     Route::get('/compte', CompteManager::class)->name('compte.index');
     Route::get('/finance/situations', MouvementsFinanciers::class)->name('finance.situations');
-    Route::get('/finance/partenaires', Partenaires::class)->name('finance.partenaires');
+    Route::get('/partenaire', Partenaires::class)->name('partenaire.index');
     Route::get('/partenaire/{partenaire}', PartenaireShow::class)->name('partenaire.show');
     
 

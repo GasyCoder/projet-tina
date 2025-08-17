@@ -434,7 +434,7 @@
             </div>
         </div>
         <div x-show="openGestions" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 max-h-0" x-transition:enter-end="opacity-100 max-h-96" class="divide-y divide-gray-100 dark:divide-gray-700">
-            <a href="{{ route('finance.partenaires') }}" class="group/item block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+            <a href="{{ route('partenaire.index') }}" class="group/item block p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-orange-50 dark:bg-orange-900/30 rounded-lg group-hover/item:bg-orange-100 dark:group-hover/item:bg-orange-900/50 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

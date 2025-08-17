@@ -1,4 +1,4 @@
-{{-- Vue comptes - TAILLE NORMALE + COMPACT --}}
+{{-- Vue comptes - TAILLE NORMALE + COMPACT (schéma: Principal | MobileMoney | Banque) --}}
 <div class="min-h-screen bg-gray-100 dark:bg-gray-900 pt-20 pb-6 md:px-6">
     
     <!-- Header -->
@@ -59,45 +59,61 @@
                     </div>
 
                     <!-- Résumé par type - COMPACT -->
-                    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                    @php
+                        $totalPrincipal = $comptes->where('type_compte','Principal')->sum('solde_actuel_mga');
+                        $countPrincipal = $comptes->where('type_compte','Principal')->count();
+
+                        $totalMobile = $comptes->where('type_compte','MobileMoney')->sum('solde_actuel_mga');
+                        $countMobile = $comptes->where('type_compte','MobileMoney')->count();
+
+                        $totalBanque = $comptes->where('type_compte','Banque')->sum('solde_actuel_mga');
+                        $countBanque = $comptes->where('type_compte','Banque')->count();
+
+                        $mmByOp = $comptes->where('type_compte','MobileMoney')->groupBy('type_compte_mobilemoney_or_banque');
+                        $bkByName = $comptes->where('type_compte','Banque')->groupBy('type_compte_mobilemoney_or_banque');
+                    @endphp
+
+                    <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3">
                         <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                             <h4 class="text-xs font-medium text-blue-900 dark:text-blue-200">💰 Espèces</h4>
                             <p class="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                {{ number_format($comptes->where('type_compte', 'principal')->sum('solde_actuel_mga'), 0, ',', ' ') }}
+                                {{ number_format($totalPrincipal, 0, ',', ' ') }}
                             </p>
-                            <p class="text-xs text-blue-700 dark:text-blue-300">{{ $comptes->where('type_compte', 'principal')->count() }} compte(s)</p>
-                        </div>
-                        
-                        <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                            <h4 class="text-xs font-medium text-red-900 dark:text-red-200">📱 Airtel</h4>
-                            <p class="text-lg font-bold text-red-600 dark:text-red-400">
-                                {{ number_format($comptes->where('type_compte', 'AirtelMoney')->sum('solde_actuel_mga'), 0, ',', ' ') }}
-                            </p>
-                            <p class="text-xs text-red-700 dark:text-red-300">{{ $comptes->where('type_compte', 'AirtelMoney')->count() }} compte(s)</p>
+                            <p class="text-xs text-blue-700 dark:text-blue-300">{{ $countPrincipal }} compte(s)</p>
                         </div>
                         
                         <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                            <h4 class="text-xs font-medium text-green-900 dark:text-green-200">📱 MVola</h4>
+                            <h4 class="text-xs font-medium text-green-900 dark:text-green-200">📱 Mobile Money</h4>
                             <p class="text-lg font-bold text-green-600 dark:text-green-400">
-                                {{ number_format($comptes->where('type_compte', 'Mvola')->sum('solde_actuel_mga'), 0, ',', ' ') }}
+                                {{ number_format($totalMobile, 0, ',', ' ') }}
                             </p>
-                            <p class="text-xs text-green-700 dark:text-green-300">{{ $comptes->where('type_compte', 'Mvola')->count() }} compte(s)</p>
-                        </div>
-                        
-                        <div class="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
-                            <h4 class="text-xs font-medium text-orange-900 dark:text-orange-200">📱 Orange</h4>
-                            <p class="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                {{ number_format($comptes->where('type_compte', 'OrangeMoney')->sum('solde_actuel_mga'), 0, ',', ' ') }}
-                            </p>
-                            <p class="text-xs text-orange-700 dark:text-orange-300">{{ $comptes->where('type_compte', 'OrangeMoney')->count() }} compte(s)</p>
+                            <p class="text-xs text-green-700 dark:text-green-300">{{ $countMobile }} compte(s)</p>
+                            @if($mmByOp->count())
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    @foreach($mmByOp as $op => $list)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-white/60 dark:bg-gray-700/60 border border-green-200 dark:border-green-800">
+                                            {{ $op ?? '—' }} • {{ number_format($list->sum('solde_actuel_mga'), 0, ',', ' ') }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                         
                         <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg border border-purple-200 dark:border-purple-800">
                             <h4 class="text-xs font-medium text-purple-900 dark:text-purple-200">🏦 Banques</h4>
                             <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
-                                {{ number_format($comptes->where('type_compte', 'banque')->sum('solde_actuel_mga'), 0, ',', ' ') }}
+                                {{ number_format($totalBanque, 0, ',', ' ') }}
                             </p>
-                            <p class="text-xs text-purple-700 dark:text-purple-300">{{ $comptes->where('type_compte', 'banque')->count() }} compte(s)</p>
+                            <p class="text-xs text-purple-700 dark:text-purple-300">{{ $countBanque }} compte(s)</p>
+                            @if($bkByName->count())
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    @foreach($bkByName as $bank => $list)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-white/60 dark:bg-gray-700/60 border border-purple-200 dark:border-purple-800">
+                                            {{ $bank ?? '—' }} • {{ number_format($list->sum('solde_actuel_mga'), 0, ',', ' ') }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -109,12 +125,10 @@
                                 <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 rounded-lg">
                                     <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         @switch($type)
-                                            @case('principal') 💰 Comptes Espèces @break
-                                            @case('AirtelMoney') 📱 Airtel Money @break
-                                            @case('Mvola') 📱 MVola @break
-                                            @case('OrangeMoney') 📱 Orange Money @break
-                                            @case('banque') 🏦 Comptes Bancaires @break
-                                            @default {{ ucfirst($type) }}
+                                            @case('Principal') 💰 Comptes Espèces @break
+                                            @case('MobileMoney') 📱 Mobile Money @break
+                                            @case('Banque') 🏦 Comptes Bancaires @break
+                                            @default {{ $type }}
                                         @endswitch
                                         <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">
                                             ({{ $comptesGroup->count() }} • {{ number_format($comptesGroup->sum('solde_actuel_mga'), 0, ',', ' ') }} MGA)
@@ -128,33 +142,37 @@
                                         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-sm transition-shadow">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex-1">
-                                                    <div class="flex items-center space-x-2">
+                                                    <div class="flex items-center flex-wrap gap-x-2 gap-y-1">
                                                         <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                                             @switch($compte->type_compte)
-                                                                @case('principal') 💰 @break
-                                                                @case('AirtelMoney') 📱 @break
-                                                                @case('Mvola') 📱 @break
-                                                                @case('OrangeMoney') 📱 @break
-                                                                @case('banque') 🏦 @break
+                                                                @case('Principal') 💰 @break
+                                                                @case('MobileMoney') 📱 @break
+                                                                @case('Banque') 🏦 @break
                                                             @endswitch
-                                                            {{ $compte->nom_proprietaire ?: 'Compte Principal' }}
+                                                            {{ $compte->nom_proprietaire ?: 'Compte' }}
                                                         </h4>
+
+                                                        @if($compte->type_compte_mobilemoney_or_banque)
+                                                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600">
+                                                                {{ $compte->type_compte_mobilemoney_or_banque }}
+                                                            </span>
+                                                        @endif
                                                         
                                                         @if(!$compte->actif)
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                                                            <span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
                                                                 Inactif
                                                             </span>
                                                         @endif
                                                         
                                                         @if($compte->derniere_transaction_id)
-                                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200" title="Solde mis à jour automatiquement">
+                                                            <span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200" title="Solde mis à jour automatiquement">
                                                                 🔄
                                                             </span>
                                                         @endif
                                                     </div>
                                                     
-                                                    <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                                                        @if($compte->numero_compte && in_array($compte->type_compte, ['AirtelMoney', 'Mvola', 'OrangeMoney', 'banque']))
+                                                    <div class="mt-1 flex items-center flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+                                                        @if($compte->numero_compte && $compte->type_compte !== 'Principal')
                                                             <span>📋 {{ $compte->numero_compte }}</span>
                                                         @endif
                                                         

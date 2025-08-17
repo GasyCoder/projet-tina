@@ -11,26 +11,47 @@ class CompteManager extends Component
 {
     public $showCompteModal = false;
     public $editingCompte = null;
+
+    // Champs formulaire
     public $nom_proprietaire = 'Mme TINAH';
-    public $type_compte = 'principal';
+    public $type_compte = 'Principal'; // Principal | MobileMoney | Banque
+    public $type_compte_mobilemoney_or_banque = null; // sous-type
     public $numero_compte = '';
     public $solde_actuel_mga = 0;
     public $compte_actif = true;
 
-    protected $rules = [
-        'type_compte' => 'required|in:principal,OrangeMoney,AirtelMoney,Mvola,banque',
-        'solde_actuel_mga' => 'nullable|numeric',
-        'nom_proprietaire' => 'nullable|string|max:255',
-        'numero_compte' => 'nullable|string|max:255',
-        'compte_actif' => 'boolean',
-    ];
+    // Listes (tu peux déplacer ça en constantes du modèle si tu préfères)
+    public array $MM_SOUS_TYPES   = ['Mvola', 'OrangeMoney', 'AirtelMoney'];
+    public array $BANK_SOUS_TYPES = ['BNI', 'BFV', 'BOA', 'BMOI']; // adapte à ton contexte
+
+    protected function rules(): array
+    {
+        return [
+            'type_compte' => 'required|in:Principal,MobileMoney,Banque',
+            'type_compte_mobilemoney_or_banque' => 'nullable|required_if:type_compte,MobileMoney,Banque|string|max:100',
+            'solde_actuel_mga' => 'nullable|numeric',
+            'nom_proprietaire' => 'nullable|string|max:255',
+            'numero_compte' => 'nullable|string|max:255',
+            'compte_actif' => 'boolean',
+    ];}
 
     public function mount()
     {
         $this->resetCompteForm();
     }
 
-    // ✅ SIMPLE : Créer un compte
+    public function updatedTypeCompte($value)
+    {
+        // Quand on change de type, on reset le sous-type
+        $this->type_compte_mobilemoney_or_banque = null;
+
+        // Si Principal, on vide le numéro (optionnel)
+        if ($value === 'Principal') {
+            $this->numero_compte = '';
+        }
+    }
+
+    // ✅ Créer
     public function createCompte()
     {
         Log::info('createCompte called');
@@ -39,21 +60,24 @@ class CompteManager extends Component
         $this->showCompteModal = true;
     }
 
-    // ✅ SIMPLE : Éditer un compte
+    // ✅ Éditer
     public function editCompte($id)
     {
         Log::info('editCompte called', ['id' => $id]);
         $compte = Compte::findOrFail($id);
         $this->editingCompte = $compte;
+
         $this->nom_proprietaire = $compte->nom_proprietaire ?: 'Mme TINAH';
-        $this->type_compte = $compte->type_compte;
+        $this->type_compte = $compte->type_compte; // Principal/MobileMoney/Banque
+        $this->type_compte_mobilemoney_or_banque = $compte->type_compte_mobilemoney_or_banque; // sous-type
         $this->numero_compte = $compte->numero_compte;
         $this->solde_actuel_mga = $compte->solde_actuel_mga;
         $this->compte_actif = $compte->actif;
+
         $this->showCompteModal = true;
     }
 
-    // ✅ MODIFIÉ : Sauvegarder un compte SANS DUPLICATION
+    // ✅ Sauvegarder (avec déduplication par type + sous-type + propriétaire)
     public function saveCompte()
     {
         Log::info('saveCompte called');
@@ -62,48 +86,40 @@ class CompteManager extends Component
         $data = [
             'nom_proprietaire' => $this->nom_proprietaire ?: 'Mme TINAH',
             'type_compte' => $this->type_compte,
-            'numero_compte' => $this->numero_compte ?: null,
-            'solde_actuel_mga' => $this->solde_actuel_mga,
+            'type_compte_mobilemoney_or_banque' => in_array($this->type_compte, ['MobileMoney','Banque']) ? $this->type_compte_mobilemoney_or_banque : null,
+            'numero_compte' => $this->type_compte === 'Principal' ? null : ($this->numero_compte ?: null),
+            'solde_actuel_mga' => $this->solde_actuel_mga ?: 0,
             'actif' => $this->compte_actif,
         ];
 
         if ($this->editingCompte) {
-            // Mode édition : mettre à jour le compte existant
             $this->editingCompte->update($data);
             session()->flash('success', 'Compte modifié avec succès');
         } else {
-            // ✅ Mode création : vérifier s'il existe déjà un compte de ce type
             $compteExistant = Compte::where('type_compte', $this->type_compte)
-                                   ->where('nom_proprietaire', $this->nom_proprietaire ?: 'Mme TINAH')
-                                   ->first();
+                ->when(in_array($this->type_compte, ['MobileMoney','Banque']), function ($q) {
+                    $q->where('type_compte_mobilemoney_or_banque', $this->type_compte_mobilemoney_or_banque);
+                }, function ($q) {
+                    $q->whereNull('type_compte_mobilemoney_or_banque');
+                })
+                ->where('nom_proprietaire', $this->nom_proprietaire ?: 'Mme TINAH')
+                ->first();
 
             if ($compteExistant) {
-                // Mettre à jour le compte existant
                 $compteExistant->update($data);
                 session()->flash('success', 'Compte existant mis à jour avec succès');
-                
-                Log::info('Compte existant mis à jour', [
-                    'compte_id' => $compteExistant->id,
-                    'type_compte' => $this->type_compte,
-                    'nom_proprietaire' => $this->nom_proprietaire
-                ]);
+                Log::info('Compte existant mis à jour', ['compte_id' => $compteExistant->id]);
             } else {
-                // Créer un nouveau compte
                 $nouveauCompte = Compte::create($data);
                 session()->flash('success', 'Nouveau compte ajouté avec succès');
-                
-                Log::info('Nouveau compte créé', [
-                    'compte_id' => $nouveauCompte->id,
-                    'type_compte' => $this->type_compte,
-                    'nom_proprietaire' => $this->nom_proprietaire
-                ]);
+                Log::info('Nouveau compte créé', ['compte_id' => $nouveauCompte->id]);
             }
         }
-        
+
         $this->closeCompteModal();
     }
 
-    // ✅ SIMPLE : Supprimer un compte
+    // ✅ Supprimer
     public function deleteCompte($id)
     {
         Log::info('deleteCompte called', ['id' => $id]);
@@ -116,7 +132,7 @@ class CompteManager extends Component
         }
     }
 
-    // ✅ SIMPLE : Fermer la modal
+    // ✅ Fermer modal
     public function closeCompteModal()
     {
         Log::info('closeCompteModal called');
@@ -124,18 +140,18 @@ class CompteManager extends Component
         $this->resetCompteForm();
         $this->editingCompte = null;
     }
-    
+
     private function resetCompteForm()
     {
         $this->nom_proprietaire = 'Mme TINAH';
-        $this->type_compte = 'principal';
+        $this->type_compte = 'Principal';
+        $this->type_compte_mobilemoney_or_banque = null;
         $this->numero_compte = '';
         $this->solde_actuel_mga = 0;
         $this->compte_actif = true;
         $this->resetErrorBag();
     }
 
-    // ✅ ÉCOUTER les événements du composant parent
     #[On('create-compte')]
     public function handleCreateCompte()
     {
@@ -144,8 +160,25 @@ class CompteManager extends Component
 
     public function render()
     {
-        // Afficher tous les comptes actifs, y compris ceux créés automatiquement par les ventes
-        $comptes = Compte::where('actif', true)->orderBy('type_compte')->orderBy('created_at')->get();
-        return view('livewire.finance.compte-manager', compact('comptes'));
+        $comptes = Compte::where('actif', true)
+            ->orderBy('type_compte')
+            ->orderBy('type_compte_mobilemoney_or_banque')
+            ->orderBy('created_at')
+            ->get();
+
+        return view('livewire.finance.compte-manager', [
+            'comptes' => $comptes,
+            // Stats rapides (alignées avec la nouvelle structure)
+            'stats' => [
+                'principal_total'  => $comptes->where('type_compte','Principal')->sum('solde_actuel_mga'),
+                'mobile_total'     => $comptes->where('type_compte','MobileMoney')->sum('solde_actuel_mga'),
+                'banque_total'     => $comptes->where('type_compte','Banque')->sum('solde_actuel_mga'),
+                'principal_count'  => $comptes->where('type_compte','Principal')->count(),
+                'mobile_count'     => $comptes->where('type_compte','MobileMoney')->count(),
+                'banque_count'     => $comptes->where('type_compte','Banque')->count(),
+            ],
+            'mmSousTypes'   => $this->MM_SOUS_TYPES,
+            'bankSousTypes' => $this->BANK_SOUS_TYPES,
+        ]);
     }
 }

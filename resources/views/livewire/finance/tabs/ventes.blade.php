@@ -1,85 +1,9 @@
 {{-- resources/views/livewire/finance/tabs/ventes.blade.php --}}
-{{-- PURE LIVEWIRE + TAILWIND - SANS ALPINE.JS --}}
+{{-- ALIGNE AVEC type_paiement / sous_type_paiement + badge_paiement --}}
 
 <div class="space-y-6">
-
-    <!-- Filtres -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-4">
-            
-            <!-- Recherche -->
-            <div class="xl:col-span-2">
-                <div class="relative">
-                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input wire:model.live="searchTerm" 
-                           type="text" 
-                           placeholder="Rechercher par référence, objet, vendeur..."
-                           class="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                </div>
-            </div>
-
-            <!-- Filtre date -->
-            <div>
-                <select wire:model.live="filterDate" 
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                    <option value="">Toutes les dates</option>
-                    <option value="today">Aujourd'hui</option>
-                    <option value="week">Cette semaine</option>
-                    <option value="month">Ce mois</option>
-                    <option value="year">Cette année</option>
-                </select>
-            </div>
-
-            <!-- Filtre statut -->
-            <div>
-                <select wire:model.live="filterStatutPaiement" 
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                    <option value="">Tous les statuts</option>
-                    <option value="paye">✅ Payé</option>
-                    <option value="partiel">⏳ Partiel</option>
-                </select>
-            </div>
-
-            <!-- Filtre mode paiement -->
-            <div>
-                <select wire:model.live="filterModePaiement" 
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                    <option value="">Tous les modes</option>
-                    <option value="especes">💵 Espèces</option>
-                    <option value="AirtelMoney">📱 AirtelMoney</option>
-                    <option value="Mvola">📱 MVola</option>
-                    <option value="OrangeMoney">📱 OrangeMoney</option>
-                    <option value="banque">🏦 Banque</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Filtre dépôt (ligne séparée) -->
-        <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div>
-                <select wire:model.live="filterDepot" 
-                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                    <option value="">Tous les dépôts</option>
-                    @foreach($depots as $depot)
-                        <option value="{{ $depot->id }}">{{ $depot->nom }} ({{ $depot->type }})</option>
-                    @endforeach
-                </select>
-            </div>
-            
-            <div class="lg:col-span-2 flex justify-end">
-                <button wire:click="clearFilters" 
-                        class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors inline-flex items-center" 
-                        title="Effacer les filtres">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Effacer filtres
-                </button>
-            </div>
-        </div>
-    </div>
+    {{-- filtres --}}
+    @include('livewire.finance.tabs.filtre-vente')
 
     @if ($ventes->count() > 0)
         <!-- Liste des ventes -->
@@ -128,7 +52,7 @@
                                         </div>
                                     @endif
                                     <div class="text-sm text-gray-500 dark:text-gray-400">
-                                        {{ ucfirst($vente->mode_paiement) }}
+                                        {{ $vente->badge_paiement }}
                                     </div>
                                 </div>
 
@@ -151,10 +75,8 @@
                                     </span>
                                 </div>
 
-                                <!-- Actions - PURE LIVEWIRE -->
+                                <!-- Actions -->
                                 <div class="flex items-center space-x-2">
-                                    
-                                    {{-- Bouton marquer payé (seulement si partiel) --}}
                                     @if ($vente->statut_paiement === 'partiel')
                                         <button wire:click="marquerPaye({{ $vente->id }})" 
                                                 class="p-2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors" 
@@ -165,7 +87,6 @@
                                         </button>
                                     @endif
 
-                                    {{-- Bouton modifier --}}
                                     <button wire:click="editVente({{ $vente->id }})" 
                                             class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" 
                                             title="Modifier la vente">
@@ -174,7 +95,6 @@
                                         </svg>
                                     </button>
 
-                                    {{-- Bouton supprimer --}}
                                     <button wire:click="deleteVente({{ $vente->id }})" 
                                             wire:confirm="Êtes-vous sûr de vouloir supprimer cette vente ?" 
                                             class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors" 
@@ -184,7 +104,6 @@
                                         </svg>
                                     </button>
 
-                                    {{-- Bouton toggle détails --}}
                                     <button wire:click="toggleDetails({{ $vente->id }})" 
                                             class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg transition-all" 
                                             title="Voir les détails">
@@ -198,13 +117,13 @@
                         </div>
                     </div>
 
-                    <!-- Détails expandables - LIVEWIRE TOGGLE -->
+                    <!-- Détails -->
                     @if(in_array($vente->id, $expandedVentes ?? []))
                         <div class="border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                             <div class="p-6 space-y-6">
                                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-                                    <!-- Informations générales -->
+                                    <!-- Infos -->
                                     <div class="space-y-3">
                                         <h4 class="flex items-center font-semibold text-gray-900 dark:text-gray-100">
                                             <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-3">
@@ -221,14 +140,26 @@
                                                 <span class="text-gray-600 dark:text-gray-400">Date :</span>
                                                 <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->date?->format('d/m/Y à H:i') ?? $vente->created_at->format('d/m/Y à H:i') }}</span>
                                             </div>
-                                            <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400">Objet :</span>
-                                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->objet ?: 'Non spécifié' }}</span>
-                                            </div>
                                             @if($vente->vendeur_nom)
                                             <div class="flex justify-between">
                                                 <span class="text-gray-600 dark:text-gray-400">Vendeur :</span>
                                                 <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->vendeur_nom }}</span>
+                                            </div>
+                                            @endif
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400">Type paiement :</span>
+                                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->badge_paiement }}</span>
+                                            </div>
+                                            @if($vente->reference_paiement)
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400">Réf. paiement :</span>
+                                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->reference_paiement }}</span>
+                                            </div>
+                                            @endif
+                                            @if($vente->numero_transaction)
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400">N° transaction :</span>
+                                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $vente->numero_transaction }}</span>
                                             </div>
                                             @endif
                                         </div>
@@ -282,15 +213,23 @@
                                             </div>
                                             @endif
                                             <div class="flex justify-between">
-                                                <span class="text-gray-600 dark:text-gray-400">Mode paiement :</span>
-                                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ ucfirst($vente->mode_paiement) }}</span>
-                                            </div>
-                                            <div class="flex justify-between">
                                                 <span class="text-gray-600 dark:text-gray-400">Statut :</span>
                                                 <span class="font-medium {{ $vente->statut_paiement === 'paye' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400' }}">
                                                     {{ $vente->statut_paiement === 'paye' ? 'Payé' : 'Partiel' }}
                                                 </span>
                                             </div>
+                                            @if($vente->compte)
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600 dark:text-gray-400">Compte crédité :</span>
+                                                <span class="font-medium text-gray-900 dark:text-gray-100">
+                                                    {{ $vente->compte->type_compte }}
+                                                    @if($vente->compte->type_compte_mobilemoney_or_banque)
+                                                        • {{ $vente->compte->type_compte_mobilemoney_or_banque }}
+                                                    @endif
+                                                    — {{ $vente->compte->proprietaire_display }}
+                                                </span>
+                                            </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

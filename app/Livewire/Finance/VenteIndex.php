@@ -2,497 +2,411 @@
 
 namespace App\Livewire\Finance;
 
-use App\Models\Vente;
 use App\Models\Lieu;
+use App\Models\Vente;
 use App\Models\Compte;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class VenteIndex extends Component
 {
     use WithPagination;
 
-    /** Onglets */
-    public string $activeTab = 'ventes';
+    protected $paginationTheme = 'tailwind';
 
-    /** Filtres */
-    public string $searchTerm = '';
-    public string $filterModePaiement = '';
-    public string $filterStatutPaiement = '';
-    public string $filterDepot = '';
-    public string $filterDate = '';
-    public string $dateDebut = '';
-    public string $dateFin = '';
-
-    /** Modal & form */
+    /** UI / Modale */
     public bool $showModal = false;
     public ?Vente $editingVente = null;
-    public string $soldeMessage = '';
+    public ?string $soldeMessage = null;
+    public string $activeTab = 'ventes';
 
-    /** Gestion des détails expandables - SANS ALPINE */
-    public array $expandedVentes = [];
-
-    /** Form groupé */
+    /** Formulaire */
     public array $form = [
-        'reference'              => '',
-        'date'                   => '',
-        'objet'                  => '',
-        'depot_id'               => '',
-        'vendeur_nom'            => '',
-        'montant_paye'           => '',
-        'montant_restant'        => '',
-        'statut_paiement'        => 'paye',
-        'mode_paiement'          => 'especes',
-        'observation'            => '',
+        'reference'             => null,
+        'date'                  => null,
+        'objet'                 => null,
+        'depot_id'              => null,
+        'vendeur_nom'           => null,
+
+        'montant_paye_mga'      => null,
+        'montant_restant_mga'   => 0,
+        'statut_paiement'       => 'paye', // paye | partiel
+
+        'type_paiement'         => 'Principal', // Principal | MobileMoney | Banque
+        'sous_type_paiement'    => null,        // Mvola | OrangeMoney | AirtelMoney | BNI | BFV | ...
+
+        'observation'           => null,
     ];
 
-    /** Règles de validation */
+    /** Filtres */
+    public ?string $searchTerm = null;
+    public ?string $filterDate = null;           // today|week|month|year|null
+    public ?string $filterStatutPaiement = null; // paye|partiel|null
+    public ?int    $filterDepot = null;
+    public ?string $filterTypePaiement = null;   // Principal|MobileMoney|Banque|null
+    public ?string $filterSousType = null;       // Mvola|BNI|...|null
+
+    /** UI : lignes développées */
+    public array $expandedVentes = [];
+
+    /** Data pour selects */
+    public $depots = [];
+
+    /* =========================
+     |   Validation
+     ========================= */
     protected function rules(): array
     {
         return [
-            'form.reference'         => ['required','string','max:255'],
-            'form.date'              => ['required','date'],
-            'form.objet'             => ['nullable','string'],
-            'form.depot_id'          => ['nullable','exists:lieux,id'],
-            'form.vendeur_nom'       => ['nullable','string','max:255'],
-            'form.montant_paye'      => ['required','numeric','min:0'],
-            'form.montant_restant'   => ['nullable','numeric','min:0'],
-            'form.statut_paiement'   => ['required','in:paye,partiel'],
-            'form.mode_paiement'     => ['required','in:especes,AirtelMoney,OrangeMoney,Mvola,banque'],
-            'form.observation'       => ['nullable','string'],
+            'form.reference'            => 'nullable|string|max:50',
+            'form.date'                 => 'required|date',
+            'form.objet'                => 'nullable|string',
+            'form.depot_id'             => 'nullable|exists:lieux,id',
+            'form.vendeur_nom'          => 'nullable|string|max:255',
+
+            'form.montant_paye_mga'     => 'required|numeric|min:0.01',
+            'form.statut_paiement'      => 'required|in:paye,partiel',
+            'form.montant_restant_mga'  => 'nullable|numeric|min:0|required_if:form.statut_paiement,partiel',
+
+            'form.type_paiement'        => 'required|in:Principal,MobileMoney,Banque',
+            'form.sous_type_paiement'   => 'nullable|string|required_if:form.type_paiement,MobileMoney,Banque|max:50',
+
+            'form.observation'          => 'nullable|string',
         ];
     }
 
-    protected array $messages = [
-        'form.reference.required'       => 'La référence est obligatoire.',
-        'form.date.required'            => 'La date est obligatoire.',
-        'form.montant_paye.required'    => 'Le montant payé est obligatoire.',
-        'form.montant_paye.numeric'     => 'Le montant payé doit être un nombre.',
-        'form.montant_paye.min'         => 'Le montant payé doit être positif.',
-        'form.depot_id.exists'          => 'Le dépôt sélectionné n\'existe pas.',
-        'form.statut_paiement.required' => 'Le statut de paiement est obligatoire.',
-        'form.mode_paiement.required'   => 'Le mode de paiement est obligatoire.',
-    ];
-
+    /* =========================
+     |   Hooks & Helpers
+     ========================= */
     public function mount(): void
     {
         Log::info('🚀 VenteIndex::mount() - Initialisation du composant PURE LIVEWIRE');
-        $this->activeTab = request()->query('tab', 'ventes');
-        $this->dateDebut = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $this->dateFin   = Carbon::now()->endOfMonth()->format('Y-m-d');
+
+        $this->depots = Lieu::query()
+            ->when(true, fn($q) => $q->whereIn('type', ['depot', 'boutique', 'magasin'])->orWhereNull('type'))
+            ->orderBy('nom')
+            ->get();
     }
 
-    /** Toggle des détails - REMPLACE ALPINE.JS */
-    public function toggleDetails($venteId): void
+    public function updatedFormTypePaiement(): void
     {
-        Log::info("🔄 Toggle détails pour vente ID: {$venteId}");
-        
-        if (in_array($venteId, $this->expandedVentes)) {
-            $this->expandedVentes = array_diff($this->expandedVentes, [$venteId]);
-            Log::info("➖ Détails fermés pour vente ID: {$venteId}");
-        } else {
-            $this->expandedVentes[] = $venteId;
-            Log::info("➕ Détails ouverts pour vente ID: {$venteId}");
+        // Reset du sous-type quand on change le type
+        $this->form['sous_type_paiement'] = null;
+        $this->updateSoldeMessage();
+    }
+
+    public function updatedFormStatutPaiement($value): void
+    {
+        if ($value === 'paye') {
+            $this->form['montant_restant_mga'] = 0;
+        }
+        $this->updateSoldeMessage();
+    }
+
+    public function updatedFormMontantPayeMga(): void
+    {
+        $this->updateSoldeMessage();
+    }
+
+    protected function updateSoldeMessage(): void
+    {
+        $this->soldeMessage = null;
+        if (($this->form['statut_paiement'] ?? 'paye') === 'partiel') {
+            $this->soldeMessage = "Paiement partiel sélectionné : pensez à renseigner le montant restant.";
         }
     }
 
-    /** Navigation entre onglets */
-    public function setActiveTab(string $tab): void
-    {
-        Log::info("📋 Changement d'onglet vers: {$tab}");
-        
-        if (!in_array($tab, ['ventes', 'rapports'], true)) {
-            Log::warning("⚠️ Onglet invalide: {$tab}");
-            return;
-        }
-
-        $this->activeTab = $tab;
-        $this->resetPage();
-        $this->dispatch('tab-changed', tab: $tab);
-        
-        Log::info("✅ Onglet changé: {$tab}");
-    }
-
-    /** CRUD OPERATIONS */
-    
+    /* =========================
+     |   Actions Modale
+     ========================= */
     public function createVente(): void
     {
         Log::info('➕ VenteIndex::createVente() - Création nouvelle vente');
-        
-        $this->resetFormAndModal();
-        $this->form['reference'] = $this->generateReference();
-        $this->form['date'] = Carbon::now()->format('Y-m-d');
+
+        $this->form = [
+            'reference'             => $this->genererReference(),
+            'date'                  => now()->toDateString(),
+            'objet'                 => null,
+            'depot_id'              => null,
+            'vendeur_nom'           => null,
+
+            'montant_paye_mga'      => null,
+            'montant_restant_mga'   => 0,
+            'statut_paiement'       => 'paye',
+
+            'type_paiement'         => 'Principal',
+            'sous_type_paiement'    => null,
+
+            'observation'           => null,
+        ];
+
+        $this->editingVente = null;
+        $this->resetErrorBag();
+        $this->updateSoldeMessage();
+
         $this->showModal = true;
-        
+
         Log::info('✅ Modal création ouvert', ['reference' => $this->form['reference']]);
     }
 
-    public function editVente($id): void
+    public function editVente(int $id): void
     {
-        Log::info("✏️ VenteIndex::editVente() - Edition vente ID: {$id}");
-        
-        try {
-            $this->editingVente = Vente::findOrFail($id);
-            
-            Log::info('📄 Vente trouvée pour édition', [
-                'id' => $this->editingVente->id,
-                'reference' => $this->editingVente->reference
-            ]);
+        $vente = Vente::findOrFail($id);
 
-            $this->form = [
-                'reference'         => $this->editingVente->reference,
-                'date'              => optional($this->editingVente->date)->format('Y-m-d'),
-                'objet'             => $this->editingVente->objet ?? '',
-                'depot_id'          => $this->editingVente->depot_id ?? '',
-                'vendeur_nom'       => $this->editingVente->vendeur_nom ?? '',
-                'montant_paye'      => $this->editingVente->montant_paye_mga,
-                'montant_restant'   => $this->editingVente->montant_restant_mga ?? 0,
-                'statut_paiement'   => $this->editingVente->statut_paiement,
-                'mode_paiement'     => $this->editingVente->mode_paiement,
-                'observation'       => $this->editingVente->observation ?? '',
-            ];
+        $this->form = [
+            'reference'             => $vente->reference,
+            'date'                  => optional($vente->date)->toDateString(),
+            'objet'                 => $vente->objet,
+            'depot_id'              => $vente->depot_id,
+            'vendeur_nom'           => $vente->vendeur_nom,
 
-            $this->showModal = true;
-            $this->soldeMessage = '';
-            
-            Log::info('✅ Modal édition ouvert', ['vente_id' => $id]);
-            
-        } catch (\Throwable $e) {
-            Log::error("❌ Erreur édition vente ID: {$id}", [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            session()->flash('error', 'Erreur lors du chargement de la vente.');
-        }
+            'montant_paye_mga'      => $vente->montant_paye_mga,
+            'montant_restant_mga'   => $vente->montant_restant_mga,
+            'statut_paiement'       => $vente->statut_paiement,
+
+            'type_paiement'         => $vente->type_paiement,
+            'sous_type_paiement'    => $vente->sous_type_paiement,
+
+            'observation'           => $vente->observation,
+        ];
+
+        $this->editingVente = $vente;
+        $this->resetErrorBag();
+        $this->updateSoldeMessage();
+
+        $this->showModal = true;
     }
 
-    private function mettreAJourCompte(string $modePaiement, float $montant, string $action = 'ajouter'): void
-    {
-        // Mapping mode_paiement -> type_compte
-        $typeCompte = match ($modePaiement) {
-            'especes' => 'principal',
-            'AirtelMoney' => 'AirtelMoney',
-            'OrangeMoney' => 'OrangeMoney',
-            'Mvola' => 'Mvola',
-            'banque' => 'banque',
-            default => null
-        };
-
-        if (!$typeCompte) {
-            Log::warning("Mode de paiement non reconnu: {$modePaiement}");
-            return;
-        }
-
-        // Trouver ou créer le compte
-        $compte = Compte::where('type_compte', $typeCompte)
-                       ->where('actif', true)
-                       ->first();
-
-        if (!$compte) {
-            // Créer le compte automatiquement
-            $compte = Compte::create([
-                'nom_proprietaire' => 'Mme TINAH',
-                'type_compte' => $typeCompte,
-                'numero_compte' => $typeCompte === 'principal' ? null : date('Ymd') . '-' . strtoupper(substr($typeCompte, 0, 2)),
-                'solde_actuel_mga' => 0,
-                'actif' => true
-            ]);
-            Log::info("Compte créé automatiquement: {$typeCompte}");
-        }
-
-        // Mettre à jour le solde
-        $nouveauSolde = $action === 'ajouter' 
-            ? $compte->solde_actuel_mga + $montant
-            : $compte->solde_actuel_mga - $montant;
-
-        $compte->update(['solde_actuel_mga' => $nouveauSolde]);
-        
-        Log::info("Compte {$typeCompte} mis à jour: {$action} {$montant} MGA, nouveau solde: {$nouveauSolde} MGA");
-    }
-
-// ✅ CORRRIGÉE : saveVente avec gestion des champs vides
-    public function saveVente(): void
-    {
-        Log::info('💾 VenteIndex::saveVente() - Début sauvegarde');
-        
-        try {
-            $this->validate();
-            
-            $data = [
-                'reference'              => $this->form['reference'],
-                'date'                   => $this->form['date'],
-                'objet'                  => $this->form['objet'] ?: null,
-                'depot_id'               => $this->form['depot_id'] ?: null,
-                'vendeur_nom'            => $this->form['vendeur_nom'] ?: null,
-                'montant_paye_mga'       => $this->form['montant_paye'],
-                'montant_restant_mga'    => empty($this->form['montant_restant']) ? 0 : $this->form['montant_restant'], // ✅ FIX ICI
-                'statut_paiement'        => $this->form['statut_paiement'],
-                'mode_paiement'          => $this->form['mode_paiement'],
-                'observation'            => $this->form['observation'] ?: null,
-            ];
-
-            if ($this->editingVente) {
-                // Mode édition : retirer l'ancien montant puis ajouter le nouveau
-                $this->mettreAJourCompte($this->editingVente->mode_paiement, $this->editingVente->montant_paye_mga, 'retirer');
-                $this->mettreAJourCompte($data['mode_paiement'], (float) $data['montant_paye_mga'], 'ajouter');
-                
-                $this->editingVente->update($data);
-                session()->flash('success', 'Vente modifiée et compte mis à jour avec succès.');
-                Log::info("✅ Vente modifiée ID: {$this->editingVente->id}");
-            } else {
-                // Mode création : ajouter au compte
-                $this->mettreAJourCompte($data['mode_paiement'], (float) $data['montant_paye_mga'], 'ajouter');
-                
-                $newVente = Vente::create($data);
-                session()->flash('success', 'Vente créée et compte mis à jour avec succès.');
-                Log::info("✅ Nouvelle vente créée ID: {$newVente->id}");
-            }
-
-            $this->closeModal();
-
-        } catch (\Throwable $e) {
-            Log::error('❌ Erreur sauvegarde vente', [
-                'message' => $e->getMessage(),
-                'form' => $this->form
-            ]);
-            session()->flash('error', 'Erreur lors de la sauvegarde.');
-        }
-    }
-
-
-    public function deleteVente($id): void
-    {
-        Log::info("🗑️ VenteIndex::deleteVente() - Suppression vente ID: {$id}");
-        
-        try {
-            $vente = Vente::findOrFail($id);
-            
-            // Retirer le montant du compte correspondant
-            $this->mettreAJourCompte($vente->mode_paiement, $vente->montant_paye_mga, 'retirer');
-            
-            Log::info('📄 Vente trouvée pour suppression', [
-                'id' => $vente->id,
-                'reference' => $vente->reference
-            ]);
-            
-            $vente->delete();
-            
-            // Retirer de la liste des expanded si présent
-            $this->expandedVentes = array_diff($this->expandedVentes, [$id]);
-            
-            session()->flash('success', 'Vente supprimée et compte mis à jour avec succès.');
-            Log::info("✅ Vente supprimée ID: {$id}");
-            
-        } catch (\Throwable $e) {
-            Log::error("❌ Erreur suppression vente ID: {$id}", [
-                'message' => $e->getMessage()
-            ]);
-            session()->flash('error', 'Erreur lors de la suppression.');
-        }
-    }
-
-    public function marquerPaye($id): void
-    {
-        Log::info("✅ VenteIndex::marquerPaye() - Marquer payé vente ID: {$id}");
-        
-        try {
-            $vente = Vente::findOrFail($id);
-            
-            Log::info('📄 Vente trouvée pour marquer payée', [
-                'id' => $vente->id,
-                'reference' => $vente->reference,
-                'statut_actuel' => $vente->statut_paiement
-            ]);
-
-            $vente->update([
-                'statut_paiement' => 'paye',
-                'montant_restant_mga' => 0
-            ]);
-            
-            session()->flash('success', 'Vente marquée comme payée.');
-            Log::info("✅ Vente marquée payée ID: {$id}");
-            
-        } catch (\Throwable $e) {
-            Log::error("❌ Erreur marquer payé vente ID: {$id}", [
-                'message' => $e->getMessage()
-            ]);
-            session()->flash('error', 'Erreur lors de la mise à jour.');
-        }
-    }
-
-    /** MODAL MANAGEMENT */
-    
     public function closeModal(): void
     {
-        Log::info('❌ Fermeture modal');
-        
         $this->showModal = false;
-        $this->resetFormAndModal();
-        
-        Log::info('✅ Modal fermé');
-    }
-
-    private function resetFormAndModal(): void
-    {
-        $this->form = [
-            'reference'         => '',
-            'date'              => '',
-            'objet'             => '',
-            'depot_id'          => '',
-            'vendeur_nom'       => '',
-            'montant_paye'      => '',
-            'montant_restant'   => '',
-            'statut_paiement'   => 'paye',
-            'mode_paiement'     => 'especes',
-            'observation'       => '',
-        ];
-        
         $this->editingVente = null;
-        $this->soldeMessage = '';
         $this->resetErrorBag();
     }
 
-    /** HELPER METHODS */
-    
-    private function generateReference(): string
+    public function saveVente(): void
     {
-        $count = Vente::withTrashed()
-            ->whereDate('created_at', Carbon::today())
-            ->count() + 1;
+        Log::info('💾 VenteIndex::saveVente() - Début sauvegarde');
 
-        do {
-            $reference = 'VTE' . date('Ymd') . str_pad($count, 3, '0', STR_PAD_LEFT);
-            $count++;
-        } while (Vente::withTrashed()->where('reference', $reference)->exists());
+        $this->validate();
 
-        Log::info("🔢 Référence générée: {$reference}");
-        return $reference;
-    }
-
-    private function verifierCapaciteEncaissement(string $modePaiement, float $montant): array
-    {
-        Log::info("💰 Vérification capacité encaissement", [
-            'mode_paiement' => $modePaiement,
-            'montant' => $montant
-        ]);
-        
-        $typeCompte = match ($modePaiement) {
-            'AirtelMoney'  => 'AirtelMoney',
-            'Mvola'        => 'Mvola',
-            'OrangeMoney'  => 'OrangeMoney',
-            'banque'       => 'banque',
-            default        => null,
-        };
-
-        if (!$typeCompte) {
-            return ['success' => false, 'message' => 'Mode de paiement invalide.'];
+        // Normalisation si payé complet
+        if (($this->form['statut_paiement'] ?? 'paye') === 'paye') {
+            $this->form['montant_restant_mga'] = 0;
         }
 
-        $compte = Compte::where('type_compte', $typeCompte)
-            ->where('actif', true)
-            ->first();
+        $data = [
+            'reference'             => $this->form['reference'] ?: $this->genererReference(),
+            'date'                  => $this->form['date'],
+            'objet'                 => $this->form['objet'],
+            'depot_id'              => $this->form['depot_id'],
+            'vendeur_nom'           => $this->form['vendeur_nom'],
 
-        if (!$compte) {
-            // Pour les ventes, on peut accepter même sans compte configuré
-            Log::info("⚠️ Aucun compte pour {$modePaiement}, mais vente acceptée");
-            return ['success' => true, 'message' => "Attention: Aucun compte configuré pour {$modePaiement}"];
-        }
+            'montant_paye_mga'      => (float) ($this->form['montant_paye_mga'] ?? 0),
+            'montant_restant_mga'   => (float) ($this->form['montant_restant_mga'] ?? 0),
+            'statut_paiement'       => $this->form['statut_paiement'],
 
-        Log::info("✅ Compte trouvé pour encaissement");
-        return ['success' => true];
-    }
+            'type_paiement'         => $this->form['type_paiement'],
+            'sous_type_paiement'    => $this->form['sous_type_paiement'],
 
-    /** FILTERS */
-    
-    public function clearFilters(): void
-    {
-        Log::info('🧹 Effacement des filtres');
-        
-        $this->searchTerm = '';
-        $this->filterModePaiement = '';
-        $this->filterStatutPaiement = '';
-        $this->filterDepot = '';
-        $this->filterDate = '';
-        $this->resetPage();
-        
-        Log::info('✅ Filtres effacés');
-    }
-
-    /** REAL-TIME VALIDATION */
-    
-    public function updatedForm($field): void
-    {
-        if (in_array($field, ['form.montant_paye', 'form.mode_paiement'], true)) {
-            if ($this->form['montant_paye'] !== '' && $this->form['mode_paiement'] !== 'especes') {
-                $check = $this->verifierCapaciteEncaissement($this->form['mode_paiement'], (float) $this->form['montant_paye']);
-                $this->soldeMessage = !$check['success'] ? $check['message'] : '';
-            } else {
-                $this->soldeMessage = '';
-            }
-        }
-    }
-
-    /** RENDER */
-    
-    public function render()
-    {
-        Log::info('🎨 Rendu du composant VenteIndex PURE LIVEWIRE');
-        
-        $query = Vente::with('depot')
-            ->when($this->searchTerm, function ($q) {
-                $q->where(function ($sub) {
-                    $term = '%' . $this->searchTerm . '%';
-                    $sub->where('reference', 'like', $term)
-                        ->orWhere('objet', 'like', $term)
-                        ->orWhere('vendeur_nom', 'like', $term);
-                });
-            })
-            ->when($this->filterModePaiement, fn ($q) => $q->where('mode_paiement', $this->filterModePaiement))
-            ->when($this->filterStatutPaiement, fn ($q) => $q->where('statut_paiement', $this->filterStatutPaiement))
-            ->when($this->filterDepot, fn ($q) => $q->where('depot_id', $this->filterDepot))
-            ->when($this->filterDate, function ($q) {
-                match ($this->filterDate) {
-                    'today' => $q->whereDate('date', Carbon::today()),
-                    'week'  => $q->whereBetween('date', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]),
-                    'month' => $q->whereBetween('date', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()]),
-                    'year'  => $q->whereBetween('date', [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()]),
-                    default => null,
-                };
-            })
-            ->when($this->dateDebut && $this->dateFin, fn ($q) => $q->whereBetween('date', [$this->dateDebut, $this->dateFin]))
-            ->orderByDesc('date');
-
-        $ventes = $query->paginate(15);
-
-        // Récupérer les dépôts pour les filtres
-        $depots = Lieu::whereIn('type', ['depot', 'magasin', 'boutique'])
-            ->where('actif', true)
-            ->orderBy('nom')
-            ->get();
-
-        $statistiques = [
-            'totalVentes'           => (float) Vente::sum('montant_paye_mga'),
-            'ventesPartielles'      => (int) Vente::where('statut_paiement', 'partiel')->count(),
-            'nombreVentes'          => (int) Vente::count(),
-            'montantRestant'        => (float) Vente::sum('montant_restant_mga'),
+            'observation'           => $this->form['observation'],
         ];
 
-        Log::info('✅ Rendu terminé VenteIndex PURE LIVEWIRE', [
-            'nombre_ventes' => $ventes->count(),
-            'total_pages' => $ventes->lastPage(),
-            'expanded_count' => count($this->expandedVentes)
-        ]);
+        DB::transaction(function () use ($data) {
+            // 1) Trouver (ou créer) le compte cible selon type/sous-type
+            $compteCible = $this->resolveCompteFromForm($data['type_paiement'], $data['sous_type_paiement']);
+            $data['compte_id'] = $compteCible->id;
 
-        return view('livewire.finance.vente-index', compact('ventes', 'depots', 'statistiques'));
+            if ($this->editingVente) {
+                // 2a) EDIT : annuler l'effet de l'ancienne vente sur l'ancien compte
+                $venteOld = $this->editingVente->fresh();
+
+                if ($venteOld->compte_id) {
+                    $compteAncien = Compte::find($venteOld->compte_id);
+                    if ($compteAncien) {
+                        // on retire l'ancien montant payé de l'ancien compte
+                        $compteAncien->decrement('solde_actuel_mga', (float) $venteOld->montant_paye_mga);
+                    }
+                }
+
+                // 2b) Mettre à jour la vente avec le nouveau compte
+                $this->editingVente->update($data);
+
+                // 2c) Créditer le compte cible du nouveau montant
+                $compteCible->increment('solde_actuel_mga', (float) $data['montant_paye_mga']);
+            } else {
+                // 2a) CREATE : créer la vente
+                $vente = Vente::create($data);
+
+                // 2b) Créditer le compte cible
+                $compteCible->increment('solde_actuel_mga', (float) $data['montant_paye_mga']);
+            }
+        });
+
+        session()->flash('success', $this->editingVente ? 'Vente modifiée avec succès' : 'Vente créée avec succès');
+        $this->closeModal();
     }
 
-    // Méthode de test pour déboguer
-    public function testMethod(): void
+    public function deleteVente(int $id): void
     {
-        Log::info('🧪 TEST METHOD VENTES APPELÉE AVEC SUCCÈS !!!! (PURE LIVEWIRE)');
-        session()->flash('success', 'Test méthode ventes fonctionne parfaitement ! ✅');
+        DB::transaction(function () use ($id) {
+            $vente = Vente::findOrFail($id);
+
+            // Annuler l'effet sur le compte (décréditer du montant payé)
+            if ($vente->compte_id) {
+                $compte = Compte::find($vente->compte_id);
+                if ($compte) {
+                    $compte->decrement('solde_actuel_mga', (float) $vente->montant_paye_mga);
+                }
+            }
+
+            $vente->delete();
+        });
+
+        session()->flash('success', 'Vente supprimée avec succès');
+    }
+
+    public function marquerPaye(int $id): void
+    {
+        // Ici on ne touche pas aux montants, on ferme juste le restant
+        $vente = Vente::findOrFail($id);
+        $vente->update([
+            'statut_paiement'      => 'paye',
+            'montant_restant_mga'  => 0,
+        ]);
+        session()->flash('success', 'Vente marquée comme payée.');
+    }
+
+    public function toggleDetails(int $id): void
+    {
+        if (in_array($id, $this->expandedVentes, true)) {
+            $this->expandedVentes = array_values(array_diff($this->expandedVentes, [$id]));
+        } else {
+            $this->expandedVentes[] = $id;
+        }
+    }
+
+    public function clearFilters(): void
+    {
+        $this->reset([
+            'searchTerm',
+            'filterDate',
+            'filterStatutPaiement',
+            'filterDepot',
+            'filterTypePaiement',
+            'filterSousType',
+        ]);
+        $this->resetPage();
+    }
+
+    /* =========================
+     |   Render / Query
+     ========================= */
+    public function render()
+    {
+         $query = Vente::query()->with(['depot', 'compte']);
+
+        // Recherche
+        if ($this->searchTerm) {
+            $t = trim($this->searchTerm);
+            $query->where(function ($q) use ($t) {
+                $q->where('reference', 'like', "%{$t}%")
+                  ->orWhere('objet', 'like', "%{$t}%")
+                  ->orWhere('vendeur_nom', 'like', "%{$t}%");
+            });
+        }
+
+        // Filtres
+        if ($this->filterDepot) {
+            $query->where('depot_id', $this->filterDepot);
+        }
+        if ($this->filterStatutPaiement) {
+            $query->where('statut_paiement', $this->filterStatutPaiement);
+        }
+        if ($this->filterTypePaiement) {
+            $query->where('type_paiement', $this->filterTypePaiement);
+        }
+        if ($this->filterSousType) {
+            $query->where('sous_type_paiement', $this->filterSousType);
+        }
+
+        // Date
+        if ($this->filterDate) {
+            match ($this->filterDate) {
+                'today' => $query->whereDate('date', now()->toDateString()),
+                'week'  => $query->whereBetween('date', [now()->startOfWeek(), now()->endOfWeek()]),
+                'month' => $query->whereBetween('date', [now()->startOfMonth(), now()->endOfMonth()]),
+                'year'  => $query->whereBetween('date', [now()->startOfYear(), now()->endOfYear()]),
+                default => null,
+            };
+        }
+
+        $ventes = $query->latest('date')->latest('id')->paginate(10);
+
+        return view('livewire.finance.vente-index', [
+            'ventes'     => $ventes,
+            'depots'     => $this->depots,
+            'activeTab'  => $this->activeTab,
+        ]);
+    }
+
+    /* =========================
+     |   Utils
+     ========================= */
+    protected function genererReference(): string
+    {
+        // Ex: VTE20250816001
+        $prefix = 'VTE' . now()->format('Ymd');
+        $last   = Vente::withTrashed()
+                    ->where('reference', 'like', $prefix . '%')
+                    ->orderBy('reference', 'desc')
+                    ->value('reference');
+
+        $nextNumber = 1;
+        if ($last && preg_match('/(\d{3})$/', $last, $m)) {
+            $nextNumber = (int)$m[1] + 1;
+        }
+
+        return $prefix . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Trouve ou crée le compte cible à partir du type/sous-type de paiement.
+     * - Principal  -> type_compte = "Principal"
+     * - MobileMoney -> type_compte = "MobileMoney", sous-type = opérateur
+     * - Banque      -> type_compte = "Banque", sous-type = banque
+     */
+    protected function resolveCompteFromForm(string $type, ?string $sousType): Compte
+    {
+        $query = Compte::query()->actif();
+
+        if ($type === Compte::TYPE_PRINCIPAL) {
+            $query->where('type_compte', Compte::TYPE_PRINCIPAL);
+        } elseif ($type === Compte::TYPE_MOBILEMONEY) {
+            $query->where('type_compte', Compte::TYPE_MOBILEMONEY)
+                  ->where('type_compte_mobilemoney_or_banque', $sousType);
+        } elseif ($type === Compte::TYPE_BANQUE) {
+            $query->where('type_compte', Compte::TYPE_BANQUE)
+                  ->where('type_compte_mobilemoney_or_banque', $sousType);
+        }
+
+        $compte = $query->first();
+
+        if (!$compte) {
+            // Création automatique d’un compte actif si inexistant
+            $compte = Compte::create([
+                'user_id'                          => null,
+                'nom_proprietaire'                 => 'Mme TINAH', // adapte si nécessaire
+                'type_compte'                      => $type,
+                'type_compte_mobilemoney_or_banque'=> $type === Compte::TYPE_PRINCIPAL ? null : $sousType,
+                'numero_compte'                    => null,
+                'solde_actuel_mga'                 => 0,
+                'actif'                            => true,
+            ]);
+        }
+
+        return $compte;
     }
 }

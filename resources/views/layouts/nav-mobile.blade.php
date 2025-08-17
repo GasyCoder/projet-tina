@@ -38,9 +38,9 @@
                 </svg>
             </button>
             <div x-show="openMobileG" x-transition class="pl-8 space-y-1">
-                <a href="{{ route('finance.partenaires') }}"
+                <a href="{{ route('partenaire.index') }}"
                    class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm transition
-                          {{ request()->routeIs('finance.partenaires') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
+                          {{ request()->routeIs('partenaire.index', 'partenaire.show') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white' }}">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7M7 20v-2a3 3 0 015.356-1.857"/>

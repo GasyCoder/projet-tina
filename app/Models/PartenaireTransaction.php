@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,38 +12,29 @@ class PartenaireTransaction extends Model
 
     protected $fillable = [
         'partenaire_id',
+        'entree_source_id',
         'reference',
-        'type', // 'entree' ou 'sortie'
+        'type', // 'entree' | 'sortie'
         'montant_mga',
         'motif',
-        'mode_paiement', // Pour les entrées
-        'compte_source_id', // Compte de Mme Tina pour les entrées
-        'compte_destination_id', // Compte du partenaire
+        'mode_paiement',       
+        'sous_type_compte',
         'statut',
         'date_transaction',
-        'observation'
+        'observation',
     ];
 
     protected $casts = [
-        'montant_mga' => 'decimal:2',
+        'montant_mga'      => 'decimal:2',
         'date_transaction' => 'datetime',
-        'statut' => 'boolean'
+        'statut'           => 'boolean',
     ];
 
-    // Relations
+    // === RELATIONS ===
+    
     public function partenaire()
     {
         return $this->belongsTo(Partenaire::class);
-    }
-
-    public function compteSource()
-    {
-        return $this->belongsTo(Compte::class, 'compte_source_id');
-    }
-
-    public function compteDestination()
-    {
-        return $this->belongsTo(Compte::class, 'compte_destination_id');
     }
 
     public function details()
@@ -50,7 +42,19 @@ class PartenaireTransaction extends Model
         return $this->hasMany(PartenaireTransactionDetail::class, 'transaction_id');
     }
 
-    // Accesseurs
+    // Relations pour le lien entrée-sortie
+    public function entreeSource()
+    {
+        return $this->belongsTo(PartenaireTransaction::class, 'entree_source_id');
+    }
+
+    public function sortiesLiees()
+    {
+        return $this->hasMany(PartenaireTransaction::class, 'entree_source_id');
+    }
+
+    // === ACCESSEURS ===
+    
     public function getMontantFormattedAttribute()
     {
         return number_format($this->montant_mga, 0, ',', ' ') . ' Ar';
@@ -64,54 +68,97 @@ class PartenaireTransaction extends Model
     public function getModePaiementLibelleAttribute()
     {
         return match ($this->mode_paiement) {
-            'especes' => 'Espèces',
-            'AirtelMoney' => 'AirtelMoney',
-            'OrangeMoney' => 'OrangeMoney',
-            'Mvola' => 'Mvola',
-            'banque' => 'Banque',
-            default => ucfirst($this->mode_paiement ?? '')
+            'especes'      => 'Espèces',
+            'AirtelMoney'  => 'AirtelMoney',
+            'OrangeMoney'  => 'OrangeMoney',
+            'Mvola'        => 'Mvola',
+            'banque'       => 'Banque',
+            'MobileMoney'  => 'MobileMoney',
+            'Banque'       => 'Banque',
+            default        => ucfirst($this->mode_paiement ?? ''),
         };
     }
 
-    // Scopes
-    public function scopeEntrees($query)
+    // Pour les entrées : montant disponible après sorties
+    public function getMontantDisponibleAttribute()
     {
-        return $query->where('type', 'entree');
+        if ($this->type !== 'entree') return 0;
+        
+        $montantUtilise = $this->sortiesLiees()->sum('montant_mga');
+        return $this->montant_mga - $montantUtilise;
     }
 
-    public function scopeSorties($query)
+    // Pourcentage d'utilisation d'une entrée
+    public function getPourcentageUtiliseAttribute()
     {
-        return $query->where('type', 'sortie');
+        if ($this->type !== 'entree' || $this->montant_mga == 0) return 0;
+        
+        $montantUtilise = $this->sortiesLiees()->sum('montant_mga');
+        return ($montantUtilise / $this->montant_mga) * 100;
     }
 
-    public function scopeParPartenaire($query, $partenaireId)
+    // Montant utilisé d'une entrée
+    public function getMontantUtiliseAttribute()
     {
-        return $query->where('partenaire_id', $partenaireId);
+        if ($this->type !== 'entree') return 0;
+        
+        return $this->sortiesLiees()->sum('montant_mga');
     }
 
-    public function scopeRecent($query, $jours = 30)
-    {
-        return $query->where('date_transaction', '>=', now()->subDays($jours));
+    // === SCOPES ===
+    
+    public function scopeEntrees($q) 
+    { 
+        return $q->where('type', 'entree'); 
+    }
+    
+    public function scopeSorties($q) 
+    { 
+        return $q->where('type', 'sortie'); 
+    }
+    
+    public function scopeParPartenaire($q, $id) 
+    { 
+        return $q->where('partenaire_id', $id); 
+    }
+    
+    public function scopeRecent($q, $jours = 30) 
+    { 
+        return $q->where('date_transaction', '>=', now()->subDays($jours)); 
+    }
+    
+    public function scopePeriode($q, $debut, $fin) 
+    { 
+        return $q->whereBetween('date_transaction', [$debut, $fin]); 
+    }
+    
+    public function scopeDepuisEntree($q, $entreeId) 
+    { 
+        return $q->where('entree_source_id', $entreeId); 
     }
 
-    public function scopePeriode($query, $dateDebut, $dateFin)
+    public function scopeSortiesLibres($q)
     {
-        return $query->whereBetween('date_transaction', [$dateDebut, $dateFin]);
+        return $q->where('type', 'sortie')->whereNull('entree_source_id');
     }
 
-    // Méthodes statiques
+    public function scopeSortiesLiees($q)
+    {
+        return $q->where('type', 'sortie')->whereNotNull('entree_source_id');
+    }
+
+    // === MÉTHODES STATIQUES ===
+    
     public static function genererReference($type)
     {
         $prefix = $type === 'entree' ? 'ENT' : 'SORT';
-        $year = date('Y');
-        $count = self::where('type', $type)
-            ->whereYear('created_at', $year)
-            ->count() + 1;
-
-        return $prefix . '-' . $year . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        $year   = date('Y');
+        $count  = self::where('type', $type)->whereYear('created_at', $year)->count() + 1;
+        return $prefix.'-'.$year.'-'.str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
-    // Calculer le total des détails pour les sorties
+    // === MÉTHODES MÉTIER ===
+    
     public function getTotalDetailsAttribute()
     {
         return $this->details->sum('montant_mga');
@@ -119,9 +166,28 @@ class PartenaireTransaction extends Model
 
     public function getSoldeRestantAttribute()
     {
-        if ($this->type === 'sortie') {
-            return $this->montant_mga - $this->total_details;
-        }
-        return 0;
+        return $this->type === 'sortie' ? $this->montant_mga - $this->total_details : 0;
+    }
+
+    // Vérifier si une entrée peut encore être utilisée
+    public function peutEtreUtilisee($montant = 0)
+    {
+        if ($this->type !== 'entree') return false;
+        
+        return $this->montant_disponible >= $montant;
+    }
+
+    // Obtenir le résumé d'une entrée
+    public function getResumeEntree()
+    {
+        if ($this->type !== 'entree') return null;
+
+        return [
+            'montant_initial' => $this->montant_mga,
+            'montant_utilise' => $this->montant_utilise,
+            'montant_disponible' => $this->montant_disponible,
+            'pourcentage_utilise' => $this->pourcentage_utilise,
+            'nombre_sorties' => $this->sortiesLiees()->count(),
+        ];
     }
 }

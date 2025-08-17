@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,18 +14,20 @@ class PartenaireTransactionDetail extends Model
         'produit_id',
         'description',
         'quantite',
+        'unite',                // ✅ NOUVEAU CHAMP
         'prix_unitaire_mga',
         'montant_mga',
-        'type_detail', // 'achat_produit', 'credit', 'frais', 'autre'
+        'type_detail',
     ];
 
     protected $casts = [
-        'quantite' => 'decimal:2',
-        'prix_unitaire_mga' => 'decimal:2',
-        'montant_mga' => 'decimal:2'
+        'quantite'           => 'decimal:2',
+        'prix_unitaire_mga'  => 'decimal:2',
+        'montant_mga'        => 'decimal:2',
     ];
 
-    // Relations
+    // === RELATIONS ===
+    
     public function transaction()
     {
         return $this->belongsTo(PartenaireTransaction::class, 'transaction_id');
@@ -35,7 +38,8 @@ class PartenaireTransactionDetail extends Model
         return $this->belongsTo(Produit::class);
     }
 
-    // Accesseurs
+    // === ACCESSEURS ===
+    
     public function getMontantFormattedAttribute()
     {
         return number_format($this->montant_mga, 0, ',', ' ') . ' Ar';
@@ -48,50 +52,172 @@ class PartenaireTransactionDetail extends Model
 
     public function getQuantiteFormattedAttribute()
     {
-        if ($this->produit) {
-            return number_format($this->quantite, 2, ',', ' ') . ' ' . ($this->produit->unite ?? '');
+        return number_format($this->quantite, 2);
+    }
+
+    /**
+     * ✅ NOUVEAU : Affichage de la quantité avec unité
+     */
+    public function getQuantiteAvecUniteAttribute()
+    {
+        $quantite = $this->quantite_formatted;
+        if ($this->unite) {
+            return $quantite . ' ' . $this->unite;
         }
-        return number_format($this->quantite, 2, ',', ' ');
+        return $quantite;
+    }
+
+    /**
+     * ✅ NOUVEAU : Prix avec unité
+     */
+    public function getPrixUnitaireAvecUniteAttribute()
+    {
+        $prix = $this->prix_unitaire_formatted;
+        if ($this->unite) {
+            return $prix . '/' . $this->unite;
+        }
+        return $prix;
     }
 
     public function getTypeDetailLibelleAttribute()
     {
         return match ($this->type_detail) {
             'achat_produit' => 'Achat Produit',
-            'credit' => 'Crédit',
-            'frais' => 'Frais',
-            'autre' => 'Autre',
-            default => 'Non spécifié'
+            'credit'        => 'Crédit',
+            'frais'         => 'Frais',
+            'autre'         => 'Autre',
+            default         => ucfirst($this->type_detail ?? ''),
         };
     }
 
     public function getDescriptionCompleteAttribute()
     {
+        $desc = $this->description;
+        
         if ($this->produit) {
-            return $this->produit->nom . ($this->produit->variete ? ' (' . $this->produit->variete . ')' : '') .
-                ' - ' . $this->description;
+            $desc .= ' (' . $this->produit->nom . ')';
         }
-        return $this->description;
+        
+        if ($this->quantite > 0) {
+            $desc .= ' - ' . $this->quantite_avec_unite;
+        }
+        
+        return $desc;
     }
 
-    // Scopes
-    public function scopeParTransaction($query, $transactionId)
+    // === CONSTANTES POUR LES UNITÉS ===
+    
+    public static function getUnitesDisponibles()
     {
-        return $query->where('transaction_id', $transactionId);
+        return [
+            'kg' => 'Kilogramme',
+            'g' => 'Gramme', 
+            'sac' => 'Sac',
+            'carton' => 'Carton',
+            'piece' => 'Pièce',
+            'litre' => 'Litre',
+            'ml' => 'Millilitre',
+            'metre' => 'Mètre',
+            'cm' => 'Centimètre',
+            'unite' => 'Unité',
+        ];
     }
 
-    public function scopeAchatProduit($query)
+    public function getUniteLibelleAttribute()
     {
-        return $query->where('type_detail', 'achat_produit');
+        $unites = self::getUnitesDisponibles();
+        return $unites[$this->unite] ?? $this->unite;
     }
 
-    public function scopeCredit($query)
+    // === SCOPES ===
+    
+    public function scopeParTransaction($q, $transactionId)
     {
-        return $query->where('type_detail', 'credit');
+        return $q->where('transaction_id', $transactionId);
     }
 
-    public function scopeFrais($query)
+    public function scopeParProduit($q, $produitId)
     {
-        return $query->where('type_detail', 'frais');
+        return $q->where('produit_id', $produitId);
+    }
+
+    public function scopeParType($q, $type)
+    {
+        return $q->where('type_detail', $type);
+    }
+
+    public function scopeParUnite($q, $unite)
+    {
+        return $q->where('unite', $unite);
+    }
+
+    // === MÉTHODES MÉTIER ===
+    
+    // Vérifier la cohérence du calcul
+    public function verifierCalcul()
+    {
+        if ($this->quantite && $this->prix_unitaire_mga) {
+            $montantCalcule = $this->quantite * $this->prix_unitaire_mga;
+            return abs($montantCalcule - $this->montant_mga) < 0.01; // Tolérance de 1 centime
+        }
+        
+        return true; // Si pas de calcul automatique, considérer comme correct
+    }
+
+    // Recalculer le montant basé sur quantité × prix unitaire
+    public function recalculerMontant()
+    {
+        if ($this->quantite && $this->prix_unitaire_mga) {
+            $this->montant_mga = $this->quantite * $this->prix_unitaire_mga;
+            return true;
+        }
+        
+        return false;
+    }
+
+    // Obtenir les statistiques d'un produit dans les détails
+    public static function getStatistiquesProduit($produitId, $dateDebut = null, $dateFin = null)
+    {
+        $query = self::where('produit_id', $produitId);
+        
+        if ($dateDebut && $dateFin) {
+            $query->whereHas('transaction', function($q) use ($dateDebut, $dateFin) {
+                $q->whereBetween('date_transaction', [$dateDebut, $dateFin]);
+            });
+        }
+        
+        return [
+            'total_quantite' => $query->sum('quantite'),
+            'total_montant' => $query->sum('montant_mga'),
+            'prix_moyen' => $query->avg('prix_unitaire_mga'),
+            'nombre_transactions' => $query->distinct('transaction_id')->count(),
+            'unites_utilisees' => $query->distinct('unite')->pluck('unite')->filter()->toArray(),
+        ];
+    }
+
+    /**
+     * ✅ NOUVEAU : Statistiques par unité
+     */
+    public static function getStatistiquesParUnite($dateDebut = null, $dateFin = null)
+    {
+        $query = self::query();
+        
+        if ($dateDebut && $dateFin) {
+            $query->whereHas('transaction', function($q) use ($dateDebut, $dateFin) {
+                $q->whereBetween('date_transaction', [$dateDebut, $dateFin]);
+            });
+        }
+        
+        return $query->selectRaw('
+            unite,
+            COUNT(*) as nombre_utilisations,
+            SUM(quantite) as total_quantite,
+            SUM(montant_mga) as total_montant,
+            AVG(prix_unitaire_mga) as prix_moyen
+        ')
+        ->whereNotNull('unite')
+        ->groupBy('unite')
+        ->orderBy('nombre_utilisations', 'desc')
+        ->get();
     }
 }

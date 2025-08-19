@@ -7,7 +7,8 @@ use App\Models\TransactionComptable;
 use App\Models\Partenaire;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Validate;
 
 class CategorieShow extends Component
 {
@@ -17,34 +18,41 @@ class CategorieShow extends Component
     public string $filter = 'all';
     public string $search = '';
     public string $periode = 'all';
-    public string $dateDebut = '';
-    public string $dateFin = '';
+
+    // === MODALS ===
     public bool $showFormModal = false;
+    public bool $showNewTransactionModal = false;
+    public bool $showTransactionDetailModal = false;
     public bool $showDetail = false;
-    public bool $showTransactionModal = false;
 
+    // === DONNÉES SÉLECTIONNÉES ===
+    public ?array $detail = null;
+    public array $transactionDetails = [];
 
-    // Modal transaction
-    public ?array $selectedTransaction = null;
+    // === FORMULAIRES ===
+    // Form Catégorie (création/édition)
+    public ?int $editingId = null;
+    
+    #[Validate('required|string|max:10')]
+    public string $code_comptable = '';
+    
+    #[Validate('required|string|max:255')]
+    public string $nom = '';
+    
+    #[Validate('required|numeric|min:0')]
+    public float $budget = 0;
+    
+    #[Validate('nullable|string|max:1000')]
+    public string $description = '';
+    
+    public bool $is_active = true;
 
-    // Modal création transaction
-    public bool $showCreateModal = false;
+    // Form Nouvelle Transaction
     public array $newTransaction = [];
-    public $partenaires = [];
-    // Add this method to the model
-    public function scopeActive(Builder $query)
-    {
-        return $query->where('is_active', true); // or whatever your active condition is
-    }
-    public function openFormModal(): void
-    {
-        $this->showFormModal = true;
-    }
 
-    public function closeFormModal(): void
-    {
-        $this->showFormModal = false;
-    }
+    // Données de référence
+    public $partenaires = [];
+
     protected $queryString = [
         'filter' => ['except' => 'all'],
         'search' => ['except' => ''],
@@ -52,33 +60,16 @@ class CategorieShow extends Component
         'page' => ['except' => 1],
     ];
 
-    public function mount(Categorie $categorie)
+    public function mount(Categorie $categorie): void
     {
         $this->categorie = $categorie;
-        // $this->partenaires = Partenaire::active()->orderBy('nom')->get();
+        $this->loadData();
         $this->initNewTransaction();
     }
 
-    public function updatingSearch()
+    public function loadData(): void
     {
-        $this->resetPage();
-    }
-
-    public function updatingFilter()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPeriode()
-    {
-        $this->resetPage();
-        if ($this->periode === 'mois_courant') {
-            $this->dateDebut = now()->startOfMonth()->format('Y-m-d');
-            $this->dateFin = now()->endOfMonth()->format('Y-m-d');
-        } elseif ($this->periode === 'annee_courante') {
-            $this->dateDebut = now()->startOfYear()->format('Y-m-d');
-            $this->dateFin = now()->endOfYear()->format('Y-m-d');
-        }
+        $this->partenaires = Partenaire::where('is_active', true)->orderBy('nom')->get();
     }
 
     private function initNewTransaction(): void
@@ -88,59 +79,132 @@ class CategorieShow extends Component
             'description' => '',
             'montant' => '',
             'date_transaction' => now()->format('Y-m-d'),
-            'type' => $this->categorie->type,
+            'type' => $this->categorie->type ?? 'depense',
             'partenaire_id' => '',
             'justificatif' => '',
             'notes' => '',
-            'statut' => 'validee',
+            'statut' => 'entrer',
         ];
     }
 
+    private function resetCategorieForm(): void
+    {
+        $this->editingId = null;
+        $this->code_comptable = '';
+        $this->nom = '';
+        $this->budget = 0;
+        $this->description = '';
+        $this->is_active = true;
+        $this->resetErrorBag();
+    }
+
+    // === LISTENERS ===
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPeriode(): void
+    {
+        $this->resetPage();
+    }
+
+    // === FILTRES ===
     public function filterTransactions(string $type): void
     {
         $this->filter = $type;
         $this->resetPage();
     }
 
-    public function showTransactionDetail(int $id): void
+    // === GESTION DES CATÉGORIES ===
+    public function closeModal(): void
     {
-        $transaction = TransactionComptable::with(['categorie', 'partenaire'])->findOrFail($id);
-
-        $this->selectedTransaction = [
-            'id' => $transaction->id,
-            'reference' => $transaction->reference,
-            'description' => $transaction->description,
-            'montant' => $transaction->montant,
-            'montant_formate' => $transaction->montant_formate,
-            'date' => $transaction->date_formattee,
-            'type' => $transaction->type,
-            'statut' => $transaction->statut,
-            'partenaire' => $transaction->partenaire?->nom,
-            'justificatif' => $transaction->justificatif,
-            'notes' => $transaction->notes,
-            'categorie' => $transaction->categorie->nom,
-            'created_at' => $transaction->created_at->format('d/m/Y à H:i'),
-        ];
-
-        $this->showTransactionModal = true;
+        $this->showFormModal = false;
+        $this->resetCategorieForm();
     }
 
-    public function closeTransactionModal(): void
+    public function editModal(int $id): void
     {
-        $this->showTransactionModal = false;
-        $this->selectedTransaction = null;
+        $categorie = Categorie::findOrFail($id);
+
+        $this->editingId = $categorie->id;
+        $this->code_comptable = $categorie->code_comptable;
+        $this->nom = $categorie->nom;
+        $this->budget = (float) $categorie->budget;
+        $this->description = $categorie->description ?? '';
+        $this->is_active = (bool) $categorie->is_active;
+
+        $this->showFormModal = true;
     }
 
-    public function openCreateModal(): void
+    public function save(): void
+    {
+        // Custom validation for unique code_comptable
+        $this->validate();
+        
+        $query = Categorie::where('code_comptable', $this->code_comptable);
+        if ($this->editingId) {
+            $query->where('id', '!=', $this->editingId);
+        }
+        if ($query->exists()) {
+            $this->addError('code_comptable', 'Ce code comptable existe déjà.');
+            return;
+        }
+
+        try {
+            DB::transaction(function () {
+                $data = [
+                    'code_comptable' => $this->code_comptable,
+                    'nom' => $this->nom,
+                    'budget' => $this->budget,
+                    'description' => $this->description,
+                    'is_active' => $this->is_active,
+                ];
+
+                if ($this->editingId) {
+                    Categorie::where('id', $this->editingId)->update($data);
+                    session()->flash('success', 'Catégorie mise à jour avec succès !');
+                } else {
+                    Categorie::create($data);
+                    session()->flash('success', 'Catégorie créée avec succès !');
+                }
+            });
+
+            $this->closeModal();
+            $this->categorie->refresh();
+
+        } catch (\Throwable $e) {
+            session()->flash('error', "Erreur lors de la sauvegarde : " . $e->getMessage());
+        }
+    }
+
+    // === GESTION DES TRANSACTIONS ===
+    public function afficherDetailsRapides(int $categorieId): void
+    {
+        $this->openNewTransactionModal();
+    }
+
+    public function openNewTransactionModal(): void
+    {
+        $this->resetNewTransactionForm();   
+        $this->showNewTransactionModal = true;
+    }
+
+    public function closeNewTransactionModal(): void
+    {
+        $this->showNewTransactionModal = false;
+        $this->resetNewTransactionForm();
+    }
+
+    public function resetNewTransactionForm(): void
     {
         $this->initNewTransaction();
-        $this->showCreateModal = true;
-    }
-
-    public function closeCreateModal(): void
-    {
-        $this->showCreateModal = false;
-        $this->initNewTransaction();
+        $this->resetErrorBag();
     }
 
     public function saveTransaction(): void
@@ -154,31 +218,74 @@ class CategorieShow extends Component
             'newTransaction.notes' => 'nullable|string|max:500',
         ]);
 
-        $this->newTransaction['reference'] = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
+        try {
+            DB::transaction(function () {
+                $this->newTransaction['reference'] = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
+                TransactionComptable::create($this->newTransaction);
+            });
 
-        TransactionComptable::create($this->newTransaction);
+            session()->flash('success', 'Transaction créée avec succès !');
+            $this->closeNewTransactionModal();
+            $this->resetPage();
 
-        session()->flash('success', 'Transaction créée avec succès.');
-        $this->closeCreateModal();
-        $this->resetPage();
+        } catch (\Throwable $e) {
+            session()->flash('error', "Erreur lors de la création de la transaction : " . $e->getMessage());
+        }
+    }
+
+    // === GESTION DES DÉTAILS DE TRANSACTION ===
+    public function showTransactionDetail(int $id): void
+    {
+        $transaction = TransactionComptable::with(['categorie', 'partenaire'])->find($id);
+
+        if ($transaction) {
+            $this->transactionDetails = [
+                'id' => $transaction->id,
+                'reference' => $transaction->reference,
+                'description' => $transaction->description,
+                'montant' => $transaction->montant,
+                'montant_formate' => number_format($transaction->montant, 0, ',', ' ') . ' Ar',
+                'date' => $transaction->date_transaction ? $transaction->date_transaction->format('d/m/Y') : '',
+                'type' => $transaction->type,
+                'statut' => $transaction->statut,
+                'partenaire' => $transaction->partenaire?->nom,
+                'justificatif' => $transaction->justificatif,
+                'notes' => $transaction->notes,
+                'categorie' => $transaction->categorie->nom,
+                'created_at' => $transaction->created_at->format('d/m/Y à H:i'),
+            ];
+            $this->showTransactionDetailModal = true;
+        }
+    }
+
+    public function closeTransactionDetailModal(): void
+    {
+        $this->showTransactionDetailModal = false;
+        $this->transactionDetails = [];
     }
 
     public function deleteTransaction(int $id): void
     {
-        $transaction = TransactionComptable::findOrFail($id);
-        $transaction->delete();
+        try {
+            $transaction = TransactionComptable::findOrFail($id);
+            $transaction->delete();
 
-        session()->flash('success', 'Transaction supprimée avec succès.');
-        $this->closeTransactionModal();
-        $this->resetPage();
+            session()->flash('success', 'Transaction supprimée avec succès.');
+            $this->closeTransactionDetailModal();
+            $this->resetPage();
+
+        } catch (\Throwable $e) {
+            session()->flash('error', 'Erreur lors de la suppression : ' . $e->getMessage());
+        }
     }
 
+    // === FONCTIONS UTILITAIRES ===
     public function exportTransactions(): void
     {
-        // Logique d'export (CSV, Excel, etc.)
         session()->flash('info', 'Export en cours de développement.');
     }
 
+    // === PROPRIÉTÉS CALCULÉES ===
     public function getTransactionsProperty()
     {
         return TransactionComptable::query()
@@ -194,10 +301,10 @@ class CategorieShow extends Component
                 });
             })
             ->when($this->filter !== 'all', function ($query) {
-                if ($this->filter === 'validees') {
-                    $query->where('statut', 'validee');
-                } elseif ($this->filter === 'en_attente') {
-                    $query->where('statut', 'en_attente');
+                if ($this->filter === 'entrer') {
+                    $query->where('statut', 'entrer');
+                } elseif ($this->filter === 'sortie') {
+                    $query->where('statut', 'sortie');
                 }
             })
             ->when($this->periode !== 'all', function ($query) {
@@ -206,8 +313,6 @@ class CategorieShow extends Component
                         ->whereYear('date_transaction', now()->year);
                 } elseif ($this->periode === 'annee_courante') {
                     $query->whereYear('date_transaction', now()->year);
-                } elseif ($this->periode === 'personnalisee' && $this->dateDebut && $this->dateFin) {
-                    $query->whereBetween('date_transaction', [$this->dateDebut, $this->dateFin]);
                 }
             })
             ->orderByDesc('date_transaction')
@@ -215,7 +320,7 @@ class CategorieShow extends Component
             ->paginate(15);
     }
 
-    public function getStatistiquesProperty()
+    public function getStatistiquesProperty(): array
     {
         $baseQuery = TransactionComptable::where('categorie_id', $this->categorie->id);
 
@@ -226,7 +331,7 @@ class CategorieShow extends Component
                 ->whereYear('date_transaction', now()->year)
                 ->sum('montant'),
             'moyenne_transaction' => $baseQuery->avg('montant') ?? 0,
-            'derniere_transaction' => $baseQuery->latest('date_transaction')->first()?->date_formattee,
+            'derniere_transaction' => $baseQuery->latest('date_transaction')->first()?->date_transaction?->format('d/m/Y'),
         ];
     }
 
@@ -235,8 +340,7 @@ class CategorieShow extends Component
         return view('livewire.categorie.categorieShow', [
             'transactions' => $this->transactions,
             'statistiques' => $this->statistiques,
+            'partenaires' => $this->partenaires,
         ]);
-
     }
-    
 }

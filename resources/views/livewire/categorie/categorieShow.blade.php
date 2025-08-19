@@ -173,11 +173,11 @@
                                 <button wire:click="filterTransactions('all')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'all' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
                                     Toutes
                                 </button>
-                                <button wire:click="filterTransactions('validees')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'validees' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                    Validées
+                                <button wire:click="filterTransactions('entrer')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'entrer' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                    Entrer
                                 </button>
-                                <button wire:click="filterTransactions('en_attente')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'en_attente' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                      En attente
+                                <button wire:click="filterTransactions('sortie')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'sortie' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                      Sortie
                                 </button>
                             </div>
 
@@ -241,7 +241,7 @@
                                     </div>
                                     <div class="col-span-3 text-sm text-gray-900 dark:text-white">
                                         {{ $transaction->description }}
-                                        @if ($transaction->statut === 'en_attente')
+                                        @if ($transaction->statut === 'sortie')
                                             <span
                                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 ml-2">
                                                 En attente

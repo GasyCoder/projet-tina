@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
@@ -15,10 +14,20 @@ return new class extends Migration
             $table->decimal('budget', 10, 2)->default(0);
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
+
+            // Only one type column for categories (recette/depense)
+            $table->enum('type', ['recette', 'depense'])->default('depense');
+            $table->enum('type_compte', [
+                'Principal',
+                'MobileMoney',
+                'Banque'
+            ])->default('Principal');
+
             $table->timestamps();
 
-            // utile si tu filtres souvent sur is_active
+            // Indexes for better query performance
             $table->index('is_active');
+            $table->index('type');
         });
     }
 

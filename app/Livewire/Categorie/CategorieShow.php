@@ -5,6 +5,7 @@ namespace App\Livewire\Categorie;
 use App\Models\Categorie;
 use App\Models\TransactionComptable;
 use App\Models\Partenaire;
+use App\Models\Compte;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
@@ -20,38 +21,22 @@ class CategorieShow extends Component
     public string $periode = 'all';
 
     // === MODALS ===
-    public bool $showFormModal = false;
     public bool $showNewTransactionModal = false;
     public bool $showTransactionDetailModal = false;
-    public bool $showDetail = false;
+
+    // === TRANSACTIONS MULTIPLES ===
+    public array $transactionsEnCours = [];
+    public float $totalTransactions = 0;
 
     // === DONNÉES SÉLECTIONNÉES ===
-    public ?array $detail = null;
     public array $transactionDetails = [];
 
-    // === FORMULAIRES ===
-    // Form Catégorie (création/édition)
-    public ?int $editingId = null;
-    
-    #[Validate('required|string|max:10')]
-    public string $code_comptable = '';
-    
-    #[Validate('required|string|max:255')]
-    public string $nom = '';
-    
-    #[Validate('required|numeric|min:0')]
-    public float $budget = 0;
-    
-    #[Validate('nullable|string|max:1000')]
-    public string $description = '';
-    
-    public bool $is_active = true;
-
-    // Form Nouvelle Transaction
+    // === FORMULAIRE TRANSACTION ===
     public array $newTransaction = [];
 
     // Données de référence
     public $partenaires = [];
+    public $comptes = [];
 
     protected $queryString = [
         'filter' => ['except' => 'all'],
@@ -63,165 +48,315 @@ class CategorieShow extends Component
     public function mount(Categorie $categorie): void
     {
         $this->categorie = $categorie;
-        $this->loadData();
+        $this->loadReferenceData();
         $this->initNewTransaction();
     }
 
-    public function loadData(): void
+    private function loadReferenceData(): void
     {
-        $this->partenaires = Partenaire::where('is_active', true)->orderBy('nom')->get();
+        $this->partenaires = Partenaire::where('is_active', true)
+            ->orderBy('nom')
+            ->pluck('nom', 'id')
+            ->toArray();
+
+        $this->comptes = [
+            'principal' => Compte::where('type_compte', 'Principal')->first(),
+            'mobile_money' => Compte::where('type_compte', 'MobileMoney')->get(),
+            'banque' => Compte::where('type_compte', 'Banque')->get(),
+        ];
     }
 
     private function initNewTransaction(): void
     {
+        // Garder le type existant si défini
+        $type = $this->newTransaction['type'] ?? $this->categorie->type;
+
         $this->newTransaction = [
             'categorie_id' => $this->categorie->id,
             'description' => '',
             'montant' => '',
             'date_transaction' => now()->format('Y-m-d'),
-            'type' => $this->categorie->type ?? 'depense',
+            'type' => $type, // ✅ Conserver le type choisi
+            'mode_paiement' => 'especes',
+            'type_compte_mobilemoney_or_banque' => '', // ✅ Nom correct
+            'partenaire_nom' => '',
             'partenaire_id' => '',
-            'justificatif' => '',
             'notes' => '',
-            'statut' => 'entrer',
         ];
     }
 
-    private function resetCategorieForm(): void
+    // === GESTION MODALS ===
+    public function openRecetteModal(): void
     {
-        $this->editingId = null;
-        $this->code_comptable = '';
-        $this->nom = '';
-        $this->budget = 0;
-        $this->description = '';
-        $this->is_active = true;
+        $this->newTransaction['type'] = 'recette';
+        $this->showNewTransactionModal = true;
         $this->resetErrorBag();
     }
 
-    // === LISTENERS ===
-    public function updatingSearch(): void
+    public function openDepenseModal(): void
     {
-        $this->resetPage();
-    }
-
-    public function updatingFilter(): void
-    {
-        $this->resetPage();
-    }
-
-    public function updatingPeriode(): void
-    {
-        $this->resetPage();
-    }
-
-    // === FILTRES ===
-    public function filterTransactions(string $type): void
-    {
-        $this->filter = $type;
-        $this->resetPage();
-    }
-
-    // === GESTION DES CATÉGORIES ===
-    public function closeModal(): void
-    {
-        $this->showFormModal = false;
-        $this->resetCategorieForm();
-    }
-
-    public function editModal(int $id): void
-    {
-        $categorie = Categorie::findOrFail($id);
-
-        $this->editingId = $categorie->id;
-        $this->code_comptable = $categorie->code_comptable;
-        $this->nom = $categorie->nom;
-        $this->budget = (float) $categorie->budget;
-        $this->description = $categorie->description ?? '';
-        $this->is_active = (bool) $categorie->is_active;
-
-        $this->showFormModal = true;
-    }
-
-    public function save(): void
-    {
-        // Custom validation for unique code_comptable
-        $this->validate();
-        
-        $query = Categorie::where('code_comptable', $this->code_comptable);
-        if ($this->editingId) {
-            $query->where('id', '!=', $this->editingId);
-        }
-        if ($query->exists()) {
-            $this->addError('code_comptable', 'Ce code comptable existe déjà.');
-            return;
-        }
-
-        try {
-            DB::transaction(function () {
-                $data = [
-                    'code_comptable' => $this->code_comptable,
-                    'nom' => $this->nom,
-                    'budget' => $this->budget,
-                    'description' => $this->description,
-                    'is_active' => $this->is_active,
-                ];
-
-                if ($this->editingId) {
-                    Categorie::where('id', $this->editingId)->update($data);
-                    session()->flash('success', 'Catégorie mise à jour avec succès !');
-                } else {
-                    Categorie::create($data);
-                    session()->flash('success', 'Catégorie créée avec succès !');
-                }
-            });
-
-            $this->closeModal();
-            $this->categorie->refresh();
-
-        } catch (\Throwable $e) {
-            session()->flash('error', "Erreur lors de la sauvegarde : " . $e->getMessage());
-        }
-    }
-
-    // === GESTION DES TRANSACTIONS ===
-    public function afficherDetailsRapides(int $categorieId): void
-    {
-        $this->openNewTransactionModal();
-    }
-
-    public function openNewTransactionModal(): void
-    {
-        $this->resetNewTransactionForm();   
+        $this->newTransaction['type'] = 'depense';
         $this->showNewTransactionModal = true;
+        $this->resetErrorBag();
     }
 
     public function closeNewTransactionModal(): void
     {
         $this->showNewTransactionModal = false;
-        $this->resetNewTransactionForm();
-    }
-
-    public function resetNewTransactionForm(): void
-    {
         $this->initNewTransaction();
         $this->resetErrorBag();
     }
 
+    // === TRANSACTIONS MULTIPLES ===
+    public function addToTransactionList(): void
+    {
+        $this->validate([
+            'newTransaction.description' => 'required|string|min:3|max:255',
+            'newTransaction.montant' => 'required|numeric|min:0.01',
+            'newTransaction.date_transaction' => 'required|date',
+            'newTransaction.mode_paiement' => 'required|in:especes,MobileMoney,Banque',
+            'newTransaction.partenaire_nom' => 'nullable|string|max:255',
+            'newTransaction.notes' => 'nullable|string|max:1000',
+        ]);
+
+        // Validation conditionnelle du sous-type
+        if (in_array($this->newTransaction['mode_paiement'], ['MobileMoney', 'Banque'])) {
+            $this->validate([
+                'newTransaction.type_compte_mobilemoney_or_banque' => 'required',
+            ]);
+        }
+
+        // Vérification solde pour les dépenses
+        if ($this->insuffisantTransaction) {
+            $this->addError('newTransaction.montant', 'Solde insuffisant pour ce montant.');
+            return;
+        }
+
+        // Ajouter la transaction à la liste
+        $this->transactionsEnCours[] = $this->newTransaction;
+
+        // Réinitialiser le formulaire
+        $this->initNewTransaction();
+
+        // Recalculer le total
+        $this->calculateTotal();
+    }
+
+    public function removeFromTransactionList(int $index): void
+    {
+        if (isset($this->transactionsEnCours[$index])) {
+            unset($this->transactionsEnCours[$index]);
+            $this->transactionsEnCours = array_values($this->transactionsEnCours);
+            $this->calculateTotal();
+        }
+    }
+
+    public function calculateTotal(): void
+    {
+        $this->totalTransactions = array_reduce($this->transactionsEnCours, function ($carry, $transaction) {
+            return $carry + (float) $transaction['montant'];
+        }, 0);
+    }
+
+    public function saveAllTransactions(): void
+    {
+        if (empty($this->transactionsEnCours)) {
+            session()->flash('error', 'Aucune transaction à enregistrer.');
+            return;
+        }
+
+        try {
+            DB::transaction(function () {
+                foreach ($this->transactionsEnCours as $transaction) {
+                    // Génération référence unique
+                    $reference = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
+
+                    // Gestion du partenaire
+                    $partenaireId = null;
+                    if (!empty($transaction['partenaire_nom'])) {
+                        $partenaire = Partenaire::firstOrCreate(
+                            ['nom' => $transaction['partenaire_nom']],
+                            ['is_active' => true]
+                        );
+                        $partenaireId = $partenaire->id;
+                    }
+
+                    // Nettoyage des données
+                    $dataToSave = [
+                        'categorie_id' => $transaction['categorie_id'],
+                        'description' => $transaction['description'],
+                        'montant' => $transaction['montant'],
+                        'date_transaction' => $transaction['date_transaction'],
+                        'type' => $transaction['type'],
+                        'mode_paiement' => $transaction['mode_paiement'],
+                        'type_compte_mobilemoney_or_banque' => $transaction['type_compte_mobilemoney_or_banque'] ?? null,
+                        'partenaire_id' => $partenaireId,
+                        'notes' => $transaction['notes'] ?? null,
+                        'reference' => $reference,
+                    ];
+
+                    // Créer la transaction
+                    $newTransaction = TransactionComptable::create($dataToSave);
+
+                    // Mise à jour du solde
+                    $this->updateCompteBalance($newTransaction);
+                }
+            });
+
+            $count = count($this->transactionsEnCours);
+            session()->flash('success', "$count transaction(s) créée(s) avec succès !");
+
+            // Réinitialiser
+            $this->transactionsEnCours = [];
+            $this->totalTransactions = 0;
+            $this->closeNewTransactionModal();
+            $this->resetPage();
+
+        } catch (\Throwable $e) {
+            session()->flash('error', "Erreur lors de la création : " . $e->getMessage());
+        }
+    }
+
+    // === FILTRES ===
+    public function filterTransactions($filterType): void
+    {
+        $this->filter = $filterType;
+        $this->resetPage();
+    }
+
+    // === SUGGESTIONS INTELLIGENTES ===
+    public function selectPartenaire($partenairId): void
+    {
+        $partenaire = Partenaire::find($partenairId);
+        if ($partenaire) {
+            $this->newTransaction['partenaire_id'] = $partenaire->id;
+            $this->newTransaction['partenaire_nom'] = $partenaire->nom;
+        }
+    }
+
+    public function selectDescriptionTemplate($template): void
+    {
+        $this->newTransaction['description'] = $template;
+    }
+
+    // === VALIDATION SOLDE ===
+    public function getInsuffisantTransactionProperty(): bool
+    {
+        if (empty($this->newTransaction['montant']) || $this->newTransaction['type'] === 'recette') {
+            return false;
+        }
+
+        $montant = (float) $this->newTransaction['montant'];
+        $modePaiement = $this->newTransaction['mode_paiement'];
+        $sousType = $this->newTransaction['type_compte_mobilemoney_or_banque'] ?? '';
+
+        $compte = $this->getCompteByMode($modePaiement, $sousType);
+        return $compte ? $compte->solde_actuel_mga < $montant : true;
+    }
+
+    private function getCompteByMode(string $mode, string $sousType = ''): ?Compte
+    {
+        switch ($mode) {
+            case 'especes':
+                return Compte::where('type_compte', 'Principal')->first();
+            case 'MobileMoney':
+                return $sousType ? Compte::where('type_compte', 'MobileMoney')
+                    ->where('type_compte_mobilemoney_or_banque', $sousType)->first() : null;
+            case 'Banque':
+                return $sousType ? Compte::where('type_compte', 'Banque')
+                    ->where('type_compte_mobilemoney_or_banque', $sousType)->first() : null;
+            default:
+                return null;
+        }
+    }
+
+    // === SUGGESTIONS BASÉES SUR L'HISTORIQUE ===
+    public function getSuggestionsProperty(): array
+    {
+        $type = $this->newTransaction['type'] ?? $this->categorie->type;
+
+        return [
+            'descriptions' => $this->getDescriptionsFrequentes($type),
+            'partenaires_frequents' => $this->getPartenairesFrequents($type),
+        ];
+    }
+
+    private function getDescriptionsFrequentes(string $type): array
+    {
+        return TransactionComptable::where('type', $type)
+            ->where('categorie_id', $this->categorie->id)
+            ->select('description')
+            ->selectRaw('count(*) as total')
+            ->groupBy('description')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->pluck('description')
+            ->toArray();
+    }
+
+    private function getPartenairesFrequents(string $type): array
+    {
+        return TransactionComptable::where('type', $type)
+            ->where('categorie_id', $this->categorie->id)
+            ->whereNotNull('partenaire_id')
+            ->with('partenaire')
+            ->select('partenaire_id', DB::raw('count(*) as total'))
+            ->groupBy('partenaire_id')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get()
+            ->pluck('partenaire.nom', 'partenaire_id')
+            ->toArray();
+    }
+
+    // === SAUVEGARDE TRANSACTION INDIVIDUELLE (pour compatibilité) ===
     public function saveTransaction(): void
     {
         $this->validate([
             'newTransaction.description' => 'required|string|min:3|max:255',
             'newTransaction.montant' => 'required|numeric|min:0.01',
             'newTransaction.date_transaction' => 'required|date',
-            'newTransaction.partenaire_id' => 'nullable|exists:partenaires,id',
-            'newTransaction.justificatif' => 'nullable|string|max:255',
-            'newTransaction.notes' => 'nullable|string|max:500',
+            'newTransaction.mode_paiement' => 'required|in:especes,MobileMoney,Banque',
+            'newTransaction.partenaire_nom' => 'nullable|string|max:255',
+            'newTransaction.notes' => 'nullable|string|max:1000',
         ]);
+
+        // Validation conditionnelle du sous-type
+        if (in_array($this->newTransaction['mode_paiement'], ['MobileMoney', 'Banque'])) {
+            $this->validate([
+                'newTransaction.type_compte_mobilemoney_or_banque' => 'required',
+            ]);
+        }
+
+        // Vérification solde pour les dépenses
+        if ($this->insuffisantTransaction) {
+            $this->addError('newTransaction.montant', 'Solde insuffisant pour ce montant.');
+            return;
+        }
 
         try {
             DB::transaction(function () {
+                // Génération référence unique
                 $this->newTransaction['reference'] = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
-                TransactionComptable::create($this->newTransaction);
+
+                // Gestion du partenaire
+                if (!empty($this->newTransaction['partenaire_nom'])) {
+                    $partenaire = Partenaire::firstOrCreate(
+                        ['nom' => $this->newTransaction['partenaire_nom']],
+                        ['is_active' => true]
+                    );
+                    $this->newTransaction['partenaire_id'] = $partenaire->id;
+                }
+
+                // Nettoyage des données
+                $dataToSave = array_filter($this->newTransaction, function ($value, $key) {
+                    return $value !== '' && $value !== null && $key !== 'partenaire_nom';
+                }, ARRAY_FILTER_USE_BOTH);
+
+                $newTransaction = TransactionComptable::create($dataToSave);
+
+                // Mise à jour du solde
+                $this->updateCompteBalance($newTransaction);
             });
 
             session()->flash('success', 'Transaction créée avec succès !');
@@ -229,11 +364,28 @@ class CategorieShow extends Component
             $this->resetPage();
 
         } catch (\Throwable $e) {
-            session()->flash('error', "Erreur lors de la création de la transaction : " . $e->getMessage());
+            session()->flash('error', "Erreur lors de la création : " . $e->getMessage());
         }
     }
 
-    // === GESTION DES DÉTAILS DE TRANSACTION ===
+    private function updateCompteBalance(TransactionComptable $transaction): void
+    {
+        $montant = (float) $transaction->montant;
+        $compte = $this->getCompteByMode(
+            $transaction->mode_paiement,
+            $transaction->type_compte_mobilemoney_or_banque ?? ''
+        );
+
+        if ($compte) {
+            if ($transaction->type === 'recette') {
+                $compte->increment('solde_actuel_mga', $montant);
+            } else {
+                $compte->decrement('solde_actuel_mga', $montant);
+            }
+        }
+    }
+
+    // === DÉTAIL TRANSACTION ===
     public function showTransactionDetail(int $id): void
     {
         $transaction = TransactionComptable::with(['categorie', 'partenaire'])->find($id);
@@ -245,11 +397,12 @@ class CategorieShow extends Component
                 'description' => $transaction->description,
                 'montant' => $transaction->montant,
                 'montant_formate' => number_format($transaction->montant, 0, ',', ' ') . ' Ar',
-                'date' => $transaction->date_transaction ? $transaction->date_transaction->format('d/m/Y') : '',
+                'date' => $transaction->date_transaction?->format('d/m/Y') ?? '',
                 'type' => $transaction->type,
                 'statut' => $transaction->statut,
+                'mode_paiement' => $transaction->mode_paiement,
+                'type_compte_mobilemoney_or_banque' => $transaction->type_compte_mobilemoney_or_banque,
                 'partenaire' => $transaction->partenaire?->nom,
-                'justificatif' => $transaction->justificatif,
                 'notes' => $transaction->notes,
                 'categorie' => $transaction->categorie->nom,
                 'created_at' => $transaction->created_at->format('d/m/Y à H:i'),
@@ -267,22 +420,39 @@ class CategorieShow extends Component
     public function deleteTransaction(int $id): void
     {
         try {
-            $transaction = TransactionComptable::findOrFail($id);
-            $transaction->delete();
+            DB::transaction(function () use ($id) {
+                $transaction = TransactionComptable::findOrFail($id);
 
-            session()->flash('success', 'Transaction supprimée avec succès.');
+                // Restaurer le solde
+                $compte = $this->getCompteByMode(
+                    $transaction->mode_paiement,
+                    $transaction->type_compte_mobilemoney_or_banque
+                );
+
+                if ($compte) {
+                    if ($transaction->type === 'recette') {
+                        $compte->decrement('solde_actuel_mga', $transaction->montant);
+                    } else {
+                        $compte->increment('solde_actuel_mga', $transaction->montant);
+                    }
+                }
+
+                $transaction->delete();
+            });
+
+            session()->flash('success', 'Transaction supprimée avec succès !');
             $this->closeTransactionDetailModal();
             $this->resetPage();
 
         } catch (\Throwable $e) {
-            session()->flash('error', 'Erreur lors de la suppression : ' . $e->getMessage());
+            session()->flash('error', "Erreur lors de la suppression : " . $e->getMessage());
         }
     }
 
-    // === FONCTIONS UTILITAIRES ===
+    // === EXPORT ===
     public function exportTransactions(): void
     {
-        session()->flash('info', 'Export en cours de développement.');
+        session()->flash('info', 'Fonctionnalité d\'export en cours de développement.');
     }
 
     // === PROPRIÉTÉS CALCULÉES ===
@@ -301,11 +471,7 @@ class CategorieShow extends Component
                 });
             })
             ->when($this->filter !== 'all', function ($query) {
-                if ($this->filter === 'entrer') {
-                    $query->where('statut', 'entrer');
-                } elseif ($this->filter === 'sortie') {
-                    $query->where('statut', 'sortie');
-                }
+                $query->where('statut', $this->filter);
             })
             ->when($this->periode !== 'all', function ($query) {
                 if ($this->periode === 'mois_courant') {
@@ -322,17 +488,12 @@ class CategorieShow extends Component
 
     public function getStatistiquesProperty(): array
     {
-        $baseQuery = TransactionComptable::where('categorie_id', $this->categorie->id);
+        return $this->categorie->getStatistiquesCompletes();
+    }
 
-        return [
-            'total_transactions' => $baseQuery->count(),
-            'montant_total' => $baseQuery->sum('montant'),
-            'montant_mois' => $baseQuery->whereMonth('date_transaction', now()->month)
-                ->whereYear('date_transaction', now()->year)
-                ->sum('montant'),
-            'moyenne_transaction' => $baseQuery->avg('montant') ?? 0,
-            'derniere_transaction' => $baseQuery->latest('date_transaction')->first()?->date_transaction?->format('d/m/Y'),
-        ];
+    public function getSelectedTransactionProperty()
+    {
+        return $this->transactionDetails;
     }
 
     public function render()
@@ -341,6 +502,9 @@ class CategorieShow extends Component
             'transactions' => $this->transactions,
             'statistiques' => $this->statistiques,
             'partenaires' => $this->partenaires,
+            'comptes' => $this->comptes,
+            'suggestions' => $this->suggestions,
+            'selectedTransaction' => $this->selectedTransaction,
         ]);
     }
 }

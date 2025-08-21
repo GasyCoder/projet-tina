@@ -22919,6 +22919,7 @@ namespace Illuminate\Support\Facades {
 
 namespace Laravel\Mcp\Server\Facades {
     /**
+     * @see \Laravel\Mcp\Server\Registrar
      */
     class Mcp {
         /**
@@ -23425,6 +23426,49 @@ namespace Flasher\Laravel\Facade {
         {
             /** @var \Flasher\Prime\Flasher $instance */
             return $instance->render($presenter, $criteria, $context);
+        }
+
+            }
+    }
+
+namespace EragLaravelPwa\Facades {
+    /**
+     */
+    class PWA {
+        /**
+         * @static
+         */
+        public static function HeadTag()
+        {
+            /** @var \EragLaravelPwa\Services\PWAService $instance */
+            return $instance->HeadTag();
+        }
+
+        /**
+         * @static
+         */
+        public static function RegisterServiceWorkerScript()
+        {
+            /** @var \EragLaravelPwa\Services\PWAService $instance */
+            return $instance->RegisterServiceWorkerScript();
+        }
+
+        /**
+         * @static
+         */
+        public static function createOrUpdate($manifest)
+        {
+            /** @var \EragLaravelPwa\Services\PWAService $instance */
+            return $instance->createOrUpdate($manifest);
+        }
+
+        /**
+         * @static
+         */
+        public static function update($manifestData)
+        {
+            /** @var \EragLaravelPwa\Services\PWAService $instance */
+            return $instance->update($manifestData);
         }
 
             }
@@ -28486,9 +28530,11 @@ namespace  {
     class Validator extends \Illuminate\Support\Facades\Validator {}
     class View extends \Illuminate\Support\Facades\View {}
     class Vite extends \Illuminate\Support\Facades\Vite {}
+    class Pwa extends \EragLaravelPwa\Facades\Pwa {}
     class Mcp extends \Laravel\Mcp\Server\Facades\Mcp {}
     class Livewire extends \Livewire\Livewire {}
     class Flasher extends \Flasher\Laravel\Facade\Flasher {}
+    class PWA extends \EragLaravelPwa\Facades\PWA {}
 }
 
 

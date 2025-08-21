@@ -5,27 +5,44 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
-    public function up()
+    public function up(): void
     {
         Schema::create('transactions_comptables', function (Blueprint $table) {
             $table->id();
+
+            // Relations
             $table->foreignId('categorie_id')->constrained('categories')->onDelete('cascade');
-            $table->string('reference')->unique();
-            $table->string('description')->nullable();
+            $table->foreignId('partenaire_id')->nullable()->constrained('partenaires')->onDelete('set null');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
+
+            // Informations de base
+            $table->string('reference', 50)->unique();
+            $table->string('description');
             $table->decimal('montant', 15, 2);
             $table->date('date_transaction');
-            $table->enum('type', ['depense', 'recette'])->default('depense');
-            $table->enum('statut', ['en_attente', 'validee', 'annulee'])->default('en_attente');
+
+            // Types et statuts
+            $table->enum('type', ['recette', 'depense']);
+            $table->enum('statut', ['entrer', 'sortie', 'en_attente', 'validee', 'annulee'])->default('entrer');
+
+            // Mode de paiement cohérent
+            $table->enum('mode_paiement', ['especes', 'MobileMoney', 'Banque'])->default('especes');
+            $table->string('type_compte_mobilemoney_or_banque')->nullable();
+
+            // Informations complémentaires
+            $table->string('justificatif')->nullable();
+            $table->text('notes')->nullable();
+
+            // Index pour optimisation - AVEC NOMS PERSONNALISÉS
+            $table->index(['categorie_id', 'type'], 'trans_cat_type_idx');
+            $table->index(['mode_paiement', 'type_compte_mobilemoney_or_banque'], 'trans_mode_type_idx');
+            $table->index(['date_transaction', 'type'], 'trans_date_type_idx');
+            $table->index('statut', 'trans_statut_idx');
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('transactions_comptables');

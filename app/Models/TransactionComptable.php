@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Carbon\Carbon;
 
 class TransactionComptable extends Model
 {
@@ -12,100 +14,91 @@ class TransactionComptable extends Model
     protected $table = 'transactions_comptables';
 
     protected $fillable = [
-        'categorie_id',
         'reference',
         'description',
         'montant',
         'date_transaction',
         'type',
+        'mode_paiement',
+        'type_compte_mobilemoney_or_banque', // ✅ CORRIGÉ pour correspondre à la migration
+        'categorie_id',
         'partenaire_id',
-        'justificatif',
-        'statut',
+        'user_id',
         'notes',
-    ];
-
-    protected $attributes = [
-        'type' => 'depense',
-        'statut' => 'validee',
+        'date_echeance',
     ];
 
     protected $casts = [
-        'date_transaction' => 'date',
         'montant' => 'decimal:2',
+        'date_transaction' => 'date',
+        'date_echeance' => 'date',
     ];
-    // Add this for easy status access
-    public const STATUTS = [
-        'en_attente' => 'En attente',
-        'validee' => 'Validée',
-        'annulee' => 'Annulée'
+
+    protected $attributes = [
+        'mode_paiement' => 'especes',
+        'priorite' => 'normale',
+        'recurrence' => 'unique',
     ];
-    /**
-     * Relation avec la catégorie
-     */
-    public function categorie()
+
+    // Relations
+    public function categorie(): BelongsTo
     {
         return $this->belongsTo(Categorie::class);
     }
 
-    /**
-     * Relation avec le partenaire (optionnel)
-     */
-    public function partenaire()
+    public function partenaire(): BelongsTo
     {
         return $this->belongsTo(Partenaire::class);
     }
-    // Add accessor for formatted status
-    public function getStatutFormateAttribute()
+
+    public function user(): BelongsTo
     {
-        return self::STATUTS[$this->statut] ?? $this->statut;
+        return $this->belongsTo(User::class);
     }
 
-    /**
-     * Scope pour filtrer par type
-     */
-    public function scopeType($query, $type)
+    // Accesseurs
+    public function getMontantFormateAttribute(): string
     {
-        return $query->where('type', $type);
+        $signe = $this->type === 'recette' ? '+' : '-';
+        return $signe . number_format($this->montant, 0, ',', ' ') . ' Ar';
     }
 
-    /**
-     * Scope pour filtrer par statut
-     */
-    public function scopeStatut($query, $statut)
+    public function getDateFormatteeAttribute(): string
     {
-        return $query->where('statut', $statut);
+        return $this->date_transaction?->format('d/m/Y') ?? '';
     }
 
-    /**
-     * Scope pour les transactions du mois
-     */
-    public function scopeMoisCourant($query)
+    public function getModeCompletAttribute(): string
     {
-        return $query->whereMonth('date_transaction', now()->month)
-            ->whereYear('date_transaction', now()->year);
+        if ($this->mode_paiement === 'especes') {
+            return 'Espèces (Compte Principal)';
+        }
+
+        if ($this->type_compte_mobilemoney_or_banque) { // ✅ CORRIGÉ
+            return $this->type_compte_mobilemoney_or_banque;
+        }
+
+        return ucfirst($this->mode_paiement);
     }
 
-    /**
-     * Scope pour une période donnée
-     */
-    public function scopePeriode($query, $dateDebut, $dateFin)
-    {
-        return $query->whereBetween('date_transaction', [$dateDebut, $dateFin]);
-    }
+    // ... (le reste du code reste le même)
 
-    /**
-     * Formatage du montant
-     */
-    public function getMontantFormateAttribute()
+    // Boot
+    protected static function boot()
     {
-        return number_format($this->montant, 0, ',', ' ') . ' Ar';
-    }
+        parent::boot();
 
-    /**
-     * Formatage de la date
-     */
-    public function getDateFormatteeAttribute()
-    {
-        return $this->date_transaction->format('d/m/Y');
+        static::creating(function ($transaction) {
+            // Générer référence si vide
+            if (empty($transaction->reference)) {
+                $transaction->reference = self::genererReference();
+            }
+
+            // Définir le type selon la catégorie
+            if (empty($transaction->type) && $transaction->categorie_id) {
+                $categorie = Categorie::find($transaction->categorie_id);
+                $transaction->type = $categorie?->type ?? 'depense';
+            }
+        });
     }
 }

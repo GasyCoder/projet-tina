@@ -1,3 +1,4 @@
+{{-- resources/views/livewire/categorie/categorieShow.blade.php --}}
 <div class="min-h-screen bg-gray-100 dark:bg-gray-900 pt-20 pb-6 md:px-6">
     <!-- Header Mobile/Desktop -->
     <div class="px-3 sm:px-6 lg:px-8">
@@ -6,7 +7,8 @@
                 class="flex flex-row items-center justify-between space-x-3 sm:flex-row sm:items-center sm:justify-between sm:space-x-0">
                 <!-- Titre et info catégorie -->
                 <div class="flex items-center space-x-4">
-                    <a href="{{ route('categories.index') }}" ...>
+                    <a href="{{ route('categories.index') }}" 
+                       class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                         </svg>
@@ -33,14 +35,24 @@
                     </div>
                 </div>
 
-                <!-- Boutons d'action -->
+                <!-- Boutons d'action séparés -->
                 <div class="flex justify-end space-x-2">
-                    <button wire:click="afficherDetailsRapides({{ $categorie->id }})"
-                        class="w-8 h-8 sm:w-auto sm:h-auto inline-flex items-center justify-center p-0 sm:px-3 sm:py-2 bg-blue-600 dark:bg-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm hover:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-150">
+                    <!-- Bouton Nouvelle Recette -->
+                    <button wire:click="openRecetteModal"
+                        class="w-8 h-8 sm:w-auto sm:h-auto inline-flex items-center justify-center p-0 sm:px-3 sm:py-2 bg-green-600 dark:bg-green-700 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm hover:bg-green-700 dark:hover:bg-green-600 transition-all duration-150">
                         <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        <span class="hidden sm:inline">Nouvelle transaction</span>
+                        <span class="hidden sm:inline">Nouvelle Recette</span>
+                    </button>
+                    
+                    <!-- Bouton Nouvelle Dépense -->
+                    <button wire:click="openDepenseModal"
+                        class="w-8 h-8 sm:w-auto sm:h-auto inline-flex items-center justify-center p-0 sm:px-3 sm:py-2 bg-red-600 dark:bg-red-700 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-150">
+                        <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                        <span class="hidden sm:inline">Nouvelle Dépense</span>
                     </button>
                 </div>
             </div>
@@ -173,11 +185,11 @@
                                 <button wire:click="filterTransactions('all')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'all' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
                                     Toutes
                                 </button>
-                                <button wire:click="filterTransactions('entrer')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'entrer' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                    Entrer
+                                <button wire:click="filterTransactions('recette')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'recette' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                    Recette
                                 </button>
-                                <button wire:click="filterTransactions('sortie')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'sortie' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
-                                      Sortie
+                                <button wire:click="filterTransactions('depense')" class="px-2 py-1 text-xs rounded-md {{ $filter === 'depense' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100' }}">
+                                      Dépense
                                 </button>
                             </div>
 
@@ -192,112 +204,237 @@
                     </div>
                 </div>
 
-                <!-- Liste des transactions -->
-                <div class="p-3 sm:p-6">
-                    <!-- En-tête du tableau (desktop) -->
-                    <div
-                        class="hidden sm:grid grid-cols-12 gap-3 mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        <div class="col-span-2">Date</div>
-                        <div class="col-span-2">Référence</div>
-                        <div class="col-span-3">Description</div>
-                        <div class="col-span-2">Partenaire</div>
-                        <div class="col-span-2 text-right">Montant</div>
-                        <div class="col-span-1 text-center">Actions</div>
-                    </div>
+<!-- Liste des transactions -->
+<div class="p-3 sm:p-6">
+    {{-- En-tête desktop --}}
+    <div class="hidden lg:grid grid-cols-12 gap-4 mb-3 px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div class="col-span-3 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Référence & Date</div>
+        <div class="col-span-4 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Description</div>
+        <div class="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Partenaire</div>
+        <div class="col-span-2 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-right">Montant</div>
+        <div class="col-span-1 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider text-center">Actions</div>
+    </div>
 
-                    <!-- Liste des transactions -->
-                    <div class="space-y-2">
-                        @forelse($transactions as $transaction)
-                            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:shadow-md transition-all duration-200 cursor-pointer"
-                                wire:click="showTransactionDetail({{ $transaction->id }})">
+    {{-- Liste --}}
+    <div class="space-y-3">
+        @forelse($transactions as $transaction)
+            @php
+                $isRecette = $categorie->type === 'recette';
+            @endphp
 
-                                <!-- Version mobile -->
-                                <div class="sm:hidden">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h3 class="font-medium text-gray-900 dark:text-white text-sm">
-                                                {{ $transaction->description }}</h3>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                {{ $transaction->reference }} • {{ $transaction->date_formattee }}</p>
-                                        </div>
-                                        <span
-                                            class="text-sm font-bold {{ $categorie->type == 'recette' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                            {{ $transaction->montant_formate }}
-                                        </span>
-                                    </div>
-                                    @if ($transaction->partenaire)
-                                        <p class="text-xs text-gray-600 dark:text-gray-400">
-                                            {{ $transaction->partenaire->nom }}</p>
-                                    @endif
-                                </div>
-
-                                <!-- Version desktop -->
-                                <div class="hidden sm:grid grid-cols-12 gap-3 items-center">
-                                    <div class="col-span-2 text-sm text-gray-500 dark:text-gray-400">
-                                        {{ $transaction->date_formattee }}
-                                    </div>
-                                    <div class="col-span-2 text-sm font-mono text-gray-900 dark:text-white">
-                                        {{ $transaction->reference }}
-                                    </div>
-                                    <div class="col-span-3 text-sm text-gray-900 dark:text-white">
-                                        {{ $transaction->description }}
-                                        @if ($transaction->statut === 'sortie')
-                                            <span
-                                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 ml-2">
-                                                En attente
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div class="col-span-2 text-sm text-gray-500 dark:text-gray-400">
-                                        {{ $transaction->partenaire?->nom ?? '-' }}
-                                    </div>
-                                    <div
-                                        class="col-span-2 text-right font-medium text-sm {{ $categorie->type == 'recette' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                        {{ $transaction->montant_formate }}
-                                    </div>
-                                    <div class="col-span-1 text-center">
-                                        <button wire:click.stop="showTransactionDetail({{ $transaction->id }})"
-                                            class="inline-flex items-center justify-center w-8 h-8 text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-all duration-200">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="text-center py-12">
-                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none"
-                                    stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            {{-- Version Desktop --}}
+            <div class="hidden lg:grid grid-cols-12 gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 group">
+                
+                {{-- Référence & Date --}}
+                <div wire:click="showTransactionDetail({{ $transaction->id }})" class="col-span-3 cursor-pointer">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center {{ $isRecette ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }}">
+                            @if($isRecette)
+                                <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                 </svg>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Aucune transaction
-                                    trouvée</p>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    @if ($search || $filter !== 'all' || $periode !== 'all')
-                                        Modifiez vos critères de recherche
-                                    @else
-                                        Créez votre première transaction pour cette catégorie
-                                    @endif
-                                </p>
+                            @else
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                </svg>
+                            @endif
+                        </div>
+                        <div>
+                            <div class="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {{ $transaction->reference }}
                             </div>
-                        @endforelse
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="mt-4">
-                        {{ $transactions->links() }}
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ $transaction->date_formattee }}
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {{-- Description --}}
+                <div wire:click="showTransactionDetail({{ $transaction->id }})" class="col-span-4 cursor-pointer flex items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ $isRecette ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' }}">
+                            {{ $isRecette ? 'Recette' : 'Dépense' }}
+                        </span>
+                        <span class="text-gray-700 dark:text-gray-300 truncate">{{ $transaction->description }}</span>
+                        @if ($transaction->statut === 'sortie')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                En attente
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Partenaire --}}
+                <div wire:click="showTransactionDetail({{ $transaction->id }})" class="col-span-2 cursor-pointer flex items-center">
+                    <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {{ $transaction->partenaire?->nom ?? '-' }}
+                    </div>
+                </div>
+
+                {{-- Montant --}}
+                <div wire:click="showTransactionDetail({{ $transaction->id }})" class="col-span-2 cursor-pointer text-right">
+                    <div class="text-lg font-bold {{ $isRecette ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                        {{ $transaction->montant_formate }}
+                    </div>
+                    @if($transaction->justificatif)
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ $transaction->justificatif }}
+                        </div>
+                    @endif
+                </div>
+                
+                {{-- Actions --}}
+                <div class="col-span-1 flex items-center justify-center space-x-2">
+                    <button wire:click.stop="showTransactionDetail({{ $transaction->id }})"
+                            class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition-all duration-200 flex items-center space-x-1 shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                            title="Voir détails">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Version Mobile/Tablet --}}
+            <div class="lg:hidden bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300">
+                
+                {{-- Header Mobile --}}
+                <div wire:click="showTransactionDetail({{ $transaction->id }})" class="p-4 cursor-pointer">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center {{ $isRecette ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30' }}">
+                                @if($isRecette)
+                                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                @else
+                                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    </svg>
+                                @endif
+                            </div>
+                            <div>
+                                <div class="font-semibold text-gray-900 dark:text-white">
+                                    {{ $transaction->reference }}
+                                </div>
+                                <div class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ $transaction->date_formattee }}
+                                </div>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ $isRecette ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' }}">
+                            {{ $isRecette ? 'Recette' : 'Dépense' }}
+                        </span>
+                    </div>
+
+                    {{-- Description & Partenaire --}}
+                    <div class="mb-3">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                            {{ $transaction->description }}
+                        </div>
+                        @if($transaction->partenaire)
+                            <div class="text-xs text-gray-600 dark:text-gray-400 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {{ $transaction->partenaire->nom }}
+                            </div>
+                        @endif
+                        @if($transaction->justificatif)
+                            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-1">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-6.586a1 1 0 00-.707.293l-5.414 5.414A1 1 0 003 11.414V19a2 2 0 002 2z" />
+                                </svg>
+                                {{ $transaction->justificatif }}
+                            </div>
+                        @endif
+                        @if ($transaction->statut === 'sortie')
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 mt-2">
+                                En attente
+                            </span>
+                        @endif
+                    </div>
+
+                    {{-- Montant --}}
+                    <div class="flex items-center justify-between">
+                        <div class="text-xl font-bold {{ $isRecette ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                            {{ $transaction->montant_formate }}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Actions Mobile --}}
+                <div class="border-t border-gray-100 dark:border-gray-700 p-4">
+                    <div class="flex space-x-3">
+                        <button wire:click="showTransactionDetail({{ $transaction->id }})"
+                                class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm active:scale-95"
+                                title="Voir détails">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>Voir Détails</span>
+                        </button>
+                        
+                        @if($transaction->notes)
+                            <button class="px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg flex items-center justify-center space-x-2"
+                                    title="Notes disponibles">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2h-6.586a1 1 0 00-.707.293l-5.414 5.414A1 1 0 003 11.414V19a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Aucune transaction trouvée</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">
+                    @if ($search || $filter !== 'all' || $periode !== 'all')
+                        Modifiez vos critères de recherche pour voir plus de résultats
+                    @else
+                        Créez votre première transaction pour cette catégorie
+                    @endif
+                </p>
+                @if (!$search && $filter === 'all' && $periode === 'all')
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                        <button wire:click="openRecetteModal"
+                                class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Créer une Recette
+                        </button>
+                        <button wire:click="openDepenseModal"
+                                class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                            Créer une Dépense
+                        </button>
+                    </div>
+                @endif
+            </div>
+        @endforelse
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $transactions->links() }}
+    </div>
+</div>
             </div>
         </div>
     </div>
 
     <!-- Modales -->
-    @include('livewire.categorie.modales.categories-modal')
+    @include('livewire.categorie.modales.categories-transaction-modales')
 </div>

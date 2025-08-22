@@ -60,6 +60,5 @@
       </div>
     </div>
 
-    @RegisterServiceWorkerScript
   </body>
 </html>

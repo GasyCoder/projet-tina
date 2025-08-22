@@ -21,24 +21,6 @@
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon/favicon-96x96.png') }}" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="{{ asset('assets/images/favicon/favicon.svg') }}" />
     <link rel="shortcut icon" href="{{ asset('assets/images/favicon/favicon.ico') }}" />
-    {{-- ⚠️ Supprimé: <link rel="manifest" href="{{ asset('assets/images/favicon/site.webmanifest') }}" /> --}}
-
-    <!-- Capte l’évènement PWA très tôt -->
-    <script>
-      window.__deferredPrompt = null;
-      window.__isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-                              || window.navigator.standalone === true;
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        window.__deferredPrompt = e;
-        document.documentElement.classList.add('can-install');
-        window.dispatchEvent(new Event('pwa:can-install'));
-      });
-
-      window.addEventListener('appinstalled', () => console.log('[PWA] installée'));
-    </script>
-
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

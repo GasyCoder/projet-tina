@@ -1,0 +1,16 @@
+{
+    "name": "Gestion TINAH",
+    "short_name": "Gestion TINAH",
+    "background_color": "#ffffff",
+    "display": "standalone",
+    "description": "Application Madame TINAH",
+    "theme_color": "#3400e0",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

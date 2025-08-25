@@ -9,25 +9,16 @@ return new class extends Migration {
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->string('code_comptable', 10)->unique();
-            $table->string('nom', 100);
-            $table->decimal('budget', 10, 2)->default(0);
+            $table->string('nom');
+            $table->string('code_comptable')->unique();
             $table->text('description')->nullable();
+            $table->enum('type', ['revenu', 'depense', 'actif', 'passif']);
+            $table->decimal('budget', 15, 2)->default(0);
             $table->boolean('is_active')->default(true);
-
-            // Only one type column for categories (recette/depense)
-            $table->enum('type', ['recette', 'depense'])->default('depense');
-            $table->enum('type_compte', [
-                'Principal',
-                'MobileMoney',
-                'Banque'
-            ])->default('Principal');
-
             $table->timestamps();
 
-            // Indexes for better query performance
-            $table->index('is_active');
             $table->index('type');
+            $table->index('is_active');
         });
     }
 

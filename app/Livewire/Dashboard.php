@@ -47,7 +47,7 @@ class Dashboard extends Component
             $this->voyagesActifs = Voyage::where('statut', 'en_cours')->count();
 
             // Solde total de tous les comptes
-            $this->soldeTotal = Compte::where('actif', true)->sum('solde_actuel_mga');
+            // $this->soldeTotal = Compte::where('actif', true)->sum('solde_actuel_mga');
 
             // Notifications (factures en retard, voyages longs, etc.)
             $this->notifications = $this->getNotificationsCount();
@@ -69,35 +69,35 @@ class Dashboard extends Component
         }
     }
 
-    private function getNotificationsCount()
-    {
-        $notifications = 0;
+    // private function getNotificationsCount()
+    // {
+    //     $notifications = 0;
 
-        try {
-            // Voyages en cours depuis plus de 3 jours
-            $voyagesLongs = Voyage::where('statut', 'en_cours')
-                ->where('created_at', '<', Carbon::now()->subDays(3))
-                ->count();
-            $notifications += $voyagesLongs;
+    //     try {
+    //         // Voyages en cours depuis plus de 3 jours
+    //         $voyagesLongs = Voyage::where('statut', 'en_cours')
+    //             ->where('created_at', '<', Carbon::now()->subDays(3))
+    //             // ->count();
+    //         $notifications += $voyagesLongs;
 
-            // Ventes avec montant restant (impayées partiellement)
-            $ventesPartielles = Vente::where('statut_paiement', 'partiel')
-                ->where('montant_restant_mga', '>', 0)
-                ->count();
-            $notifications += $ventesPartielles;
+    //         // Ventes avec montant restant (impayées partiellement)
+    //         $ventesPartielles = Vente::where('statut_paiement', 'partiel')
+    //             ->where('montant_restant_mga', '>', 0)
+    //             ->count();
+    //         $notifications += $ventesPartielles;
 
-            // Comptes avec solde faible (moins de 100,000 Ar)
-            $comptesFaibles = Compte::where('actif', true)
-                ->where('solde_actuel_mga', '<', 100000)
-                ->count();
-            $notifications += $comptesFaibles;
+    //         // Comptes avec solde faible (moins de 100,000 Ar)
+    //         $comptesFaibles = Compte::where('actif', true)
+    //             ->where('solde_actuel_mga', '<', 100000)
+    //             ->count();
+    //         $notifications += $comptesFaibles;
 
-        } catch (\Exception $e) {
-            Log::error('Error calculating notifications: ' . $e->getMessage());
-        }
+    //     } catch (\Exception $e) {
+    //         Log::error('Error calculating notifications: ' . $e->getMessage());
+    //     }
 
-        return $notifications;
-    }
+    //     return $notifications;
+    // }
 
     public function refreshStats()
     {

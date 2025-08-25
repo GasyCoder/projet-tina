@@ -9,7 +9,7 @@ use App\Models\Compte;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
-use Livewire\Attributes\Validate;
+use Carbon\Carbon;
 
 class CategorieShow extends Component
 {
@@ -19,10 +19,13 @@ class CategorieShow extends Component
     public string $filter = 'all';
     public string $search = '';
     public string $periode = 'all';
+    public string $activeTab = 'dashboard'; // dashboard, transactions, analytics, budget
 
     // === MODALS ===
     public bool $showNewTransactionModal = false;
     public bool $showTransactionDetailModal = false;
+    public bool $showBudgetModal = false;
+    public bool $showRapportModal = false;
 
     // === TRANSACTIONS MULTIPLES ===
     public array $transactionsEnCours = [];
@@ -30,9 +33,19 @@ class CategorieShow extends Component
 
     // === DONNÉES SÉLECTIONNÉES ===
     public array $transactionDetails = [];
+    public array $dashboardData = [];
 
     // === FORMULAIRE TRANSACTION ===
     public array $newTransaction = [];
+
+    // === FORMULAIRE BUDGET ===
+    public string $nouveauBudget = '';
+    public string $objectifMensuel = '';
+    public string $seuilAlerte = '';
+
+    // === PÉRIODE POUR RAPPORTS ===
+    public string $moisRapport = '';
+    public array $rapportData = [];
 
     // Données de référence
     public $partenaires = [];
@@ -42,6 +55,7 @@ class CategorieShow extends Component
         'filter' => ['except' => 'all'],
         'search' => ['except' => ''],
         'periode' => ['except' => 'all'],
+        'activeTab' => ['except' => 'dashboard'],
         'page' => ['except' => 1],
     ];
 
@@ -49,7 +63,9 @@ class CategorieShow extends Component
     {
         $this->categorie = $categorie;
         $this->loadReferenceData();
+        $this->loadDashboardData();
         $this->initNewTransaction();
+        $this->initBudgetForm();
     }
 
     private function loadReferenceData(): void
@@ -66,9 +82,13 @@ class CategorieShow extends Component
         ];
     }
 
+    private function loadDashboardData(): void
+    {
+        $this->dashboardData = $this->categorie->getDashboardComplet();
+    }
+
     private function initNewTransaction(): void
     {
-        // Garder le type existant si défini
         $type = $this->newTransaction['type'] ?? $this->categorie->type;
 
         $this->newTransaction = [
@@ -76,13 +96,32 @@ class CategorieShow extends Component
             'description' => '',
             'montant' => '',
             'date_transaction' => now()->format('Y-m-d'),
-            'type' => $type, // ✅ Conserver le type choisi
+            'type' => $type,
             'mode_paiement' => 'especes',
-            'type_compte_mobilemoney_or_banque' => '', // ✅ Nom correct
+            'type_compte_mobilemoney_or_banque' => '',
             'partenaire_nom' => '',
             'partenaire_id' => '',
             'notes' => '',
         ];
+    }
+
+    private function initBudgetForm(): void
+    {
+        $this->nouveauBudget = (string) $this->categorie->budget;
+        $this->objectifMensuel = (string) $this->categorie->objectif_mensuel;
+        $this->seuilAlerte = (string) $this->categorie->seuil_alerte;
+    }
+
+    // === GESTION DES ONGLETS ===
+    public function switchTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+
+        if ($tab === 'dashboard') {
+            $this->loadDashboardData();
+        }
+
+        $this->resetPage();
     }
 
     // === GESTION MODALS ===
@@ -104,7 +143,34 @@ class CategorieShow extends Component
     {
         $this->showNewTransactionModal = false;
         $this->initNewTransaction();
+        $this->transactionsEnCours = [];
+        $this->totalTransactions = 0;
         $this->resetErrorBag();
+    }
+
+    public function openBudgetModal(): void
+    {
+        $this->initBudgetForm();
+        $this->showBudgetModal = true;
+    }
+
+    public function closeBudgetModal(): void
+    {
+        $this->showBudgetModal = false;
+        $this->resetErrorBag();
+    }
+
+    public function openRapportModal(): void
+    {
+        $this->moisRapport = now()->format('Y-m');
+        $this->genererRapport();
+        $this->showRapportModal = true;
+    }
+
+    public function closeRapportModal(): void
+    {
+        $this->showRapportModal = false;
+        $this->rapportData = [];
     }
 
     // === TRANSACTIONS MULTIPLES ===
@@ -119,26 +185,19 @@ class CategorieShow extends Component
             'newTransaction.notes' => 'nullable|string|max:1000',
         ]);
 
-        // Validation conditionnelle du sous-type
         if (in_array($this->newTransaction['mode_paiement'], ['MobileMoney', 'Banque'])) {
             $this->validate([
                 'newTransaction.type_compte_mobilemoney_or_banque' => 'required',
             ]);
         }
 
-        // Vérification solde pour les dépenses
         if ($this->insuffisantTransaction) {
             $this->addError('newTransaction.montant', 'Solde insuffisant pour ce montant.');
             return;
         }
 
-        // Ajouter la transaction à la liste
         $this->transactionsEnCours[] = $this->newTransaction;
-
-        // Réinitialiser le formulaire
         $this->initNewTransaction();
-
-        // Recalculer le total
         $this->calculateTotal();
     }
 
@@ -168,10 +227,8 @@ class CategorieShow extends Component
         try {
             DB::transaction(function () {
                 foreach ($this->transactionsEnCours as $transaction) {
-                    // Génération référence unique
                     $reference = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
 
-                    // Gestion du partenaire
                     $partenaireId = null;
                     if (!empty($transaction['partenaire_nom'])) {
                         $partenaire = Partenaire::firstOrCreate(
@@ -181,7 +238,6 @@ class CategorieShow extends Component
                         $partenaireId = $partenaire->id;
                     }
 
-                    // Nettoyage des données
                     $dataToSave = [
                         'categorie_id' => $transaction['categorie_id'],
                         'description' => $transaction['description'],
@@ -195,10 +251,7 @@ class CategorieShow extends Component
                         'reference' => $reference,
                     ];
 
-                    // Créer la transaction
                     $newTransaction = TransactionComptable::create($dataToSave);
-
-                    // Mise à jour du solde
                     $this->updateCompteBalance($newTransaction);
                 }
             });
@@ -206,15 +259,57 @@ class CategorieShow extends Component
             $count = count($this->transactionsEnCours);
             session()->flash('success', "$count transaction(s) créée(s) avec succès !");
 
-            // Réinitialiser
             $this->transactionsEnCours = [];
             $this->totalTransactions = 0;
             $this->closeNewTransactionModal();
             $this->resetPage();
+            $this->loadDashboardData(); // Recharger le dashboard
 
         } catch (\Throwable $e) {
             session()->flash('error', "Erreur lors de la création : " . $e->getMessage());
         }
+    }
+
+    // === GESTION BUDGET ===
+    public function updateBudget(): void
+    {
+        $this->validate([
+            'nouveauBudget' => 'required|numeric|min:0',
+            'objectifMensuel' => 'required|numeric|min:0',
+            'seuilAlerte' => 'required|integer|min:1|max:100',
+        ]);
+
+        try {
+            $this->categorie->update([
+                'budget' => $this->nouveauBudget,
+                'objectif_mensuel' => $this->objectifMensuel,
+                'seuil_alerte' => $this->seuilAlerte,
+            ]);
+
+            session()->flash('success', 'Budget mis à jour avec succès !');
+            $this->closeBudgetModal();
+            $this->loadDashboardData();
+
+        } catch (\Throwable $e) {
+            session()->flash('error', "Erreur lors de la mise à jour : " . $e->getMessage());
+        }
+    }
+
+    // === RAPPORTS ===
+    public function genererRapport(): void
+    {
+        if (empty($this->moisRapport)) {
+            $this->moisRapport = now()->format('Y-m');
+        }
+
+        $mois = Carbon::createFromFormat('Y-m', $this->moisRapport);
+        $this->rapportData = $this->categorie->genererRapportMensuel($mois);
+    }
+
+    public function exportRapport(): void
+    {
+        // Ici vous pourriez implémenter l'export en PDF/Excel
+        session()->flash('info', 'Fonctionnalité d\'export en cours de développement.');
     }
 
     // === FILTRES ===
@@ -309,65 +404,7 @@ class CategorieShow extends Component
             ->toArray();
     }
 
-    // === SAUVEGARDE TRANSACTION INDIVIDUELLE (pour compatibilité) ===
-    public function saveTransaction(): void
-    {
-        $this->validate([
-            'newTransaction.description' => 'required|string|min:3|max:255',
-            'newTransaction.montant' => 'required|numeric|min:0.01',
-            'newTransaction.date_transaction' => 'required|date',
-            'newTransaction.mode_paiement' => 'required|in:especes,MobileMoney,Banque',
-            'newTransaction.partenaire_nom' => 'nullable|string|max:255',
-            'newTransaction.notes' => 'nullable|string|max:1000',
-        ]);
-
-        // Validation conditionnelle du sous-type
-        if (in_array($this->newTransaction['mode_paiement'], ['MobileMoney', 'Banque'])) {
-            $this->validate([
-                'newTransaction.type_compte_mobilemoney_or_banque' => 'required',
-            ]);
-        }
-
-        // Vérification solde pour les dépenses
-        if ($this->insuffisantTransaction) {
-            $this->addError('newTransaction.montant', 'Solde insuffisant pour ce montant.');
-            return;
-        }
-
-        try {
-            DB::transaction(function () {
-                // Génération référence unique
-                $this->newTransaction['reference'] = 'TXN-' . now()->format('YmdHis') . '-' . rand(100, 999);
-
-                // Gestion du partenaire
-                if (!empty($this->newTransaction['partenaire_nom'])) {
-                    $partenaire = Partenaire::firstOrCreate(
-                        ['nom' => $this->newTransaction['partenaire_nom']],
-                        ['is_active' => true]
-                    );
-                    $this->newTransaction['partenaire_id'] = $partenaire->id;
-                }
-
-                // Nettoyage des données
-                $dataToSave = array_filter($this->newTransaction, function ($value, $key) {
-                    return $value !== '' && $value !== null && $key !== 'partenaire_nom';
-                }, ARRAY_FILTER_USE_BOTH);
-
-                $newTransaction = TransactionComptable::create($dataToSave);
-
-                // Mise à jour du solde
-                $this->updateCompteBalance($newTransaction);
-            });
-
-            session()->flash('success', 'Transaction créée avec succès !');
-            $this->closeNewTransactionModal();
-            $this->resetPage();
-
-        } catch (\Throwable $e) {
-            session()->flash('error', "Erreur lors de la création : " . $e->getMessage());
-        }
-    }
-
+    // === MISE À JOUR SOLDES ===
     private function updateCompteBalance(TransactionComptable $transaction): void
     {
         $montant = (float) $transaction->montant;
@@ -396,8 +433,8 @@ class CategorieShow extends Component
                 'reference' => $transaction->reference,
                 'description' => $transaction->description,
                 'montant' => $transaction->montant,
-                'montant_formate' => number_format($transaction->montant, 0, ',', ' ') . ' Ar',
-                'date' => $transaction->date_transaction?->format('d/m/Y') ?? '',
+                'montant_formate' => $transaction->montant_formate,
+                'date' => $transaction->date_formattee,
                 'type' => $transaction->type,
                 'statut' => $transaction->statut,
                 'mode_paiement' => $transaction->mode_paiement,
@@ -443,6 +480,7 @@ class CategorieShow extends Component
             session()->flash('success', 'Transaction supprimée avec succès !');
             $this->closeTransactionDetailModal();
             $this->resetPage();
+            $this->loadDashboardData();
 
         } catch (\Throwable $e) {
             session()->flash('error', "Erreur lors de la suppression : " . $e->getMessage());
@@ -471,7 +509,13 @@ class CategorieShow extends Component
                 });
             })
             ->when($this->filter !== 'all', function ($query) {
-                $query->where('statut', $this->filter);
+                if ($this->filter === 'recette') {
+                    $query->where('type', 'recette');
+                } elseif ($this->filter === 'depense') {
+                    $query->where('type', 'depense');
+                } else {
+                    $query->where('statut', $this->filter);
+                }
             })
             ->when($this->periode !== 'all', function ($query) {
                 if ($this->periode === 'mois_courant') {
@@ -488,12 +532,7 @@ class CategorieShow extends Component
 
     public function getStatistiquesProperty(): array
     {
-        return $this->categorie->getStatistiquesCompletes();
-    }
-
-    public function getSelectedTransactionProperty()
-    {
-        return $this->transactionDetails;
+        return $this->dashboardData['financier'] ?? [];
     }
 
     public function render()
@@ -501,10 +540,10 @@ class CategorieShow extends Component
         return view('livewire.categorie.categorieShow', [
             'transactions' => $this->transactions,
             'statistiques' => $this->statistiques,
+            'dashboardData' => $this->dashboardData,
             'partenaires' => $this->partenaires,
             'comptes' => $this->comptes,
             'suggestions' => $this->suggestions,
-            'selectedTransaction' => $this->selectedTransaction,
         ]);
     }
 }

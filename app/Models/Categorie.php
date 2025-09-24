@@ -12,25 +12,34 @@ class Categorie extends Model
 
     protected $table = 'categories';
 
-    protected $fillable = [
-        'code_comptable',
-        'nom',
-        'type', // 'recette' ou 'depense'
-        'budget',
-        'description',
-        'is_active',
-    ];
+ protected $fillable = [
+    'code_comptable',
+    'nom',
+    'type',
+    'budget',
+    'description',
+    'is_active',
+    'objectif_mensuel', // Ajouter si nécessaire
+    'seuil_alerte',     // Ajouter si nécessaire
+];
 
-    protected $attributes = [
-        'budget' => 0,
-        'is_active' => true,
-        'type' => 'depense',
-    ];
 
-    protected $casts = [
-        'budget' => 'decimal:2',
-        'is_active' => 'boolean',
-    ];
+   
+protected $attributes = [
+    'budget' => 0,
+    'is_active' => true,
+    'type' => 'depense',
+    'objectif_mensuel' => 0, // Ajouter si nécessaire
+    'seuil_alerte' => 80,    // Ajouter si nécessaire
+];
+
+
+  protected $casts = [
+    'budget' => 'decimal:2',
+    'is_active' => 'boolean',
+    'objectif_mensuel' => 'decimal:2', // Ajouter si nécessaire
+    'seuil_alerte' => 'integer',       // Ajouter si nécessaire
+];
 
     /**
      * Relation avec les transactions comptables
@@ -97,16 +106,14 @@ class Categorie extends Model
             ->latest('date_transaction')
             ->limit(5)
             ->get()
-            ->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'reference' => $transaction->reference,
-                    'description' => $transaction->description,
-                    'montant' => $transaction->montant,
-                    'date' => $transaction->date_transaction?->format('d/m/Y'),
-                    'partenaire' => $transaction->partenaire?->nom,
-                ];
-            })
+            ->map(fn($transaction) => [
+                'id' => $transaction->id,
+                'reference' => $transaction->reference,
+                'description' => $transaction->description,
+                'montant' => $transaction->montant,
+                'date' => $transaction->date_transaction?->format('d/m/Y'),
+                'partenaire' => $transaction->partenaire?->nom,
+            ])
             ->toArray();
     }
 
@@ -147,6 +154,54 @@ class Categorie extends Model
     }
 
     /**
+ * Dashboard complet de la catégorie
+ */
+public function getDashboardComplet(): array
+{
+    $transactions = $this->transactions();
+    $moisCourant = now();
+    $moisPrecedent = now()->subMonth();
+
+    // Statistiques du mois précédent
+    $montantMoisPrecedent = (float) $transactions
+        ->whereMonth('date_transaction', $moisPrecedent->month)
+        ->whereYear('date_transaction', $moisPrecedent->year)
+        ->sum('montant');
+
+    // Évolution par rapport au mois précédent
+    $montantMoisCourant = $this->transactions_mois;
+    $evolution = $montantMoisPrecedent > 0 
+        ? (($montantMoisCourant - $montantMoisPrecedent) / $montantMoisPrecedent) * 100 
+        : 0;
+
+    return [
+        'financier' => [
+            'montant_total' => $this->montant_total,
+            'montant_mois' => $montantMoisCourant,
+            'montant_mois_precedent' => $montantMoisPrecedent,
+            'evolution_mois' => $evolution,
+            'budget' => $this->budget,
+            'montant_restant_budget' => $this->montant_restant_budget,
+            'pourcentage_budget' => $this->pourcentage_budget,
+            'budget_depasse' => $this->isBudgetDepasse(),
+        ],
+        'transactions' => [
+            'total' => $this->nombre_transactions,
+            'entrees' => $transactions->where('statut', 'entrer')->count(),
+            'sorties' => $transactions->where('statut', 'sortie')->count(),
+            'moyenne' => $this->moyenne_transaction,
+        ],
+        'recent' => [
+            'derniere_transaction' => $this->derniere_transaction,
+            'recent_transactions' => $this->recent_transactions,
+        ],
+        'tendance' => [
+            'evolution_mois' => $evolution,
+            'tendance' => $evolution >= 0 ? 'hausse' : 'baisse',
+        ]
+    ];
+}
+    /**
      * Statistiques complètes de la catégorie
      */
     public function getStatistiquesCompletes(): array
@@ -157,8 +212,6 @@ class Categorie extends Model
         return [
             'montant_total' => $this->montant_total,
             'montant_mois' => $this->transactions_mois,
-            'total_transactions' => $this->nombre_transactions,
-            'moyenne_transaction' => $this->moyenne_transaction,
             'derniere_transaction' => $this->derniere_transaction,
             'budget' => $this->budget,
             'montant_restant_budget' => $this->montant_restant_budget,
@@ -212,3 +265,5 @@ class Categorie extends Model
         return $query->withSum('transactions', 'montant');
     }
 }
+    
+     

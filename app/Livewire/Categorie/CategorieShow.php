@@ -82,10 +82,10 @@ class CategorieShow extends Component
         ];
     }
 
-    private function loadDashboardData(): void
-    {
-        $this->dashboardData = $this->categorie->getDashboardComplet();
-    }
+private function loadDashboardData(): void
+{
+    $this->dashboardData = $this->categorie->getStatistiquesCompletes();
+}
 
     private function initNewTransaction(): void
     {
@@ -296,15 +296,20 @@ class CategorieShow extends Component
     }
 
     // === RAPPORTS ===
-    public function genererRapport(): void
-    {
-        if (empty($this->moisRapport)) {
-            $this->moisRapport = now()->format('Y-m');
-        }
+public function genererRapport(): void
+{
+    if (empty($this->moisRapport)) {
+        $this->moisRapport = now()->format('Y-m');
+    }
 
+    try {
         $mois = Carbon::createFromFormat('Y-m', $this->moisRapport);
         $this->rapportData = $this->categorie->genererRapportMensuel($mois);
+    } catch (\Exception $e) {
+        session()->flash('error', "Erreur lors de la génération du rapport : " . $e->getMessage());
+        $this->rapportData = [];
     }
+}
 
     public function exportRapport(): void
     {
@@ -530,10 +535,10 @@ class CategorieShow extends Component
             ->paginate(15);
     }
 
-    public function getStatistiquesProperty(): array
-    {
-        return $this->dashboardData['financier'] ?? [];
-    }
+   public function getStatistiquesProperty(): array
+{
+    return $this->dashboardData['financier'] ?? [];
+}
 
     public function render()
     {
